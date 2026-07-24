@@ -55,6 +55,9 @@ CREATE TABLE IF NOT EXISTS sources (
     quality_score  REAL DEFAULT 0,       -- 优选评分
     -- 单播回看(仅rtsp源;NULL=未探测/非单播, 0=不支持回看, N=可回看N天)
     playback_days  INTEGER,
+    -- 单播完整回看地址的query部分(含token,仅rtsp源;link_sources从channels.json写入)。
+    -- 完整地址 = address + "?" + timeshift_query。token每周随pipeline的fetch_channels刷新→link_sources重写此列。
+    timeshift_query TEXT,
     -- 元数据
     screenshots    TEXT,                 -- 截图路径(分号分隔,最多3张)
     fail_count     INTEGER DEFAULT 0,    -- 连续失败次数(用于下线判定)

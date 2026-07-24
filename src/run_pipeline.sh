@@ -23,7 +23,11 @@ fi
 # msd_lite/udpxy 组播转码地址(.env 里 UDPXY= 或 MSD=,兼容)
 MSD="${MSD:-${UDPXY:-127.0.0.1:4088}}"
 NGINX_M3U_DIR="${NGINX_M3U_DIR:-/volume1/docker/nginx/m3u}"
-EPG_JSON="../reference/channels.sample.json"
+# EPG源: 优先用 fetch_channels 刷新的 channels.json(含新token,单播回看可持续),
+#   没有(未刷成功)则回退历史快照 channels.sample.json(token可能过期,回看不保证)。
+EPG_FRESH="../reference/channels.json"
+EPG_SAMPLE="../reference/channels.sample.json"
+EPG_JSON="$EPG_SAMPLE"
 STAMP=$(date +%Y%m%d_%H%M%S)
 
 # 扫描模式: 默认 known(增量), --full 则 full(全量)
@@ -52,6 +56,21 @@ fi
 
 echo "# 扫描模式: $SCAN_MODE"
 echo "############################################"
+
+# -1. 刷新token: EPG认证拉最新channels.json(含新鲜token,单播/回看地址每次都新鲜)。
+#     token跟IP无关(CDN不校验绑定IP),但会按签发时间过期→每次pipeline刷一次最稳。
+#     成功→后续都用新channels.json;失败→回退历史sample快照(组播不受影响,回看用旧token可能失效)。
+echo ""; echo ">>> [刷新token] EPG认证 → channels.json"
+if python3 fetch_channels.py; then
+    if [ -s "$EPG_FRESH" ]; then
+        EPG_JSON="$EPG_FRESH"
+        echo "  ✅ token已刷新,后续用 channels.json"
+    else
+        echo "  ⚠️ channels.json为空,回退 sample 快照"
+    fi
+else
+    echo "  ⚠️ EPG认证失败(网络/路由/凭证?),回退 sample 快照(组播不受影响)"
+fi
 
 # 0. 消费上次App的孤儿源识别结果(若有) → 写库归并
 echo ""; echo ">>> [0/7] 消费孤儿源识别结果(data/orphan_inbox/)"

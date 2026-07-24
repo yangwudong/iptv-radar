@@ -244,7 +244,12 @@ pipeline产出orphans.json+截图 → Electron App人工识别 → resolved.json
 - **CDN不校验token里绑的IP**: token的accountinfo明文记录认证时IP,但实测旧token(绑旧IP)换IP后照样播直播+回看 → 换IP无需重刷token,只要路由在。
 - **换IP后单播全挂的真凶=hotplug路由脚本被冲**: 换IP触发完整ifup,netifd重建接口路由时冲掉EPG/CDN专网路由(race condition),导致单播全挂(组播正常)。非token问题。
 - **修复**: `reference/router/99-iptv-routes`(部署软路由 /etc/hotplug.d/iface/),加专网路由后循环校验约30s,被netifd冲掉就重加;网关全动态探测无硬编码。
-- **决策**: m3u主源坚持组播(换IP无影响)。单播回看m3u支持已rollback(天生脆弱,依赖路由+token)。probe_timeshift(回看天数探测)+fetch_channels(EPG认证刷token,软路由跑需`--ip <IPTV内网IP>`+路由通)保留为备用工具,token按签发时间低频刷即可。
+- **决策(2026-07-25更新)**: 单播回看可持续方案已实现落地(前提: hotplug路由已修+token每周随pipeline刷)。
+  - **优选**: etl给可回看单播源(playback_days>0)+60加成,同分辨率压过组播偏好(+30)让回看源成主源,但不压过更高分辨率(不牺牲画质)。约36个可回看频道主源转单播。
+  - **回看地址**: 单播主源在库存去token简化地址(sources.address),完整地址=address+"?"+timeshift_query。timeshift_query(含token)由link_sources从channels.json写入sources表,每周随fetch_channels刷新。gen_m3u拼完整地址+给playback_days>0的加catchup="append"标签(APTV等可回看)。
+  - **token刷新**: pipeline每次(含known增量)开头跑fetch_channels重新EPG认证→channels.json(新token)。token不校验IP(换IP不影响),但按签发时间过期,每周刷最稳。
+  - **架构原则**: token入库(sources.timeshift_query),gen_m3u仍只从库读,不破"SQLite唯一主数据源"。channels.json含token→gitignore不提交,compose单文件挂载持久化。
+  - **4K频道例外**: 部分4K频道(北京卫视4K等)电信不提供回看(playback_days=0,回看请求404),m3u不加catchup标签(正确);但APTV仍允许触发回看并因404 crash,属APTV健壮性问题,数据侧无误。
 
 ---
 

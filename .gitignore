@@ -3,6 +3,8 @@
 *.pcap
 *.pcapng
 reference/pcap/
+reference/channels.json
+src/epg_raw_response.txt
 data/*.db
 data/*.db-journal
 data/*.bak

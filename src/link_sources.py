@@ -51,6 +51,19 @@ def get_addrs(url):
     return addrs
 
 
+def get_addr_queries(ch):
+    """从channels.json一个频道提取单播 {简化地址: 完整query(含token)}。
+    用 timeshift_url(回看地址,带token);完整地址 = 简化地址 + '?' + query。
+    catchup='append'模式下直播也用此地址(后接&playseek即回看),故直播回看同源。"""
+    out = {}
+    ts = ch.get('timeshift_url') or ''
+    if ts.startswith('rtsp://') and '?' in ts:
+        s = re.match(r'(rtsp://[^?]+\.smil)', ts)
+        if s:
+            out[s.group(1)] = ts.split('?', 1)[1]
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--db', default=DEFAULT_DB)
@@ -102,8 +115,10 @@ def main():
     valid_keys = set(key2id.keys())
     epg = json.load(open(args.epg, encoding='utf-8'))
     official_added = 0
+    addr2query = {}   # 单播简化地址 → 完整query(含token),用于回写 sources.timeshift_query
     for ch in epg:
         addrs = get_addrs(ch['url'])
+        addr2query.update(get_addr_queries(ch))   # 收集单播回看query(带token)
         key = None
         # a) 地址已知
         for a in addrs:
@@ -125,10 +140,17 @@ def main():
                     official_added += 1
 
     # === 4. 回填 sources: channel_id(关联键,为主) + channel_key(可读冗余) ===
+    # 自愈: 确保 timeshift_query 字段存在(旧库可能没有)
+    cols = [r[1] for r in c.execute("PRAGMA table_info(sources)").fetchall()]
+    if 'timeshift_query' not in cols:
+        c.execute("ALTER TABLE sources ADD COLUMN timeshift_query TEXT")
+        print("  + sources.timeshift_query 字段(自愈)")
     # 先取完再更新,避免cursor冲突
-    src_rows = c.execute("SELECT source_id, address FROM sources").fetchall()
+    src_rows = c.execute("SELECT source_id, address, source_type FROM sources").fetchall()
     linked, orphan = 0, 0
+    ts_written = 0
     updates = []   # (channel_id, channel_key, source_id)
+    ts_updates = []  # (timeshift_query, source_id) 仅单播
     for r in src_rows:
         key = addr2key.get(r['address'])
         cid = key2id.get(key) if key else None
@@ -139,8 +161,16 @@ def main():
             # 归不上: 清空两列(可能之前归错的也一并清,保持一致)
             updates.append((None, None, r['source_id']))
             orphan += 1
+        # 单播源: 回写完整回看query(含token)。每周pipeline刷token→此列随之更新。
+        if r['source_type'] == 'rtsp':
+            q = addr2query.get(r['address'])
+            if q:
+                ts_updates.append((q, r['source_id']))
+                ts_written += 1
     if not args.dry_run:
         c.executemany("UPDATE sources SET channel_id=?, channel_key=? WHERE source_id=?", updates)
+        if ts_updates:
+            c.executemany("UPDATE sources SET timeshift_query=? WHERE source_id=?", ts_updates)
         conn.commit()
         # 回写归并快照(持久化: 新归并的下次也不丢)。快照存 address→channel_key(规范名,稳定可读)
         links = {r['address']: r['channel_key'] for r in
@@ -153,6 +183,7 @@ def main():
     print(f"  持久化快照加载: {snap_loaded} 条(人工归并结果)")
     print(f"  官方台账新增地址映射: {official_added}")
     print(f"  源归并结果: 已归并 {linked}, 孤儿 {orphan}")
+    print(f"  单播回看query回写(含token): {ts_written} 个单播源")
     print(f"\n  验证: 钱江频道的所有源")
     for r in c.execute("SELECT address, resolution, channel_key, source_type FROM sources WHERE channel_key LIKE '%钱江%'"):
         print(f"    {r['address']:<26} {r['resolution']:<10} → {r['channel_key']}")

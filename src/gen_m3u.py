@@ -29,13 +29,17 @@ GROUP_ORDER = ['央视', '4K超高清', '卫视', '浙江', '北京', '上海', 
                '其他', '广播', '未识别']
 
 
-def addr_to_url(source_type, address, msd):
+def addr_to_url(source_type, address, msd, timeshift_query=None):
     """源地址 → 播放URL"""
     if source_type == 'multicast':
         # address = "233.50.201.118:5140"
         return f"http://{msd}/rtp/{address}"
     elif source_type == 'rtsp':
-        return address  # rtsp url 原样
+        # 单播: 库存的是去token简化地址,完整地址 = address + "?" + timeshift_query(含token)
+        # timeshift_query 由 link_sources 从 channels.json 写入,每周随fetch刷新
+        if timeshift_query:
+            return f"{address}?{timeshift_query}"
+        return address  # 无query(未刷token)则原样(播不了,但不阻断生成)
     return address
 
 
@@ -47,7 +51,7 @@ def generate(db_path, out_path, msd):
     # 读所有启用的频道 + 主源(经 channel_preferred_sources rank=1)
     rows = c.execute("""
         SELECT ch.channel_id, ch.name, ch.tvg_id, ch.tvg_logo,
-               s.source_type, s.address
+               s.source_type, s.address, s.playback_days, s.timeshift_query
         FROM channels ch
         LEFT JOIN channel_preferred_sources p ON ch.channel_id = p.channel_id AND p.rank = 1
         LEFT JOIN sources s ON p.source_id = s.source_id
@@ -76,12 +80,17 @@ def generate(db_path, out_path, msd):
         members = sorted(group_members[g], key=lambda x: x[0])
         for _, cid in members:
             r = ch_by_id[cid]
-            url = addr_to_url(r['source_type'], r['address'], msd) if r['address'] else ''
+            url = addr_to_url(r['source_type'], r['address'], msd, r['timeshift_query']) if r['address'] else ''
             if not url:
                 continue
             logo_attr = f' tvg-logo="{r["tvg_logo"]}"' if r['tvg_logo'] else ''
             id_attr = f' tvg-id="{r["tvg_id"]}"' if r['tvg_id'] else ''
-            lines.append(f'#EXTINF:-1{id_attr}{logo_attr} group-title="{g}",{r["name"]}')
+            # 回看: 单播源(含PLTV) + playback_days>0 → 加catchup标签(APTV等可回看)
+            # catchup-source用&playseek(直播url已有?参数,用&接续);本地时间(实测电信playseek用北京时间)
+            catchup_attr = ''
+            if r['source_type'] == 'rtsp' and (r['playback_days'] or 0) > 0:
+                catchup_attr = ' catchup="append" catchup-source="&playseek=${(b)yyyyMMddHHmmss}-${(e)yyyyMMddHHmmss}"'
+            lines.append(f'#EXTINF:-1{id_attr}{logo_attr}{catchup_attr} group-title="{g}",{r["name"]}')
             lines.append(url)
             count += 1
 

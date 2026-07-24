@@ -23,5 +23,6 @@ services:
     volumes:
       - ./data:/app/data                     # SQLite主库+种子+inbox(持久化)
       - ./output:/app/output                 # m3u + dashboard + orphan_review
+      - ./reference/channels.json:/app/reference/channels.json  # fetch_channels刷的token(持久化;容器退出不丢)
       - /volume1/docker/nginx/m3u:/nginx_m3u # 发布: 挂载现有nginx的m3u目录
     restart: "no"               # 瞬时任务,跑完即退,不自动重启
