@@ -239,6 +239,13 @@ db_schema.py 建表 → seed.py load(载入channels_seed.json:频道台账+分�
 ### 孤儿源识别(异步文件交换, 详见 ORPHAN_REVIEW.md)
 pipeline产出orphans.json+截图 → Electron App人工识别 → resolved.json → pipeline消费写库。json契约定死,三方解耦。
 
+### 单播/回看机制(2026-07-24 实测定论)
+- **单播/回看能否播 = ①token没过期(按签发时间) + ②到EPG/CDN专网路由通**,两者缺一不可。组播(233.50.x走IGMP直连)不依赖这两点,最稳。
+- **CDN不校验token里绑的IP**: token的accountinfo明文记录认证时IP,但实测旧token(绑旧IP)换IP后照样播直播+回看 → 换IP无需重刷token,只要路由在。
+- **换IP后单播全挂的真凶=hotplug路由脚本被冲**: 换IP触发完整ifup,netifd重建接口路由时冲掉EPG/CDN专网路由(race condition),导致单播全挂(组播正常)。非token问题。
+- **修复**: `reference/router/99-iptv-routes`(部署软路由 /etc/hotplug.d/iface/),加专网路由后循环校验约30s,被netifd冲掉就重加;网关全动态探测无硬编码。
+- **决策**: m3u主源坚持组播(换IP无影响)。单播回看m3u支持已rollback(天生脆弱,依赖路由+token)。probe_timeshift(回看天数探测)+fetch_channels(EPG认证刷token,软路由跑需`--ip <IPTV内网IP>`+路由通)保留为备用工具,token按签发时间低频刷即可。
+
 ---
 
 ## 六、部署 (待实施)

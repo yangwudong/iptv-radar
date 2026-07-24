@@ -1,0 +1,72 @@
+#!/bin/sh
+# IPTV 单播/回看专网路由: 到 EPG/CDN(下方 NETS)经 IPTV 接口(eth1.43)走,不走公网。
+#
+# 【为什么需要】组播(233.50.x)走IGMP直连不受影响;单播/回看走 rtsp://115.233.x:554,
+#   必须经 IPTV 专网路由(源IP为IPTV内网IP)才能连通,否则走公网被CDN拒(TCP连不上)。
+# 【坑】换IP(完整ifup)时 netifd 会重建接口路由,冲掉本脚本加的专网路由(race condition),
+#   导致换IP后单播/回看全挂(组播正常)。故加完后循环校验若干次,被冲掉就重加。
+# 【与token无关】实测CDN不校验token里绑的IP,单播能否播只取决于此路由通不通。
+#   所以换IP无需重刷token,只要这条路由在即可。
+#
+# 【部署】放 /etc/hotplug.d/iface/99-iptv-routes (chmod +x)。备份勿留同目录(会被误执行)。
+# 【NETS = 浙江电信IPTV的 EPG/CDN 网段】换地区/运营商需按当地实际改(抓STB包或看官方m3u的单播段)。
+#   网关/内网段全部动态探测,无需硬编码(见 get_gateway)。
+[ "$ACTION" = "ifup" ] || exit 0
+[ "$INTERFACE" = "zIPTV" ] || exit 0
+sleep 3
+
+NETS="115.233.40.0/21 220.191.136.0/24 122.229.6.0/24"
+
+get_dev() {
+    D=$(ubus call network.interface.zIPTV status 2>/dev/null | jsonfilter -e '@.l3_device')
+    [ -z "$D" ] && D="eth1.43"
+    echo "$D"
+}
+
+get_gateway() {
+    # 网关全部动态探测,不硬编码(换地区/运营商自适应,也无隐私):
+    #   1) DHCP 下发的网关(inactive.route / route)
+    #   2) DHCP server 地址(通常即网关)
+    #   3) 兜底: 取接口直连网段的 .1 (电信IPTV网关惯例为网段首地址)
+    G=$(ubus call network.interface.zIPTV status 2>/dev/null | jsonfilter -e '@.inactive.route[0].nexthop')
+    [ -z "$G" ] && G=$(ubus call network.interface.zIPTV status 2>/dev/null | jsonfilter -e '@.route[0].nexthop')
+    [ -z "$G" ] && G=$(ubus call network.interface.zIPTV status 2>/dev/null | jsonfilter -e '@.data.dhcpserver')
+    if [ -z "$G" ]; then
+        # 从接口直连路由推导网段,取 .1 作网关兜底 (如 10.235.128.0/19 → 10.235.128.1)
+        NET=$(ip route show dev "$DEV" scope link 2>/dev/null | grep -oE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+        [ -n "$NET" ] && G=$(echo "$NET" | sed 's/\.[0-9]*$/.1/')
+    fi
+    echo "$G"
+}
+
+add_routes() {
+    for net in $NETS; do
+        ip route replace "$net" via "$GATEWAY" dev "$DEV"
+    done
+}
+
+DEV=$(get_dev)
+GATEWAY=$(get_gateway)
+
+if [ -z "$GATEWAY" ]; then
+    logger "iptv-routes: no gateway found, abort"
+    exit 0
+fi
+
+add_routes
+logger "iptv-routes: added via $GATEWAY dev $DEV, verifying..."
+
+# 循环校验: netifd 可能在 ifup 后继续刷路由,把上面加的冲掉。
+# 校验 6 次(约 30s),发现主网段 115.233.40.0/21 丢失就重加。
+i=0
+while [ $i -lt 6 ]; do
+    sleep 5
+    if ! ip route show 115.233.40.0/21 2>/dev/null | grep -q "$DEV"; then
+        logger "iptv-routes: route lost (round $i), re-adding"
+        # 网关可能已刷新,重新取
+        GATEWAY=$(get_gateway)
+        add_routes
+    fi
+    i=$((i+1))
+done
+logger "iptv-routes: verify done via $GATEWAY dev $DEV"
