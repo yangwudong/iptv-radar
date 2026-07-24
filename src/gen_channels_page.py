@@ -44,11 +44,15 @@ def load_scan_info(db_path):
         return info
     import sqlite3
     c = sqlite3.connect(db_path)
-    for r in c.execute("""SELECT address, resolution, res_label, video_codec, fps, hdr,
-                          audio_codec, audio_channels, available, playback_days FROM sources"""):
+    # 兼容: 旧库可能无 playback_days 字段
+    cols = [r[1] for r in c.execute("PRAGMA table_info(sources)").fetchall()]
+    has_pb = 'playback_days' in cols
+    pb_sel = ', playback_days' if has_pb else ''
+    for r in c.execute(f"""SELECT address, resolution, res_label, video_codec, fps, hdr,
+                          audio_codec, audio_channels, available{pb_sel} FROM sources"""):
         info[r[0]] = {'res': r[1], 'res_label': r[2], 'codec': r[3], 'fps': r[4],
                       'hdr': r[5], 'acodec': r[6], 'ach': r[7], 'avail': r[8],
-                      'playback_days': r[9]}
+                      'playback_days': r[9] if has_pb else None}
     c.close()
     return info
 
