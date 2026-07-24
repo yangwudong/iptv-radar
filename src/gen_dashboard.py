@@ -21,8 +21,11 @@ import argparse
 import datetime
 import html
 import json
+import sys
 
 RADAR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from template_util import render_template
 DEFAULT_DB = os.path.join(RADAR, 'data', 'iptv.db')
 DEFAULT_OUT = os.path.join(RADAR, 'output', 'dashboard', 'index.html')
 EPG_SERVER = os.environ.get('EPG_SERVER', '115.233.40.140:33200')
@@ -222,325 +225,24 @@ def build_html(data, epg=None):
         grp = esc(d['group']) + (f'<small>+{esc(d["group_extra"])}</small>' if d['group_extra'] else '')
         ts = '<span class="tag t-ts">时移</span>' if d['timeshift'] else ''
 
-        trs.append(f'''<tr data-cat="{d['category']}" data-name="{esc(d['name'])}">
-          <td class="c-idx">{i}</td>
-          <td class="c-name">{logo}<span>{esc(d['name'])}{ts}</span></td>
-          <td class="c-grp">{grp}</td>
-          <td class="c-video">{vtags}</td>
-          <td class="c-audio">{atag}</td>
-          <td class="c-src">{stype}{redir}</td>
-          <td class="c-addr">{addr_html}</td>
-          <td class="c-play">{play_html}</td>
-          <td class="c-status">{badge}</td>
-          <td class="c-id">{epg_link}</td>
-        </tr>''')
+        trs.append({
+            'category': d['category'], 'name': esc(d['name']),
+            'logo': logo, 'ts': ts, 'grp': grp, 'vtags': vtags, 'atag': atag,
+            'stype': stype, 'redir': redir, 'addr_html': addr_html,
+            'play_html': play_html, 'badge': badge, 'epg_link': epg_link,
+        })
 
     # 只嵌入实际用到的频道节目单(减小体积)
     epg_subset = {k: epg[k] for k in used_epg if k in epg}
     epg_json = json.dumps(epg_subset, ensure_ascii=False, separators=(',', ':'))
 
-    return HTML_TEMPLATE.format(
+    return render_template(
+        'dashboard.html',
         gen_time=gen_time, total=total, online=online, offline=total - online,
-        n4k=cats.get('4K', 0), filter_btns=filter_btns, rows='\n'.join(trs),
+        n4k=cats.get('4K', 0), filter_btns=filter_btns, rows=trs,
         epg_server=EPG_SERVER, epg_json=epg_json)
 
 
-HTML_TEMPLATE = '''<!DOCTYPE html>
-<html lang="zh-CN"><head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>浙江IPTV优选源列表</title>
-<style>
-:root {{
-  --accent:#0066cc; --accent2:#2997ff;
-  --bg:#f5f5f7; --card:#ffffff; --ink:#1d1d1f; --muted:#86868b;
-  --border:#e0e0e0; --hover:#f5f5f7; --head:#fafafc;
-  --tag-ink:#fff; --shadow:0 4px 20px rgba(0,0,0,.06);
-}}
-html[data-theme="dark"] {{
-  --bg:#000000; --card:#1c1c1e; --ink:#f5f5f7; --muted:#98989d;
-  --border:#38383a; --hover:#2c2c2e; --head:#2c2c2e;
-  --shadow:0 4px 20px rgba(0,0,0,.4);
-}}
-* {{ box-sizing:border-box; margin:0; padding:0; }}
-body {{
-  font-family:"SF Pro Text","SF Pro Display",-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
-  background:var(--bg); color:var(--ink); transition:background .3s,color .3s;
-  -webkit-font-smoothing:antialiased;
-}}
-.wrap {{ max-width:1760px; margin:0 auto; padding:0 20px 60px; }}
-header {{ text-align:center; padding:36px 0 20px; }}
-header h1 {{ font-size:30px; font-weight:600; letter-spacing:-.5px; }}
-header .sub {{ color:var(--muted); font-size:14px; margin-top:8px; }}
-header .nav {{ margin-top:12px; }}
-header .nav a {{ color:var(--accent); text-decoration:none; font-size:14px; padding:7px 16px;
-  border:1px solid var(--border); border-radius:18px; background:var(--card); transition:all .2s; }}
-header .nav a:hover {{ border-color:var(--accent); background:var(--accent); color:#fff; }}
-.nav-logo {{ height:16px; width:auto; vertical-align:middle; margin-right:6px; }}
-.theme-btn {{
-  position:fixed; top:20px; right:24px; z-index:50; cursor:pointer;
-  background:var(--card); border:1px solid var(--border); border-radius:20px;
-  padding:8px 14px; font-size:14px; color:var(--ink); box-shadow:var(--shadow);
-  transition:all .2s;
-}}
-.theme-btn:hover {{ transform:scale(1.05); }}
-/* 统计卡片 */
-.stats {{ display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin:20px 0; }}
-.stat {{ background:var(--card); border-radius:14px; padding:16px 28px; text-align:center; box-shadow:var(--shadow); min-width:96px; }}
-.stat .n {{ font-size:30px; font-weight:600; letter-spacing:-.5px; }}
-.stat .l {{ font-size:12px; color:var(--muted); margin-top:2px; }}
-/* 过滤按钮 */
-.filters {{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:24px 0 18px; }}
-.fbtn {{
-  background:var(--card); border:1px solid var(--border); border-radius:14px;
-  padding:10px 18px; font-size:14px; color:var(--ink); cursor:pointer; transition:all .2s;
-  display:inline-flex; flex-direction:column; align-items:center; gap:4px; min-width:78px;
-}}
-.fbtn b {{ color:var(--muted); font-weight:600; margin-left:3px; }}
-.fbtn:hover {{ border-color:var(--accent); }}
-.fbtn.active {{ background:var(--accent); color:#fff; border-color:var(--accent); }}
-.fbtn.active b {{ color:rgba(255,255,255,.7); }}
-/* 搜索 */
-.search {{ display:block; margin:0 auto 20px; max-width:400px; width:100%;
-  padding:11px 18px; border:1px solid var(--border); border-radius:22px;
-  background:var(--card); color:var(--ink); font-size:15px; outline:none; }}
-.search:focus {{ border-color:var(--accent); }}
-/* 表格 */
-.tbl-wrap {{ background:var(--card); border-radius:16px; box-shadow:var(--shadow); overflow:hidden; }}
-table {{ width:100%; border-collapse:collapse; }}
-th,td {{ padding:11px 14px; text-align:center; border-bottom:1px solid var(--border); font-size:13px; }}
-th:nth-child(2),td.c-name {{ text-align:left; }}
-th {{ background:var(--head); color:var(--muted); font-weight:600; font-size:12px;
-  text-transform:uppercase; letter-spacing:.4px; position:sticky; top:0; z-index:5; }}
-tr:last-child td {{ border-bottom:0; }}
-tbody tr:hover td {{ background:var(--hover); }}
-.c-idx {{ color:var(--muted); width:40px; text-align:center; }}
-.c-name {{ display:flex; align-items:center; justify-content:flex-start; gap:10px; font-weight:500; min-width:180px; text-align:left; }}
-.c-name span {{ display:inline-flex; align-items:center; gap:6px; }}
-/* 台标: 再放大 + APTV双色斜块背景(浅色台标可见) */
-.logo-box {{ width:96px; height:60px; border-radius:9px; flex-shrink:0;
-  background:repeating-linear-gradient(135deg,#323132 0 16px,#373536 16px 32px);
-  display:flex; align-items:center; justify-content:center;
-  overflow:hidden; padding:6px; }}
-.logo-box img {{ max-width:100%; max-height:100%; object-fit:contain; }}
-.logo-box.noimg::after {{ content:"📺"; font-size:24px; opacity:.5; }}
-.logo-box.noimg img {{ display:none; }}
-/* 过滤按钮的清晰度图标(放大清晰) */
-.fbtn-icon {{ height:60px; width:auto; object-fit:contain; }}
-.fbtn-emoji {{ height:60px; display:flex; align-items:center; justify-content:center; font-size:36px; }}
-.fbtn-txt {{ white-space:nowrap; }}
-.fbtn b {{ margin-left:0; }}
-/* tag块状 */
-.tag {{ display:inline-block; padding:2px 9px; border-radius:5px; color:var(--tag-ink);
-  font-size:11px; font-weight:600; margin:2px 3px 2px 0; letter-spacing:.2px; }}
-.t-4k {{ background:#875bf7; }}       /* 4K紫 */
-.t-hd {{ background:#17b26a; }}       /* 1080P绿 */
-.t-sd {{ background:#f79009; }}       /* 标清橙 */
-.t-codec {{ background:#667085; }}
-.t-fps {{ background:#0ea5e9; }}
-.t-hdr {{ background:#e67e22; }}
-.t-br {{ background:#475467; }}
-.t-au-mp2 {{ background:#0e9488; }}     /* MP2 青绿 */
-.t-au-aac {{ background:#7c3aed; }}     /* AAC 紫 */
-.t-au-ac3 {{ background:#c026d3; }}     /* AC3 品红 */
-.t-au-eac3 {{ background:#db2777; }}    /* EAC3 玫红(杜比) */
-.t-au-other {{ background:#0d9488; }}
-.t-mc {{ background:#3b5bdb; }}         /* 组播 靛蓝 */
-.t-uc {{ background:#ea580c; }}         /* 单播 橙 */
-.hop {{ color:var(--muted); margin-left:4px; font-size:11px; }}
-.t-radio {{ background:#8b5cf6; }}
-.t-unknown {{ background:#98a2b3; }}
-.t-ts {{ background:#ec4899; font-size:10px; padding:1px 6px; }}
-.chid {{ color:var(--muted); font-size:12px; display:block; }}
-.epg-btn {{ background:var(--accent); color:#fff; border:0; border-radius:6px;
-  padding:3px 10px; font-size:12px; cursor:pointer; margin-top:3px; transition:opacity .2s; }}
-.epg-btn:hover {{ opacity:.85; }}
-.c-addr code {{ font-family:"SF Mono",Menlo,monospace; font-size:10px; padding:2px 7px;
-  border-radius:5px; background:var(--head); cursor:pointer; }}
-.c-addr code:hover {{ outline:1px solid var(--accent); }}
-.addr-mc {{ color:#2563eb; white-space:nowrap; }}
-/* 单播: 多行完整显示,不截断 */
-.addr-uc {{ color:#ea580c; display:inline-block; max-width:260px; word-break:break-all;
-  white-space:normal; line-height:1.4; text-align:left; }}
-/* 播放按钮 */
-.c-play {{ white-space:nowrap; }}
-.play-btn {{ display:inline-block; border:0; border-radius:6px; padding:4px 10px; margin:2px;
-  font-size:12px; cursor:pointer; text-decoration:none; font-weight:600; transition:opacity .2s; }}
-.play-btn:hover {{ opacity:.85; }}
-.play-iina {{ background:var(--accent); color:#fff; }}
-/* msd_lite 前缀输入 */
-.prefix-bar {{ display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap:wrap;
-  margin:0 auto 18px; max-width:640px; background:var(--card); border:1px solid var(--border);
-  border-radius:14px; padding:12px 18px; box-shadow:var(--shadow); }}
-.prefix-bar label {{ font-size:13px; color:var(--muted); white-space:nowrap; }}
-.prefix-bar input {{ flex:1; min-width:220px; padding:8px 12px; border:1px solid var(--border);
-  border-radius:8px; background:var(--bg); color:var(--ink); font-size:13px;
-  font-family:"SF Mono",Menlo,monospace; outline:none; }}
-.prefix-bar input:focus {{ border-color:var(--accent); }}
-.prefix-bar .pfx-save {{ background:var(--accent); color:#fff; border:0; border-radius:8px;
-  padding:8px 16px; font-size:13px; cursor:pointer; white-space:nowrap; }}
-.prefix-bar .pfx-hint {{ font-size:11px; color:var(--muted); width:100%; text-align:center; }}
-/* 节目单弹窗 */
-#epgModal {{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:100;
-  justify-content:center; align-items:center; }}
-.epg-panel {{ background:var(--card); border-radius:16px; max-width:480px; width:90%;
-  max-height:75vh; overflow:hidden; box-shadow:var(--shadow); display:flex; flex-direction:column; }}
-.epg-head {{ padding:16px 20px; border-bottom:1px solid var(--border); font-weight:600;
-  display:flex; justify-content:space-between; align-items:center; }}
-.epg-head .close {{ cursor:pointer; color:var(--muted); font-size:22px; line-height:1; }}
-.epg-list {{ overflow-y:auto; padding:8px 0; }}
-.epg-item {{ display:flex; gap:14px; padding:8px 20px; font-size:14px; }}
-.epg-item:hover {{ background:var(--hover); }}
-.epg-item .et {{ color:var(--accent); font-weight:600; min-width:44px; }}
-.epg-item.now {{ background:var(--accent); color:#fff; }}
-.epg-item.now .et {{ color:#fff; }}
-.epg-day {{ padding:6px 20px; font-size:12px; color:var(--muted); background:var(--head); font-weight:600; }}
-.muted {{ color:var(--muted); }}
-.c-name small,.c-grp small {{ color:var(--muted); font-weight:400; font-size:11px; margin-left:4px; }}
-.dot {{ display:inline-block; width:9px; height:9px; border-radius:50%; }}
-.dot.ok {{ background:#17b26a; }} .dot.off {{ background:#f04438; }} .dot.new {{ background:#f79009; }}
-footer {{ text-align:center; color:var(--muted); font-size:13px; padding:30px 0; }}
-footer a {{ color:var(--accent); text-decoration:none; }}
-@media(max-width:768px) {{ .c-grp {{ display:none; }} header h1 {{ font-size:24px; }} }}
-</style></head>
-<body>
-<button class="theme-btn" onclick="toggleTheme()"><span id="themeIcon">🌙</span> <span id="themeTxt">深色</span></button>
-<div class="wrap">
-  <header>
-    <h1>📡 浙江IPTV优选源列表</h1>
-    <div class="sub">生成于 {gen_time} · 共 {total} 个频道 · 在线 {online}</div>
-    <div class="nav"><a href="channels.html"><img class="nav-logo" src="icons/China-Telecom.png" alt="电信">电信官方频道列表 (ID/组播/单播/时移)</a></div>
-  </header>
-  <div class="stats">
-    <div class="stat"><div class="n">{total}</div><div class="l">总频道</div></div>
-    <div class="stat"><div class="n" style="color:#17b26a">{online}</div><div class="l">在线</div></div>
-    <div class="stat"><div class="n" style="color:#875bf7">{n4k}</div><div class="l">4K超高清</div></div>
-    <div class="stat"><div class="n" style="color:#f04438">{offline}</div><div class="l">离线</div></div>
-  </div>
-  <div class="filters">{filter_btns}</div>
-  <div class="prefix-bar">
-    <label>组播前缀</label>
-    <input id="mcPrefix" placeholder="http://你的msd_lite地址:4088/rtp/" spellcheck="false">
-    <button class="pfx-save" onclick="savePrefix()">保存</button>
-    <div class="pfx-hint">填入 msd_lite/udpxy 的 http 前缀(组播转码地址),用于组播源的 IINA 播放。仅存本地浏览器,不上传。</div>
-  </div>
-  <input class="search" id="search" placeholder="🔍 搜索频道名..." oninput="doFilter()">
-  <div class="tbl-wrap">
-    <table>
-      <thead><tr>
-        <th>#</th><th>频道</th><th>分组</th>
-        <th>视频信息</th><th>音频</th><th>源</th><th>地址</th><th>播放</th><th>状态</th><th>节目单</th>
-      </tr></thead>
-      <tbody id="tbody">{rows}</tbody>
-    </table>
-  </div>
-  <footer>
-    浙江电信IPTV源检测 · <a href="iptv.m3u">下载 m3u</a> ·
-    数据源 EPG {epg_server}
-  </footer>
-</div>
-<div id="epgModal" onclick="if(event.target===this)this.style.display='none'">
-  <div class="epg-panel">
-    <div class="epg-head"><span id="epgTitle"></span><span class="close" onclick="document.getElementById('epgModal').style.display='none'">×</span></div>
-    <div class="epg-list" id="epgList"></div>
-  </div>
-</div>
-<script>
-var EPG = {epg_json};
-// 主题: 跟随系统 + localStorage记忆
-function applyTheme(t) {{
-  document.documentElement.setAttribute('data-theme', t);
-  document.getElementById('themeIcon').textContent = t==='dark'?'☀️':'🌙';
-  document.getElementById('themeTxt').textContent = t==='dark'?'浅色':'深色';
-}}
-function toggleTheme() {{
-  var cur = document.documentElement.getAttribute('data-theme');
-  var next = cur==='dark'?'light':'dark';
-  localStorage.setItem('theme', next); applyTheme(next);
-}}
-(function() {{
-  var saved = localStorage.getItem('theme');
-  if (saved) applyTheme(saved);
-  else applyTheme(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
-}})();
-// 过滤(分类tag + 搜索)
-var curCat = '全部';
-document.querySelectorAll('.fbtn').forEach(function(b) {{
-  b.onclick = function() {{
-    document.querySelectorAll('.fbtn').forEach(x=>x.classList.remove('active'));
-    b.classList.add('active'); curCat = b.dataset.cat; doFilter();
-  }};
-}});
-function doFilter() {{
-  var kw = document.getElementById('search').value.toLowerCase();
-  var idx = 0;
-  document.querySelectorAll('#tbody tr').forEach(function(tr) {{
-    var okCat = curCat==='全部' || tr.dataset.cat===curCat;
-    var okKw = !kw || tr.dataset.name.toLowerCase().indexOf(kw)>=0;
-    if (okCat && okKw) {{ tr.style.display=''; idx++; tr.querySelector('.c-idx').textContent=idx; }}
-    else tr.style.display='none';
-  }});
-}}
-// 节目单弹窗
-function showEpg(tvgId, name) {{
-  var progs = EPG[tvgId] || [];
-  document.getElementById('epgTitle').textContent = name + ' · 节目单';
-  var now = new Date();
-  var today = now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0');
-  var nowHM = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-  var html='', lastDay='', nowMarked=false;
-  for (var i=0;i<progs.length;i++) {{
-    var p=progs[i];
-    if (p.d!==lastDay) {{
-      var dstr = p.d.slice(0,4)+'-'+p.d.slice(4,6)+'-'+p.d.slice(6,8);
-      html += '<div class="epg-day">'+dstr+(p.d===today?' (今天)':'')+'</div>';
-      lastDay=p.d;
-    }}
-    // 标记当前正在播的(今天 且 该节目时间<=现在<下一节目)
-    var isNow=false;
-    if (p.d===today && !nowMarked) {{
-      var next=progs[i+1];
-      if (p.t<=nowHM && (!next || next.d!==today || next.t>nowHM)) {{ isNow=true; nowMarked=true; }}
-    }}
-    html += '<div class="epg-item'+(isNow?' now':'')+'"><span class="et">'+p.t+'</span><span>'+
-            p.n.replace(/</g,'&lt;')+(isNow?' ▶':'')+'</span></div>';
-  }}
-  if (!html) html='<div class="epg-item"><span>暂无节目单数据</span></div>';
-  document.getElementById('epgList').innerHTML=html;
-  document.getElementById('epgModal').style.display='flex';
-}}
-// ===== 组播前缀(msd_lite) localStorage 存取 =====
-function getPrefix() {{ return localStorage.getItem('mcPrefix') || ''; }}
-function savePrefix() {{
-  var v = document.getElementById('mcPrefix').value.trim();
-  if (v && !v.endsWith('/')) v += '/';   // 容错: 自动补尾斜杠
-  localStorage.setItem('mcPrefix', v);
-  document.getElementById('mcPrefix').value = v;
-  alert(v ? '已保存组播前缀:\\n'+v : '已清空组播前缀');
-}}
-(function() {{ document.getElementById('mcPrefix').value = getPrefix(); }})();
-// 组播地址(233.x:port) + 前缀 → 完整播放URL
-function mcUrl(mc) {{
-  var p = getPrefix();
-  if (!p) {{ alert('请先在顶部填写"组播前缀"(msd_lite地址)并保存'); return null; }}
-  return p + mc;   // 如 http://host:4088/rtp/ + 233.50.201.1:5140
-}}
-// 双击复制地址
-function copyText(el) {{
-  var t = el.textContent;
-  navigator.clipboard.writeText(t).then(function() {{
-    var old = el.style.outline; el.style.outline = '2px solid #17b26a';
-    setTimeout(function() {{ el.style.outline = old; }}, 600);
-  }});
-}}
-// IINA播放(组播): 用前缀拼http后交给IINA
-function playIINA(btn) {{
-  var url = mcUrl(btn.dataset.mc);
-  if (!url) return;
-  window.location.href = 'iina://weblink?url=' + encodeURIComponent(url);
-}}
-</script>
-</body></html>'''
 
 
 if __name__ == '__main__':

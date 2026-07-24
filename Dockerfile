@@ -10,7 +10,11 @@ RUN apt-get update && \
 ENV TZ=Asia/Shanghai
 WORKDIR /app
 
-# 无第三方 Python 依赖(仅标准库),直接拷代码
+# Python 依赖(jinja2 模板引擎,生成dashboard/m3u页面用)
+COPY requirements.txt /app/
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 代码(仅jinja2一个第三方依赖,见requirements.txt)
 COPY src/ /app/src/
 COPY reference/ /app/reference/
 # data/ output/ 运行时挂载(持久化),不进镜像
