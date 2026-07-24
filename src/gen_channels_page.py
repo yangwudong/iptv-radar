@@ -45,9 +45,10 @@ def load_scan_info(db_path):
     import sqlite3
     c = sqlite3.connect(db_path)
     for r in c.execute("""SELECT address, resolution, res_label, video_codec, fps, hdr,
-                          audio_codec, audio_channels, available FROM sources"""):
+                          audio_codec, audio_channels, available, playback_days FROM sources"""):
         info[r[0]] = {'res': r[1], 'res_label': r[2], 'codec': r[3], 'fps': r[4],
-                      'hdr': r[5], 'acodec': r[6], 'ach': r[7], 'avail': r[8]}
+                      'hdr': r[5], 'acodec': r[6], 'ach': r[7], 'avail': r[8],
+                      'playback_days': r[9]}
     c.close()
     return info
 
@@ -143,7 +144,22 @@ def build(json_path, db_path=None):
         name = ch.get('name', '')
         mc, uc = split_url(ch.get('url', ''))
         ts = ch.get('timeshift_url', '')
-        ts_badge = '<span class="tag t-ts">支持</span>' if ts else '<span class="muted">-</span>'
+        # 回看天数(源级,查单播地址的playback_days): N天/不支持/未探测
+        pb_days = None
+        if uc:
+            _m = re.match(r'(rtsp://[^?]+\.smil)', uc)
+            _smil = _m.group(1) if _m else uc.split('?')[0]
+            _sc = scan.get(_smil)
+            if _sc:
+                pb_days = _sc.get('playback_days')
+        if pb_days and pb_days > 0:
+            ts_badge = f'<span class="tag t-ts">{pb_days}天回看</span>'
+        elif pb_days == 0:
+            ts_badge = '<span class="muted" title="不支持回看(版权等)">✕</span>'
+        elif ts:
+            ts_badge = '<span class="tag t-ts">支持</span>'   # 有时移地址但未探测天数
+        else:
+            ts_badge = '<span class="muted">-</span>'
         mc_html = f'<code class="mc">{esc(mc)}</code>' if mc else '<span class="muted">-</span>'
         # 单播地址: 完整简化版(到.smil,去token),字体小可换行,双击复制。单独用"播放"列调IINA
         if uc:
@@ -277,7 +293,7 @@ footer a {{ color:var(--accent); text-decoration:none; }}
   <input class="search" id="search" placeholder="🔍 搜索频道名/ID..." oninput="doSearch()">
   <div class="tbl-wrap">
     <table>
-      <thead><tr><th>#</th><th>频道名</th><th>频道ID</th><th>视频信息</th><th>音频</th><th>组播地址</th><th>单播地址 <small>(双击复制)</small></th><th>播放</th><th>时移</th></tr></thead>
+      <thead><tr><th>#</th><th>频道名</th><th>频道ID</th><th>视频信息</th><th>音频</th><th>组播地址</th><th>单播地址 <small>(双击复制)</small></th><th>播放</th><th>回看</th></tr></thead>
       <tbody id="tbody">{rows}</tbody>
     </table>
   </div>

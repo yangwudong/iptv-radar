@@ -48,6 +48,12 @@ python3 scan_multicast.py $MC_ARGS || echo "  组播扫描出错(继续)"
 echo ""; echo ">>> [2/7] RTSP扫描"
 python3 scan_rtsp.py --epg "$EPG_JSON" --trace || echo "  RTSP扫描出错(继续)"
 
+# 2b. 单播回看天数探测(仅full模式,每月一次;天数变化慢,增量不做)
+if [ "$SCAN_MODE" = "full" ]; then
+    echo ""; echo ">>> [2b] 单播回看天数探测(full模式)"
+    python3 probe_timeshift.py --epg "$EPG_JSON" || echo "  回看探测出错(继续)"
+fi
+
 # 3. 数据清洗: 源归并到频道(自动: 官方channels.json + source_links.json快照)
 echo ""; echo ">>> [3/7] 数据清洗(归并)"
 python3 link_sources.py --epg "$EPG_JSON"
