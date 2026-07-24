@@ -118,3 +118,14 @@ gitignore: output/orphan_review/ + data/orphan_inbox/ (运行时数据不上git)
 - gen_channels_page: 时移列→回看列,显示具体天数(6天回看/2天回看/✕不支持)。
 - 坑: 旧库(部署前建的)无playback_days字段→probe_timeshift写库前ALTER自愈+gen_channels_page字段检测降级。
 - NAS用--timeshift-only补数据成功: <PUBLISH_HOST>:<PUBLISH_PORT>/dashboard/channels.html 显示回看天数。
+
+## 2026-07-24 Dashboard重构为Jinja2模板(数据/界面分离)
+背景: gen_dashboard/gen_channels_page 原本HTML/CSS/JS全嵌Python f-string(难维护,CSS花括号要{{转义)。
+重构:
+- 数据/界面分离: Python(gen_*.py)只查库+备数据dict → template_util.render_template渲染。
+- HTML/CSS/JS拆到 src/templates/dashboard.html + channels.html(独立模板文件,正常编辑)。
+- gen_dashboard 574→281行, gen_channels 348→226行。新增template_util.py(共享Jinja2渲染)。
+- 引入jinja2依赖: requirements.txt + Dockerfile pip install(打破纯标准库,但模板引擎值得)。
+验证: 两页重构后内容完全一致(dashboard 11项/channels 9项指标全对),视觉不变。
+NAS用新镜像生成+发布,<PUBLISH_HOST>全200。为将来改样式/CF公开版铺路。
+待办(未来): CF Pages公开(学myepg,静态托管,别暴露家里服务);内网IP暴露公网DNS问题(另开session)。
