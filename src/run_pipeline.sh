@@ -2,11 +2,12 @@
 # iptv-radar 一键流水线: 采集 → 数据清洗 → ETL → 生成 → 发布
 # 三层解耦,任一步失败可单独重跑。
 #
-# 用法: ./run_pipeline.sh [--full] [--bitrate] [--publish]
-#   (默认)    known增量扫描(只扫库里已知源,快~11分钟) — 适合每周cron
-#   --full    full全量扫描(全768段,发现新频道,慢~17分钟) — 适合每月/初始化
-#   --bitrate 组播实测码率(慢)
-#   --publish 发布m3u到nginx目录(需配置 NGINX_M3U_DIR)
+# 用法: ./run_pipeline.sh [--full] [--bitrate] [--publish] [--timeshift-only]
+#   (默认)          known增量扫描(只扫库里已知源,快~11分钟) — 适合每周cron
+#   --full          full全量扫描(全768段+回看探测,慢~20分钟) — 适合每月/初始化
+#   --bitrate       组播实测码率(慢)
+#   --publish       发布m3u到nginx目录(需配置 NGINX_M3U_DIR)
+#   --timeshift-only 只跑回看天数探测+重新生成页面(补回看数据,不重扫,~5分钟)
 #
 # cron示例:
 #   每周一 3:00 增量:  0 3 * * 1  cd /path/iptv-radar/src && ./run_pipeline.sh --publish
@@ -33,6 +34,22 @@ MC_ARGS="--mode $SCAN_MODE --msd $MSD"
 
 echo "############################################"
 echo "# iptv-radar pipeline  $STAMP"
+echo "############################################"
+
+# ===== 特殊模式: --timeshift-only 只跑回看探测+重新生成页面(补数据用,不重扫) =====
+# 用途: 补回看天数时,不必重跑整个full。手工触发一次即可。
+if [[ "$*" == *"--timeshift-only"* ]]; then
+    echo "# 模式: 仅回看探测(--timeshift-only)"
+    echo "############################################"
+    echo ""; echo ">>> 单播回看天数探测"
+    python3 probe_timeshift.py --epg "$EPG_JSON" || echo "  探测出错"
+    echo ""; echo ">>> 重新生成页面(体现回看天数)"
+    python3 gen_channels_page.py
+    python3 gen_dashboard.py
+    echo ""; echo "# 完成(仅回看探测) $STAMP"
+    exit 0
+fi
+
 echo "# 扫描模式: $SCAN_MODE"
 echo "############################################"
 
