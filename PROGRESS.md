@@ -84,3 +84,18 @@ manual test发现: channels.html 中国教育一套用了CCTV1台标。
 验证: 5种action造resolved.json测试全通过;空inbox优雅跳过;截图真实生成。
 gitignore: output/orphan_review/ + data/orphan_inbox/ (运行时数据不上git)。
 契约§3已定死,Electron App可独立开发。
+
+## 2026-07-24 NAS1 实际部署完成 + Dashboard发布
+- 上GitHub: yangwudong/iptv-radar, Actions build多架构镜像推Docker Hub(yangwudong/iptv-radar:latest),验证成功。
+- NAS1(Synology,ContainerManager)部署:
+  - compose用Docker Hub镜像,network_mode host(访问组播/RTSP专网),data+output挂载持久化。
+  - 传现成iptv.db+种子;.env的NGINX_M3U_DIR改容器内/nginx_m3u。
+  - docker需sudo /usr/local/bin/docker;scp需-O(群晖无sftp subsystem)。
+  - 首次pipeline全流程跑通: 306/306零误报(644秒,与本地一致)+167单播+447归并+143优选,m3u发布。
+  - 坑: output挂载空目录需先mkdir;bind mount源目录不存在会失败。
+- Nginx发布(复用<PUBLISH_HOST>:<PUBLISH_PORT>):
+  - m3u零改动(现有location支持任意.m3u): <PUBLISH_HOST>:<PUBLISH_PORT>/iptv.m3u。旧m3u保留不删。
+  - Dashboard加发布: nginx compose加挂载iptv-radar/output/dashboard,nginx.conf tv块加/dashboard/ location,重启nginx。
+  - 坑修复(治本): icons静态资源没进镜像(Dockerfile只COPY src/reference)→移到reference/icons/,gen_dashboard运行时复制到output。
+- 验收全200: iptv.m3u / 旧m3u / dashboard主页 / channels.html / icons。
+待办: 群晖任务计划配cron(每周known/每月full);等新镜像build完下次pipeline自带icons。
