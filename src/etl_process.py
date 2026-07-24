@@ -42,6 +42,12 @@ def quality_score(src, fail_threshold):
     score += (src['vbitrate'] or 0) / 1000        # kbps,同分辨率下区分
     score += 100 if fc == 0 else 0  # 稳定性
     score += 30 if src['source_type'] == 'multicast' else 0  # 组播偏好(低延迟稳)
+    # 回看加成: 支持回看的单播源(playback_days>0)加分。适度(+60):
+    #   同分辨率时压过组播偏好(+30)让回看源胜出(APTV能回看);
+    #   但压不过高一档分辨率(差500),不为回看牺牲明显更高画质。
+    #   组播+单播混合回看APTV不支持,故要回看必须让单播作主源(直播也走单播)。
+    if src['source_type'] == 'rtsp' and (src['playback_days'] or 0) > 0:
+        score += 60
     return round(score, 1)
 
 
@@ -69,7 +75,7 @@ def main():
     channels = c.execute("SELECT channel_id FROM channels WHERE status != 'placeholder'").fetchall()
     for ch in channels:
         cid = ch['channel_id']
-        srcs = c.execute("""SELECT source_id,source_type,available,res_label,vbitrate,fail_count
+        srcs = c.execute("""SELECT source_id,source_type,available,res_label,vbitrate,fail_count,playback_days
                             FROM sources WHERE channel_id=?""", (cid,)).fetchall()
         if not srcs:
             continue

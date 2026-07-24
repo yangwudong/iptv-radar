@@ -46,3 +46,5 @@ reference/orphan_shots/
 # ==== 孤儿源识别运行时数据(不上git) ====
 output/orphan_review/
 data/orphan_inbox/
+output/*.m3u.bak
+output/iptv_catchup_test.m3u

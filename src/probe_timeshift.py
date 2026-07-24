@@ -32,8 +32,10 @@ def smil_path(url):
 
 
 def probe_playback(ts_url, days, timeout=15):
-    """探测 days 天前能否回看。ts_url=完整timeshift_url(带token)"""
-    now = datetime.datetime.now(datetime.UTC)
+    """探测 days 天前能否回看。ts_url=完整timeshift_url(带token)。
+    注: 电信 playseek 用北京本地时间(UTC+8),不是UTC(实测IINA验证:传UTC会偏8小时)。"""
+    bj = datetime.timezone(datetime.timedelta(hours=8))
+    now = datetime.datetime.now(bj)
     s = (now - datetime.timedelta(days=days)).strftime('%Y%m%d%H%M%S')
     e = (now - datetime.timedelta(days=days) + datetime.timedelta(minutes=2)).strftime('%Y%m%d%H%M%S')
     url = ts_url + f'&playseek={s}-{e}'
