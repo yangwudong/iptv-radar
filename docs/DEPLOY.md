@@ -177,13 +177,41 @@ curl -s https://<发布域名>:<PUBLISH_PORT>/iptv.m3u | head
 
 ---
 
-## 八、Dashboard 发布(可选)
+## 八、Dashboard 发布(已实施, <PUBLISH_HOST>:<PUBLISH_PORT>/dashboard/)
 
-m3u 已通过 nginx m3u 目录发布。Dashboard(静态HTML)若也要发布:
-- 方式A: output/dashboard 挂载/软链到 nginx 静态目录,加个 location
-- 方式B: 只本地看(pipeline 生成在 output/dashboard/index.html)
+m3u 通过 nginx m3u 目录发布(零改动)。Dashboard 发布步骤(已在NAS1实施):
 
-> Dashboard 发布需在 nginx 加 location,**改 nginx 配置前先经确认**(约定)。
+**1. nginx compose.yaml 加挂载**(iptv-radar的dashboard目录):
+```yaml
+    volumes:
+       # ... 原有 ...
+       - /volume1/docker/iptv-radar/output/dashboard:/usr/share/nginx/html/dashboard:ro
+```
+
+**2. nginx.conf 的 tv server 块加 location**:
+```nginx
+    # /dashboard 无斜杠 → 重定向到 /dashboard/
+    location = /dashboard {
+        absolute_redirect off;    # ⚠️关键:用相对路径,否则301会拼成容器内部端口(8000)导致跳转失败
+        return 301 /dashboard/;
+    }
+    location /dashboard/ {
+        alias /usr/share/nginx/html/dashboard/;
+        index index.html;
+        add_header 'Access-Control-Allow-Origin' '*' always;
+    }
+```
+
+**3. 重启/reload nginx**: `docker exec nginx nginx -s reload`(改conf内容用reload;改compose挂载才需 compose up -d)
+
+**坑记录**:
+- **icons静态资源没进镜像**: Dockerfile只COPY src/reference,而output是挂载空目录→图标404。
+  已治本: icons移到 reference/icons/(进镜像),gen_dashboard运行时复制到 output/dashboard/icons/。
+- **端口映射下301重定向拼错端口**: 容器内listen 8000,外部<PUBLISH_PORT>。`return 301`默认拼绝对URL用内部端口8000。
+  修复: 加 `absolute_redirect off` 让重定向用相对路径。
+- dashboard目录需先存在(pipeline首次跑生成)才能被nginx挂载。
+
+访问: `https://<PUBLISH_HOST>:<PUBLISH_PORT>/dashboard/`(带不带斜杠都可)。旧m3u保留不删。
 
 ---
 
