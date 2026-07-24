@@ -23,9 +23,8 @@ output/dashboard/index.html
 output/dashboard/channels.html
 *.log
 
-# ==== 保留的静态资源(dashboard图标,上传) ====
-!output/dashboard/icons/
-!output/dashboard/icons/*.png
+# ==== 静态资源: icons 源在 reference/icons/(进镜像,上传);output/dashboard/icons是生成物(忽略) ====
+output/dashboard/icons/
 
 # ==== Python ====
 __pycache__/

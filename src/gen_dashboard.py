@@ -575,8 +575,18 @@ if __name__ == '__main__':
         print(f"  (无节目单json,跳过。先运行 fetch_epg.py)")
     data = load_data(args.db)
     doc = build_html(data, epg)
-    os.makedirs(os.path.dirname(args.out), exist_ok=True)
+    out_dir = os.path.dirname(args.out)
+    os.makedirs(out_dir, exist_ok=True)
     with open(args.out, 'w', encoding='utf-8') as f:
         f.write(doc)
-    print(f"  输出: {args.out} ({len(doc)} 字节, {len(data)} 频道)")
+    # 复制静态图标(reference/icons/ → dashboard/icons/),确保发布时图标就位
+    # (icons是静态资源,放reference进镜像;output是挂载空目录,每次生成时复制)
+    import shutil
+    src_icons = os.path.join(RADAR, 'reference', 'icons')
+    dst_icons = os.path.join(out_dir, 'icons')
+    if os.path.isdir(src_icons):
+        os.makedirs(dst_icons, exist_ok=True)
+        for fn in os.listdir(src_icons):
+            shutil.copy2(os.path.join(src_icons, fn), os.path.join(dst_icons, fn))
+    print(f"  输出: {args.out} ({len(doc)} 字节, {len(data)} 频道), icons已复制")
     print("完成")
