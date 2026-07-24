@@ -109,3 +109,12 @@ gitignore: output/orphan_review/ + data/orphan_inbox/ (运行时数据不上git)
 - icons治本生效: 新镜像(reference/icons进镜像)+gen_dashboard运行时复制→output/dashboard/icons/8个,不再手动传。
 - <PUBLISH_HOST>:<PUBLISH_PORT> 全200: iptv.m3u / dashboard/ / icons。
 - 部署+自动化全部完成。
+
+## 2026-07-24 单播回看天数功能 + --timeshift-only补数据
+- 回看是单播源专有能力(组播不能回看)→ 存sources.playback_days(源级,非频道级)。
+- probe_timeshift.py: timeshift_url加playseek时间参数拉流,二分查找最大可回看天数,8并发。
+  实测:本地169源320秒/NAS 52秒(NAS到CDN延迟低)。分布~6天33/2天57/0不支持77(版权频道)。
+- pipeline: --full含回看探测(每月);新增--timeshift-only(只探测+生成页面,补数据不重扫)。
+- gen_channels_page: 时移列→回看列,显示具体天数(6天回看/2天回看/✕不支持)。
+- 坑: 旧库(部署前建的)无playback_days字段→probe_timeshift写库前ALTER自愈+gen_channels_page字段检测降级。
+- NAS用--timeshift-only补数据成功: <PUBLISH_HOST>:<PUBLISH_PORT>/dashboard/channels.html 显示回看天数。
