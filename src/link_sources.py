@@ -1,0 +1,164 @@
+#!/usr/bin/env python3
+"""
+iptv-radar: link_sources.py (归并脚本, ETL的E1核心)
+把所有 sources 归并到频道业务主键 channel_key(=规范频道名)。
+解决孤儿源问题→台标/信息按 address→channel_key→频道 全部能反查。
+
+归并权威顺序:
+  1. 已关联的源: 用其 channel 的规范名做 channel_key(种子)
+  2. 官方 channels.json: 同一官方频道的多个地址→同一 channel_key
+  3. tag 别名匹配: 频道名/EPG名 含别名tag
+  4. 都不行: 孤儿源,channel_key=NULL,待识别
+
+设计见 docs/design/CHANNEL_KEY_DESIGN.md
+运行: python3 link_sources.py [--db] [--epg channels.json] [--dry-run]
+"""
+import sqlite3
+import json
+import os
+import re
+import argparse
+
+RADAR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+DEFAULT_DB = os.path.join(RADAR, 'data', 'iptv.db')
+DEFAULT_EPG = os.path.join(RADAR, 'reference', 'channels.sample.json')
+
+
+def norm(s):
+    """归一化用于匹配: 去画质后缀/空格"""
+    return re.sub(r'(高清|HD|标清|SD|4K| )', '', s or '').strip()
+
+
+def load_name_overrides():
+    """加载官方名→规范名映射(别名归并用,157条)。数据在 reference/name_overrides.json。"""
+    path = os.path.join(RADAR, 'reference', 'name_overrides.json')
+    if not os.path.exists(path):
+        return {}
+    return json.load(open(path, encoding='utf-8')).get('overrides', {})
+
+
+def get_addrs(url):
+    """从channels.json的url提取 组播地址 + 单播简化地址"""
+    addrs = []
+    for part in (url or '').split('|'):
+        part = part.strip()
+        m = re.search(r'igmp://(\d+\.\d+\.\d+\.\d+:\d+)', part)
+        if m:
+            addrs.append(m.group(1))
+        elif part.startswith('rtsp://'):
+            s = re.match(r'(rtsp://[^?]+\.smil)', part)
+            addrs.append(s.group(1) if s else part.split('?')[0])
+    return addrs
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--db', default=DEFAULT_DB)
+    ap.add_argument('--epg', default=DEFAULT_EPG)
+    ap.add_argument('--dry-run', action='store_true', help='只报告不写库')
+    args = ap.parse_args()
+
+    print("=" * 55)
+    print("  link_sources: 源归并到 channel_key")
+    print("=" * 55)
+
+    conn = sqlite3.connect(args.db)
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+
+    # === 1. channel_key 主数据: 频道的规范名(channels.channel_key 已由迁移建好) ===
+    # key2id: channel_key(规范名) → channel_id, 用于回填 sources.channel_id(关联键)
+    key2id = {}      # channel_key → channel_id
+    norm2key = {}    # 归一化名 → channel_key
+    # 只认 enabled 频道做匹配目标(占位/黑名单频道不参与自动归并)
+    ch_rows = c.execute("SELECT channel_id, channel_key FROM channels WHERE enabled=1 AND channel_key IS NOT NULL").fetchall()
+    for r in ch_rows:
+        key = r['channel_key']
+        key2id[key] = r['channel_id']
+        norm2key[norm(key)] = key
+    canon = key2id  # 兼容下方报告
+
+    # === 2. 种子: 已关联的源 → 用其channel的规范名 ===
+    addr2key = {}    # address → channel_key
+    for r in c.execute("""SELECT s.address, ch.channel_key FROM sources s
+                          JOIN channels ch ON s.channel_id=ch.channel_id
+                          WHERE ch.enabled=1 AND ch.channel_key IS NOT NULL""").fetchall():
+        addr2key[r['address']] = r['channel_key']
+
+    # === 2.5 加载持久化归并快照(人工确认的归并结果,最高优先) ===
+    # data/source_links.json: {address: channel_key},保证人工归并/别名识别的结果重跑不丢
+    snapshot_path = os.path.join(RADAR, 'data', 'source_links.json')
+    snap_loaded = 0
+    if os.path.exists(snapshot_path):
+        snap = json.load(open(snapshot_path, encoding='utf-8'))
+        valid = set(key2id.keys())
+        for a, k in snap.items():
+            if k in valid:      # 只认还存在的enabled频道(避免归到已删/占位频道)
+                addr2key[a] = k
+                snap_loaded += 1
+
+    # === 3. 官方channels.json: 同一官方频道的多地址 → 同一channel_key ===
+    name_ov = load_name_overrides()   # 官方名→规范名(159条)
+    valid_keys = set(key2id.keys())
+    epg = json.load(open(args.epg, encoding='utf-8'))
+    official_added = 0
+    for ch in epg:
+        addrs = get_addrs(ch['url'])
+        key = None
+        # a) 地址已知
+        for a in addrs:
+            if a in addr2key:
+                key = addr2key[a]
+                break
+        # b) NAME_OVERRIDES映射官方名→规范名
+        if not key:
+            mapped = name_ov.get(ch['name'])
+            if mapped and mapped in valid_keys:
+                key = mapped
+        # c) 归一化名匹配
+        if not key:
+            key = norm2key.get(norm(ch['name']))
+        if key:
+            for a in addrs:
+                if a not in addr2key:
+                    addr2key[a] = key
+                    official_added += 1
+
+    # === 4. 回填 sources: channel_id(关联键,为主) + channel_key(可读冗余) ===
+    # 先取完再更新,避免cursor冲突
+    src_rows = c.execute("SELECT source_id, address FROM sources").fetchall()
+    linked, orphan = 0, 0
+    updates = []   # (channel_id, channel_key, source_id)
+    for r in src_rows:
+        key = addr2key.get(r['address'])
+        cid = key2id.get(key) if key else None
+        if cid:
+            updates.append((cid, key, r['source_id']))
+            linked += 1
+        else:
+            # 归不上: 清空两列(可能之前归错的也一并清,保持一致)
+            updates.append((None, None, r['source_id']))
+            orphan += 1
+    if not args.dry_run:
+        c.executemany("UPDATE sources SET channel_id=?, channel_key=? WHERE source_id=?", updates)
+        conn.commit()
+        # 回写归并快照(持久化: 新归并的下次也不丢)。快照存 address→channel_key(规范名,稳定可读)
+        links = {r['address']: r['channel_key'] for r in
+                 c.execute("SELECT address,channel_key FROM sources WHERE channel_key IS NOT NULL").fetchall()}
+        json.dump(links, open(snapshot_path, 'w', encoding='utf-8'),
+                  ensure_ascii=False, indent=1, sort_keys=True)
+
+    # === 报告 ===
+    print(f"\n  channel_key主数据(频道): {len(canon)}")
+    print(f"  持久化快照加载: {snap_loaded} 条(人工归并结果)")
+    print(f"  官方台账新增地址映射: {official_added}")
+    print(f"  源归并结果: 已归并 {linked}, 孤儿 {orphan}")
+    print(f"\n  验证: 钱江频道的所有源")
+    for r in c.execute("SELECT address, resolution, channel_key, source_type FROM sources WHERE channel_key LIKE '%钱江%'"):
+        print(f"    {r['address']:<26} {r['resolution']:<10} → {r['channel_key']}")
+    conn.close()
+    print("\n完成" + (" (dry-run,未写库)" if args.dry_run else ""))
+
+
+if __name__ == '__main__':
+    main()

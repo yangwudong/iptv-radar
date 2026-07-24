@@ -1,0 +1,2961 @@
+{
+ "_comment": "iptv-radar 频道种子数据(频道台账+分组保序)。配合 source_links.json 可从0重建库。",
+ "channels": [
+  {
+   "channel_id": 1,
+   "channel_key": "CCTV1综合",
+   "name": "CCTV1综合",
+   "tvg_id": "CCTV1",
+   "tvg_logo": "https://myepg.org/Logo/CCTV1.png",
+   "group_primary": "央视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 0,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 2,
+   "channel_key": "CCTV2财经",
+   "name": "CCTV2财经",
+   "tvg_id": "CCTV2",
+   "tvg_logo": "https://myepg.org/Logo/CCTV2.png",
+   "group_primary": "央视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 1,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 3,
+   "channel_key": "CCTV3综艺",
+   "name": "CCTV3综艺",
+   "tvg_id": "CCTV3",
+   "tvg_logo": "https://myepg.org/Logo/CCTV3.png",
+   "group_primary": "央视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 2,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 4,
+   "channel_key": "CCTV4中文国际",
+   "name": "CCTV4中文国际",
+   "tvg_id": "CCTV4",
+   "tvg_logo": "https://myepg.org/Logo/CCTV4.png",
+   "group_primary": "央视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 3,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 5,
+   "channel_key": "CCTV5+体育赛事",
+   "name": "CCTV5+体育赛事",
+   "tvg_id": "CCTV5+",
+   "tvg_logo": "https://myepg.org/Logo/CCTV5%2B.png",
+   "group_primary": "央视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 5,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 6,
+   "channel_key": "CCTV5体育",
+   "name": "CCTV5体育",
+   "tvg_id": "CCTV5",
+   "tvg_logo": "https://myepg.org/Logo/CCTV5.png",
+   "group_primary": "央视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 4,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 7,
+   "channel_key": "CCTV6电影",
+   "name": "CCTV6电影",
+   "tvg_id": "CCTV6",
+   "tvg_logo": "https://myepg.org/Logo/CCTV6.png",
+   "group_primary": "央视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 6,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 8,
+   "channel_key": "CCTV7国防军事",
+   "name": "CCTV7国防军事",
+   "tvg_id": "CCTV7",
+   "tvg_logo": "https://myepg.org/Logo/CCTV7.png",
+   "group_primary": "央视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 7,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 9,
+   "channel_key": "CCTV8电视剧",
+   "name": "CCTV8电视剧",
+   "tvg_id": "CCTV8",
+   "tvg_logo": "https://myepg.org/Logo/CCTV8.png",
+   "group_primary": "央视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 8,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 10,
+   "channel_key": "CCTV9纪录",
+   "name": "CCTV9纪录",
+   "tvg_id": "CCTV9",
+   "tvg_logo": "https://myepg.org/Logo/CCTV9.png",
+   "group_primary": "央视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 9,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 11,
+   "channel_key": "CCTV10科教",
+   "name": "CCTV10科教",
+   "tvg_id": "CCTV10",
+   "tvg_logo": "https://myepg.org/Logo/CCTV10.png",
+   "group_primary": "央视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 10,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 12,
+   "channel_key": "CCTV11戏曲",
+   "name": "CCTV11戏曲",
+   "tvg_id": "CCTV11",
+   "tvg_logo": "https://myepg.org/Logo/CCTV11.png",
+   "group_primary": "央视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 11,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 13,
+   "channel_key": "CCTV12社会与法",
+   "name": "CCTV12社会与法",
+   "tvg_id": "CCTV12",
+   "tvg_logo": "https://myepg.org/Logo/CCTV12.png",
+   "group_primary": "央视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 12,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 14,
+   "channel_key": "CCTV13新闻",
+   "name": "CCTV13新闻",
+   "tvg_id": "CCTV13",
+   "tvg_logo": "https://myepg.org/Logo/CCTV13.png",
+   "group_primary": "央视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 13,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 15,
+   "channel_key": "CCTV14少儿",
+   "name": "CCTV14少儿",
+   "tvg_id": "CCTV14",
+   "tvg_logo": "https://myepg.org/Logo/CCTV14.png",
+   "group_primary": "央视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 14,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 16,
+   "channel_key": "CCTV15音乐",
+   "name": "CCTV15音乐",
+   "tvg_id": "CCTV15",
+   "tvg_logo": "https://myepg.org/Logo/CCTV15.png",
+   "group_primary": "央视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 15,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 17,
+   "channel_key": "CCTV16奥林匹克",
+   "name": "CCTV16奥林匹克",
+   "tvg_id": "CCTV16",
+   "tvg_logo": "https://myepg.org/Logo/CCTV16.png",
+   "group_primary": "央视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 16,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 18,
+   "channel_key": "CCTV17农业农村",
+   "name": "CCTV17农业农村",
+   "tvg_id": "CCTV17",
+   "tvg_logo": "https://myepg.org/Logo/CCTV17.png",
+   "group_primary": "央视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 17,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 19,
+   "channel_key": "BesTV少儿4K",
+   "name": "BesTV少儿4K",
+   "tvg_id": "BesTV少儿",
+   "tvg_logo": "https://cdn.jsdelivr.net/gh/CCSH/IPTV@main/logo/BesTV4K.png",
+   "group_primary": "4K超高清",
+   "group_extra": "少儿;BesTV",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 18,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 20,
+   "channel_key": "BesTV纪实4K",
+   "name": "BesTV纪实4K",
+   "tvg_id": "BesTV纪实",
+   "tvg_logo": "https://cdn.jsdelivr.net/gh/CCSH/IPTV@main/logo/BesTV4K.png",
+   "group_primary": "4K超高清",
+   "group_extra": "BesTV",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 19,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 21,
+   "channel_key": "BesTV视界4K",
+   "name": "BesTV视界4K",
+   "tvg_id": "BesTV视界",
+   "tvg_logo": "https://cdn.jsdelivr.net/gh/CCSH/IPTV@main/logo/BesTV4K.png",
+   "group_primary": "4K超高清",
+   "group_extra": "BesTV",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 20,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 22,
+   "channel_key": "东方卫视4K",
+   "name": "东方卫视4K",
+   "tvg_id": "东方卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E4%B8%9C%E6%96%B9%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "4K超高清",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 21,
+   "status": "active",
+   "epg_channel_id": "136083231"
+  },
+  {
+   "channel_id": 23,
+   "channel_key": "北京卫视4K",
+   "name": "北京卫视4K",
+   "tvg_id": "北京卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E5%8C%97%E4%BA%AC%E5%8D%AB%E8%A7%864K.png",
+   "group_primary": "4K超高清",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 22,
+   "status": "active",
+   "epg_channel_id": "128124468"
+  },
+  {
+   "channel_id": 24,
+   "channel_key": "四川卫视4K",
+   "name": "四川卫视4K",
+   "tvg_id": "四川卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E5%9B%9B%E5%B7%9D%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "4K超高清",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 23,
+   "status": "active",
+   "epg_channel_id": "136083194"
+  },
+  {
+   "channel_id": 25,
+   "channel_key": "多彩文体4K",
+   "name": "多彩文体4K",
+   "tvg_id": "多彩文体",
+   "tvg_logo": "https://myepg.org/Logo/多彩文体4K.png",
+   "group_primary": "4K超高清",
+   "group_extra": "上海",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 24,
+   "status": "active",
+   "epg_channel_id": "72486903"
+  },
+  {
+   "channel_id": 26,
+   "channel_key": "山东卫视4K",
+   "name": "山东卫视4K",
+   "tvg_id": "山东卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E5%B1%B1%E4%B8%9C%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "4K超高清",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 25,
+   "status": "active",
+   "epg_channel_id": "136083250"
+  },
+  {
+   "channel_id": 27,
+   "channel_key": "广东卫视4K",
+   "name": "广东卫视4K",
+   "tvg_id": "广东卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E5%B9%BF%E4%B8%9C%E5%8D%AB%E8%A7%864K.png",
+   "group_primary": "4K超高清",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 26,
+   "status": "active",
+   "epg_channel_id": "131699759"
+  },
+  {
+   "channel_id": 28,
+   "channel_key": "江苏卫视4K",
+   "name": "江苏卫视4K",
+   "tvg_id": "江苏卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E6%B1%9F%E8%8B%8F%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "4K超高清",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 27,
+   "status": "active",
+   "epg_channel_id": "136083266"
+  },
+  {
+   "channel_id": 29,
+   "channel_key": "浙江卫视4K",
+   "name": "浙江卫视4K",
+   "tvg_id": "浙江卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E6%B5%99%E6%B1%9F%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "4K超高清",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 28,
+   "status": "active",
+   "epg_channel_id": "136086102"
+  },
+  {
+   "channel_id": 30,
+   "channel_key": "深圳卫视4K",
+   "name": "深圳卫视4K",
+   "tvg_id": "深圳卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E6%B7%B1%E5%9C%B3%E5%8D%AB%E8%A7%864K.png",
+   "group_primary": "4K超高清",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 29,
+   "status": "active",
+   "epg_channel_id": "131699789"
+  },
+  {
+   "channel_id": 31,
+   "channel_key": "湖南卫视4K",
+   "name": "湖南卫视4K",
+   "tvg_id": "湖南卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E6%B9%96%E5%8D%97%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "4K超高清",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 30,
+   "status": "active",
+   "epg_channel_id": "136083239"
+  },
+  {
+   "channel_id": 32,
+   "channel_key": "CCTV16奥林匹克4K",
+   "name": "CCTV16奥林匹克4K",
+   "tvg_id": "CCTV16",
+   "tvg_logo": "https://myepg.org/Logo/CCTV16.png",
+   "group_primary": "4K超高清",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 31,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 33,
+   "channel_key": "北京卫视",
+   "name": "北京卫视",
+   "tvg_id": "北京卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E5%8C%97%E4%BA%AC%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "北京",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 32,
+   "status": "active",
+   "epg_channel_id": "2828"
+  },
+  {
+   "channel_id": 34,
+   "channel_key": "东方卫视",
+   "name": "东方卫视",
+   "tvg_id": "东方卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E4%B8%9C%E6%96%B9%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "上海",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 33,
+   "status": "active",
+   "epg_channel_id": "2797"
+  },
+  {
+   "channel_id": 35,
+   "channel_key": "浙江卫视",
+   "name": "浙江卫视",
+   "tvg_id": "浙江卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E6%B5%99%E6%B1%9F%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "浙江",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 34,
+   "status": "active",
+   "epg_channel_id": "2834"
+  },
+  {
+   "channel_id": 36,
+   "channel_key": "湖南卫视",
+   "name": "湖南卫视",
+   "tvg_id": "湖南卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E6%B9%96%E5%8D%97%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 35,
+   "status": "active",
+   "epg_channel_id": "2788"
+  },
+  {
+   "channel_id": 37,
+   "channel_key": "江苏卫视",
+   "name": "江苏卫视",
+   "tvg_id": "江苏卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E6%B1%9F%E8%8B%8F%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 36,
+   "status": "active",
+   "epg_channel_id": "2825"
+  },
+  {
+   "channel_id": 38,
+   "channel_key": "深圳卫视",
+   "name": "深圳卫视",
+   "tvg_id": "深圳卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E6%B7%B1%E5%9C%B3%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 37,
+   "status": "active",
+   "epg_channel_id": "2804"
+  },
+  {
+   "channel_id": 39,
+   "channel_key": "山东卫视",
+   "name": "山东卫视",
+   "tvg_id": "山东卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E5%B1%B1%E4%B8%9C%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 38,
+   "status": "active",
+   "epg_channel_id": "2823"
+  },
+  {
+   "channel_id": 40,
+   "channel_key": "广东卫视",
+   "name": "广东卫视",
+   "tvg_id": "广东卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E5%B9%BF%E4%B8%9C%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 39,
+   "status": "active",
+   "epg_channel_id": "2817"
+  },
+  {
+   "channel_id": 41,
+   "channel_key": "天津卫视",
+   "name": "天津卫视",
+   "tvg_id": "天津卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E5%A4%A9%E6%B4%A5%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 40,
+   "status": "active",
+   "epg_channel_id": "2813"
+  },
+  {
+   "channel_id": 42,
+   "channel_key": "安徽卫视",
+   "name": "安徽卫视",
+   "tvg_id": "安徽卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E5%AE%89%E5%BE%BD%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 41,
+   "status": "active",
+   "epg_channel_id": "2793"
+  },
+  {
+   "channel_id": 43,
+   "channel_key": "湖北卫视",
+   "name": "湖北卫视",
+   "tvg_id": "湖北卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E6%B9%96%E5%8C%97%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 42,
+   "status": "active",
+   "epg_channel_id": "2835"
+  },
+  {
+   "channel_id": 44,
+   "channel_key": "重庆卫视",
+   "name": "重庆卫视",
+   "tvg_id": "重庆卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E9%87%8D%E5%BA%86%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 43,
+   "status": "active",
+   "epg_channel_id": "2824"
+  },
+  {
+   "channel_id": 45,
+   "channel_key": "河南卫视",
+   "name": "河南卫视",
+   "tvg_id": "河南卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E6%B2%B3%E5%8D%97%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 44,
+   "status": "active",
+   "epg_channel_id": "2831"
+  },
+  {
+   "channel_id": 46,
+   "channel_key": "四川卫视",
+   "name": "四川卫视",
+   "tvg_id": "四川卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E5%9B%9B%E5%B7%9D%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 45,
+   "status": "active",
+   "epg_channel_id": "2838"
+  },
+  {
+   "channel_id": 47,
+   "channel_key": "辽宁卫视",
+   "name": "辽宁卫视",
+   "tvg_id": "辽宁卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E8%BE%BD%E5%AE%81%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 46,
+   "status": "active",
+   "epg_channel_id": "2837"
+  },
+  {
+   "channel_id": 48,
+   "channel_key": "江西卫视",
+   "name": "江西卫视",
+   "tvg_id": "江西卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E6%B1%9F%E8%A5%BF%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 47,
+   "status": "active",
+   "epg_channel_id": "2830"
+  },
+  {
+   "channel_id": 49,
+   "channel_key": "黑龙江卫视",
+   "name": "黑龙江卫视",
+   "tvg_id": "黑龙江卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E9%BB%91%E9%BE%99%E6%B1%9F%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 48,
+   "status": "active",
+   "epg_channel_id": "2826"
+  },
+  {
+   "channel_id": 50,
+   "channel_key": "贵州卫视",
+   "name": "贵州卫视",
+   "tvg_id": "贵州卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E8%B4%B5%E5%B7%9E%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 49,
+   "status": "active",
+   "epg_channel_id": "2839"
+  },
+  {
+   "channel_id": 51,
+   "channel_key": "河北卫视",
+   "name": "河北卫视",
+   "tvg_id": "河北卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E6%B2%B3%E5%8C%97%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 50,
+   "status": "active",
+   "epg_channel_id": "2833"
+  },
+  {
+   "channel_id": 52,
+   "channel_key": "东南卫视",
+   "name": "东南卫视",
+   "tvg_id": "东南卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E4%B8%9C%E5%8D%97%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 51,
+   "status": "active",
+   "epg_channel_id": "2821"
+  },
+  {
+   "channel_id": 53,
+   "channel_key": "广西卫视",
+   "name": "广西卫视",
+   "tvg_id": "广西卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E5%B9%BF%E8%A5%BF%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 52,
+   "status": "active",
+   "epg_channel_id": "2836"
+  },
+  {
+   "channel_id": 54,
+   "channel_key": "海南卫视",
+   "name": "海南卫视",
+   "tvg_id": "海南卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E6%B5%B7%E5%8D%97%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 53,
+   "status": "active",
+   "epg_channel_id": "2815"
+  },
+  {
+   "channel_id": 55,
+   "channel_key": "新疆卫视",
+   "name": "新疆卫视",
+   "tvg_id": "新疆卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E6%96%B0%E7%96%86%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 54,
+   "status": "active",
+   "epg_channel_id": "134307256"
+  },
+  {
+   "channel_id": 56,
+   "channel_key": "云南卫视",
+   "name": "云南卫视",
+   "tvg_id": "云南卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E4%BA%91%E5%8D%97%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 55,
+   "status": "active",
+   "epg_channel_id": "2829"
+  },
+  {
+   "channel_id": 57,
+   "channel_key": "吉林卫视",
+   "name": "吉林卫视",
+   "tvg_id": "吉林卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E5%90%89%E6%9E%97%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 56,
+   "status": "active",
+   "epg_channel_id": "2827"
+  },
+  {
+   "channel_id": 58,
+   "channel_key": "甘肃卫视",
+   "name": "甘肃卫视",
+   "tvg_id": "甘肃卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E7%94%98%E8%82%83%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 57,
+   "status": "active",
+   "epg_channel_id": "5376064"
+  },
+  {
+   "channel_id": 59,
+   "channel_key": "山西卫视",
+   "name": "山西卫视",
+   "tvg_id": "山西卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E5%B1%B1%E8%A5%BF%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 58,
+   "status": "active",
+   "epg_channel_id": "2816"
+  },
+  {
+   "channel_id": 60,
+   "channel_key": "陕西卫视",
+   "name": "陕西卫视",
+   "tvg_id": "陕西卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E9%99%95%E8%A5%BF%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 59,
+   "status": "active",
+   "epg_channel_id": "2818"
+  },
+  {
+   "channel_id": 61,
+   "channel_key": "内蒙古卫视",
+   "name": "内蒙古卫视",
+   "tvg_id": "内蒙古卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E5%86%85%E8%92%99%E5%8F%A4%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 60,
+   "status": "active",
+   "epg_channel_id": "5376065"
+  },
+  {
+   "channel_id": 62,
+   "channel_key": "宁夏卫视",
+   "name": "宁夏卫视",
+   "tvg_id": "宁夏卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E5%AE%81%E5%A4%8F%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 61,
+   "status": "active",
+   "epg_channel_id": "2847"
+  },
+  {
+   "channel_id": 63,
+   "channel_key": "西藏卫视",
+   "name": "西藏卫视",
+   "tvg_id": "西藏卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E8%A5%BF%E8%97%8F%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 62,
+   "status": "active",
+   "epg_channel_id": "3824"
+  },
+  {
+   "channel_id": 64,
+   "channel_key": "青海卫视",
+   "name": "青海卫视",
+   "tvg_id": "青海卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E9%9D%92%E6%B5%B7%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 63,
+   "status": "active",
+   "epg_channel_id": "2784"
+  },
+  {
+   "channel_id": 65,
+   "channel_key": "兵团卫视",
+   "name": "兵团卫视",
+   "tvg_id": "兵团卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E5%85%B5%E5%9B%A2%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 64,
+   "status": "active",
+   "epg_channel_id": "3805"
+  },
+  {
+   "channel_id": 66,
+   "channel_key": "三沙卫视",
+   "name": "三沙卫视",
+   "tvg_id": "三沙卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E4%B8%89%E6%B2%99%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 65,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 67,
+   "channel_key": "延边卫视",
+   "name": "延边卫视",
+   "tvg_id": "延边卫视",
+   "tvg_logo": "https://myepg.org/Logo/%E5%BB%B6%E8%BE%B9%E5%8D%AB%E8%A7%86.png",
+   "group_primary": "卫视",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 66,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 68,
+   "channel_key": "杭州综合",
+   "name": "杭州综合",
+   "tvg_id": "杭州综合",
+   "tvg_logo": "https://myepg.org/Logo/%E6%9D%AD%E5%B7%9E%E7%BB%BC%E5%90%88.png",
+   "group_primary": "浙江",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 67,
+   "status": "active",
+   "epg_channel_id": "4091"
+  },
+  {
+   "channel_id": 69,
+   "channel_key": "杭州西湖明珠",
+   "name": "杭州西湖明珠",
+   "tvg_id": "杭州西湖明珠",
+   "tvg_logo": "https://cdn.jsdelivr.net/gh/CCSH/IPTV@main/logo/%E6%9D%AD%E5%B7%9E%E8%A5%BF%E6%B9%96%E6%98%8E%E7%8F%A0.png",
+   "group_primary": "浙江",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 68,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 70,
+   "channel_key": "杭州生活",
+   "name": "杭州生活",
+   "tvg_id": "杭州生活",
+   "tvg_logo": "https://myepg.org/Logo/%E6%9D%AD%E5%B7%9E%E7%94%9F%E6%B4%BB.png",
+   "group_primary": "浙江",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 69,
+   "status": "active",
+   "epg_channel_id": "4089"
+  },
+  {
+   "channel_id": 71,
+   "channel_key": "杭州影视",
+   "name": "杭州影视",
+   "tvg_id": "杭州影视",
+   "tvg_logo": "https://myepg.org/Logo/%E6%9D%AD%E5%B7%9E%E5%BD%B1%E8%A7%86.png",
+   "group_primary": "浙江",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 70,
+   "status": "active",
+   "epg_channel_id": "4090"
+  },
+  {
+   "channel_id": 72,
+   "channel_key": "杭州青少体育",
+   "name": "杭州青少体育",
+   "tvg_id": "杭州青少体育",
+   "tvg_logo": "https://cdn.jsdelivr.net/gh/CCSH/IPTV@main/logo/%E6%9D%AD%E5%B7%9E%E9%9D%92%E5%B0%91%E4%BD%93%E8%82%B2.png",
+   "group_primary": "浙江",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 71,
+   "status": "active",
+   "epg_channel_id": "4088"
+  },
+  {
+   "channel_id": 73,
+   "channel_key": "杭州导视",
+   "name": "杭州导视",
+   "tvg_id": "杭州导视",
+   "tvg_logo": "https://myepg.org/Logo/%E6%9D%AD%E5%B7%9E%E5%AF%BC%E8%A7%86.png",
+   "group_primary": "浙江",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 72,
+   "status": "active",
+   "epg_channel_id": "5376264"
+  },
+  {
+   "channel_id": 74,
+   "channel_key": "浙江钱江都市",
+   "name": "浙江钱江都市",
+   "tvg_id": "浙江钱江都市",
+   "tvg_logo": "https://cdn.jsdelivr.net/gh/CCSH/IPTV@main/logo/%E6%B5%99%E6%B1%9F%E9%92%B1%E6%B1%9F%E9%83%BD%E5%B8%82.png",
+   "group_primary": "浙江",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 73,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 75,
+   "channel_key": "浙江经视",
+   "name": "浙江经视",
+   "tvg_id": "浙江经视",
+   "tvg_logo": "https://cdn.jsdelivr.net/gh/CCSH/IPTV@main/logo/%E6%B5%99%E6%B1%9F%E7%BB%8F%E8%A7%86.png",
+   "group_primary": "浙江",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 74,
+   "status": "active",
+   "epg_channel_id": "2790"
+  },
+  {
+   "channel_id": 76,
+   "channel_key": "浙江教科影视",
+   "name": "浙江教科影视",
+   "tvg_id": "浙江教科影视",
+   "tvg_logo": "https://myepg.org/Logo/%E6%B5%99%E6%B1%9F%E6%95%99%E7%A7%91%E5%BD%B1%E8%A7%86.png",
+   "group_primary": "浙江",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 75,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 77,
+   "channel_key": "浙江新闻",
+   "name": "浙江新闻",
+   "tvg_id": "浙江新闻",
+   "tvg_logo": "https://cdn.jsdelivr.net/gh/CCSH/IPTV@main/logo/%E6%B5%99%E6%B1%9F%E6%96%B0%E9%97%BB.png",
+   "group_primary": "浙江",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 76,
+   "status": "active",
+   "epg_channel_id": "2811"
+  },
+  {
+   "channel_id": 78,
+   "channel_key": "浙江民生休闲",
+   "name": "浙江民生休闲",
+   "tvg_id": "浙江民生休闲",
+   "tvg_logo": "https://myepg.org/Logo/%E6%B5%99%E6%B1%9F%E6%B0%91%E7%94%9F%E4%BC%91%E9%97%B2.png",
+   "group_primary": "浙江",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 77,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 79,
+   "channel_key": "浙江少儿",
+   "name": "浙江少儿",
+   "tvg_id": "浙江少儿",
+   "tvg_logo": "https://myepg.org/Logo/%E6%B5%99%E6%B1%9F%E5%B0%91%E5%84%BF.png",
+   "group_primary": "浙江",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 78,
+   "status": "active",
+   "epg_channel_id": "2799"
+  },
+  {
+   "channel_id": 80,
+   "channel_key": "之江纪录",
+   "name": "之江纪录",
+   "tvg_id": "之江纪录",
+   "tvg_logo": "https://myepg.org/Logo/%E4%B9%8B%E6%B1%9F%E7%BA%AA%E5%BD%95.png",
+   "group_primary": "浙江",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 79,
+   "status": "active",
+   "epg_channel_id": "92749536"
+  },
+  {
+   "channel_id": 81,
+   "channel_key": "余杭新闻频道",
+   "name": "余杭新闻频道",
+   "tvg_id": "余杭新闻频道",
+   "tvg_logo": "https://cdn.jsdelivr.net/gh/CCSH/IPTV@main/logo/%E4%BD%99%E6%9D%AD%E6%96%B0%E9%97%BB%E9%A2%91%E9%81%93.png",
+   "group_primary": "浙江",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 80,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 82,
+   "channel_key": "中国蓝直播",
+   "name": "中国蓝直播",
+   "tvg_id": "中国蓝直播",
+   "tvg_logo": "https://epg.v1.mk/logo/中国蓝直播.png",
+   "group_primary": "浙江",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 81,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 83,
+   "channel_key": "嘉兴 新闻综合",
+   "name": "嘉兴 新闻综合",
+   "tvg_id": "嘉兴 新闻综合",
+   "tvg_logo": "https://myepg.org/Logo/%E5%98%89%E5%85%B4%E6%96%B0%E9%97%BB%E7%BB%BC%E5%90%88.png",
+   "group_primary": "浙江",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 82,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 84,
+   "channel_key": "宁波新闻综合",
+   "name": "宁波新闻综合",
+   "tvg_id": "宁波新闻综合",
+   "tvg_logo": "https://myepg.org/Logo/%E5%AE%81%E6%B3%A2%E6%96%B0%E9%97%BB%E7%BB%BC%E5%90%88.png",
+   "group_primary": "浙江",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 83,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 85,
+   "channel_key": "宁波经济生活",
+   "name": "宁波经济生活",
+   "tvg_id": "宁波经济生活",
+   "tvg_logo": "https://myepg.org/Logo/%E5%AE%81%E6%B3%A2%E7%BB%8F%E6%B5%8E%E7%94%9F%E6%B4%BB.png",
+   "group_primary": "浙江",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 84,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 86,
+   "channel_key": "宁波都市文体",
+   "name": "宁波都市文体",
+   "tvg_id": "宁波都市文体",
+   "tvg_logo": "https://myepg.org/Logo/%E5%AE%81%E6%B3%A2%E9%83%BD%E5%B8%82%E6%96%87%E4%BD%93.png",
+   "group_primary": "浙江",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 85,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 87,
+   "channel_key": "宁波影视剧",
+   "name": "宁波影视剧",
+   "tvg_id": "宁波影视剧",
+   "tvg_logo": "https://myepg.org/Logo/%E5%AE%81%E6%B3%A2%E5%BD%B1%E8%A7%86%E5%89%A7.png",
+   "group_primary": "浙江",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 86,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 88,
+   "channel_key": "绍兴新闻综合",
+   "name": "绍兴新闻综合",
+   "tvg_id": "绍兴新闻综合",
+   "tvg_logo": "https://myepg.org/Logo/%E7%BB%8D%E5%85%B4%E6%96%B0%E9%97%BB%E7%BB%BC%E5%90%88.png",
+   "group_primary": "浙江",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 87,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 89,
+   "channel_key": "湖州 新闻综合",
+   "name": "湖州 新闻综合",
+   "tvg_id": "湖州 新闻综合",
+   "tvg_logo": "https://myepg.org/Logo/%E6%B9%96%E5%B7%9E%E6%96%B0%E9%97%BB%E7%BB%BC%E5%90%88.png",
+   "group_primary": "浙江",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 88,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 90,
+   "channel_key": "桐乡 新闻综合",
+   "name": "桐乡 新闻综合",
+   "tvg_id": "桐乡 新闻综合",
+   "tvg_logo": "https://myepg.org/Logo/%E6%A1%90%E4%B9%A1%E6%96%B0%E9%97%BB%E7%BB%BC%E5%90%88.png",
+   "group_primary": "浙江",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 89,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 91,
+   "channel_key": "台州 新闻综合",
+   "name": "台州 新闻综合",
+   "tvg_id": "台州 新闻综合",
+   "tvg_logo": "",
+   "group_primary": "浙江",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 90,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 92,
+   "channel_key": "金华 新闻综合",
+   "name": "金华 新闻综合",
+   "tvg_id": "金华 新闻综合",
+   "tvg_logo": "https://myepg.org/Logo/%E9%87%91%E5%8D%8E%E6%96%B0%E9%97%BB%E7%BB%BC%E5%90%88.png",
+   "group_primary": "浙江",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 91,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 93,
+   "channel_key": "丽水 新闻综合",
+   "name": "丽水 新闻综合",
+   "tvg_id": "丽水 新闻综合",
+   "tvg_logo": "https://myepg.org/Logo/%E4%B8%BD%E6%B0%B4%E6%96%B0%E9%97%BB%E7%BB%BC%E5%90%88.png",
+   "group_primary": "浙江",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 92,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 94,
+   "channel_key": "衢州",
+   "name": "衢州",
+   "tvg_id": "衢州",
+   "tvg_logo": "https://epg.v1.mk/logo/衢州新闻综合.png",
+   "group_primary": "浙江",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 93,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 95,
+   "channel_key": "温州 新闻综合",
+   "name": "温州 新闻综合",
+   "tvg_id": "温州 新闻综合",
+   "tvg_logo": "https://myepg.org/Logo/%E6%B8%A9%E5%B7%9E%E6%96%B0%E9%97%BB%E7%BB%BC%E5%90%88.png",
+   "group_primary": "浙江",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 94,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 96,
+   "channel_key": "北京纪实科教",
+   "name": "北京纪实科教",
+   "tvg_id": "北京纪实科教",
+   "tvg_logo": "https://cdn.jsdelivr.net/gh/CCSH/IPTV@main/logo/%E5%8C%97%E4%BA%AC%E7%BA%AA%E5%AE%9E%E7%A7%91%E6%95%99.png",
+   "group_primary": "北京",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 95,
+   "status": "active",
+   "epg_channel_id": "110036299"
+  },
+  {
+   "channel_id": 97,
+   "channel_key": "北京卡酷少儿",
+   "name": "北京卡酷少儿",
+   "tvg_id": "北京卡酷少儿",
+   "tvg_logo": "https://cdn.jsdelivr.net/gh/CCSH/IPTV@main/logo/%E5%8C%97%E4%BA%AC%E5%8D%A1%E9%85%B7%E5%B0%91%E5%84%BF.png",
+   "group_primary": "北京",
+   "group_extra": "少儿",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 96,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 98,
+   "channel_key": "第一财经_上海",
+   "name": "第一财经_上海",
+   "tvg_id": "第一财经",
+   "tvg_logo": "https://myepg.org/Logo/%E7%AC%AC%E4%B8%80%E8%B4%A2%E7%BB%8F.png",
+   "group_primary": "上海",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 97,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 99,
+   "channel_key": "东方财经_上海",
+   "name": "东方财经_上海",
+   "tvg_id": "东方财经",
+   "tvg_logo": "https://myepg.org/Logo/%E4%B8%9C%E6%96%B9%E8%B4%A2%E7%BB%8F.png",
+   "group_primary": "上海",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 98,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 100,
+   "channel_key": "都市剧场_上海",
+   "name": "都市剧场_上海",
+   "tvg_id": "都市剧场",
+   "tvg_logo": "https://myepg.org/Logo/%E9%83%BD%E5%B8%82%E5%89%A7%E5%9C%BA.png",
+   "group_primary": "上海",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 99,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 101,
+   "channel_key": "动漫秀场_上海",
+   "name": "动漫秀场_上海",
+   "tvg_id": "动漫秀场",
+   "tvg_logo": "https://myepg.org/Logo/%E5%8A%A8%E6%BC%AB%E7%A7%80%E5%9C%BA.png",
+   "group_primary": "上海",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 100,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 102,
+   "channel_key": "乐游_上海",
+   "name": "乐游_上海",
+   "tvg_id": "乐游",
+   "tvg_logo": "https://myepg.org/Logo/%E4%B9%90%E6%B8%B8.png",
+   "group_primary": "上海",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 101,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 103,
+   "channel_key": "金色学堂_上海",
+   "name": "金色学堂_上海",
+   "tvg_id": "金色学堂",
+   "tvg_logo": "https://myepg.org/Logo/%E9%87%91%E8%89%B2%E5%AD%A6%E5%A0%82.png",
+   "group_primary": "上海",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 102,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 104,
+   "channel_key": "生活时尚_上海",
+   "name": "生活时尚_上海",
+   "tvg_id": "生活时尚",
+   "tvg_logo": "https://myepg.org/Logo/%E7%94%9F%E6%B4%BB%E6%97%B6%E5%B0%9A.png",
+   "group_primary": "上海",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 103,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 105,
+   "channel_key": "法治天地_上海",
+   "name": "法治天地_上海",
+   "tvg_id": "法治天地",
+   "tvg_logo": "https://myepg.org/Logo/%E6%B3%95%E6%B2%BB%E5%A4%A9%E5%9C%B0.png",
+   "group_primary": "上海",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 104,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 106,
+   "channel_key": "游戏风云_上海",
+   "name": "游戏风云_上海",
+   "tvg_id": "游戏风云",
+   "tvg_logo": "https://myepg.org/Logo/%E6%B8%B8%E6%88%8F%E9%A3%8E%E4%BA%91.png",
+   "group_primary": "上海",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 105,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 107,
+   "channel_key": "魅力足球_上海",
+   "name": "魅力足球_上海",
+   "tvg_id": "魅力足球",
+   "tvg_logo": "https://myepg.org/Logo/%E9%AD%85%E5%8A%9B%E8%B6%B3%E7%90%83.png",
+   "group_primary": "上海",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 106,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 109,
+   "channel_key": "七彩戏剧_上海",
+   "name": "七彩戏剧_上海",
+   "tvg_id": "七彩戏剧",
+   "tvg_logo": "https://cdn.jsdelivr.net/gh/CCSH/IPTV@main/logo/%E4%B8%83%E5%BD%A9%E6%88%8F%E5%89%A7.png",
+   "group_primary": "上海",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 108,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 110,
+   "channel_key": "纪实人文_上海",
+   "name": "纪实人文_上海",
+   "tvg_id": "上海纪实人文",
+   "tvg_logo": "https://cdn.jsdelivr.net/gh/CCSH/IPTV@main/logo/%E7%BA%AA%E5%AE%9E%E4%BA%BA%E6%96%87.png",
+   "group_primary": "上海",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 109,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 111,
+   "channel_key": "哈哈炫动_上海",
+   "name": "哈哈炫动_上海",
+   "tvg_id": "哈哈炫动",
+   "tvg_logo": "https://myepg.org/Logo/%E5%93%88%E5%93%88%E7%82%AB%E5%8A%A8.png",
+   "group_primary": "上海",
+   "group_extra": "少儿",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 110,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 112,
+   "channel_key": "快乐垂钓",
+   "name": "快乐垂钓",
+   "tvg_id": "快乐垂钓",
+   "tvg_logo": "https://myepg.org/Logo/%E5%BF%AB%E4%B9%90%E5%9E%82%E9%92%93.png",
+   "group_primary": "湖南",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 111,
+   "status": "active",
+   "epg_channel_id": "148775760"
+  },
+  {
+   "channel_id": 113,
+   "channel_key": "湖南茶频道",
+   "name": "湖南茶频道",
+   "tvg_id": "湖南茶频道",
+   "tvg_logo": "https://cdn.jsdelivr.net/gh/CCSH/IPTV@main/logo/%E6%B9%96%E5%8D%97%E8%8C%B6%E9%A2%91%E9%81%93.png",
+   "group_primary": "湖南",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 112,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 114,
+   "channel_key": "金鹰卡通_湖南",
+   "name": "金鹰卡通_湖南",
+   "tvg_id": "金鹰卡通_湖南",
+   "tvg_logo": "https://myepg.org/Logo/%E9%87%91%E9%B9%B0%E5%8D%A1%E9%80%9A.png",
+   "group_primary": "湖南",
+   "group_extra": "少儿",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 113,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 115,
+   "channel_key": "凤凰中文",
+   "name": "凤凰中文",
+   "tvg_id": "凤凰中文",
+   "tvg_logo": "https://myepg.org/Logo/%E5%87%A4%E5%87%B0%E4%B8%AD%E6%96%87.png",
+   "group_primary": "港澳台",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 114,
+   "status": "active",
+   "epg_channel_id": "110077576"
+  },
+  {
+   "channel_id": 116,
+   "channel_key": "凤凰资讯",
+   "name": "凤凰资讯",
+   "tvg_id": "凤凰资讯",
+   "tvg_logo": "https://myepg.org/Logo/%E5%87%A4%E5%87%B0%E8%B5%84%E8%AE%AF.png",
+   "group_primary": "港澳台",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 115,
+   "status": "active",
+   "epg_channel_id": "110077526"
+  },
+  {
+   "channel_id": 117,
+   "channel_key": "中国教育1台",
+   "name": "中国教育1台",
+   "tvg_id": "中国教育1台",
+   "tvg_logo": "https://myepg.org/Logo/CETV1.png",
+   "group_primary": "央视教育",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 116,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 118,
+   "channel_key": "中国教育4台",
+   "name": "中国教育4台",
+   "tvg_id": "中国教育4台",
+   "tvg_logo": "https://myepg.org/Logo/CETV4.png",
+   "group_primary": "央视教育",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 117,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 119,
+   "channel_key": "CGTN",
+   "name": "CGTN",
+   "tvg_id": "CGTN",
+   "tvg_logo": "https://myepg.org/Logo/CGTN.png",
+   "group_primary": "央视国际",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 118,
+   "status": "active",
+   "epg_channel_id": "4784"
+  },
+  {
+   "channel_id": 120,
+   "channel_key": "CGTN俄罗斯语",
+   "name": "CGTN俄罗斯语",
+   "tvg_id": "CGTN俄语",
+   "tvg_logo": "https://myepg.org/Logo/CGTN%E4%BF%84%E7%BD%97%E6%96%AF%E8%AF%AD.png",
+   "group_primary": "央视国际",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 119,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 121,
+   "channel_key": "CGTN法语",
+   "name": "CGTN法语",
+   "tvg_id": "CGTN法语",
+   "tvg_logo": "https://myepg.org/Logo/CGTN%E6%B3%95%E8%AF%AD.png",
+   "group_primary": "央视国际",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 120,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 122,
+   "channel_key": "CGTN西班牙语",
+   "name": "CGTN西班牙语",
+   "tvg_id": "CGTN西语",
+   "tvg_logo": "https://myepg.org/Logo/CGTN%E8%A5%BF%E7%8F%AD%E7%89%99%E8%AF%AD.png",
+   "group_primary": "央视国际",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 121,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 123,
+   "channel_key": "CGTN阿拉伯语",
+   "name": "CGTN阿拉伯语",
+   "tvg_id": "CGTN阿语",
+   "tvg_logo": "https://myepg.org/Logo/CGTN%E9%98%BF%E6%8B%89%E4%BC%AF%E8%AF%AD.png",
+   "group_primary": "央视国际",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 122,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 124,
+   "channel_key": "BesTV 新威体育",
+   "name": "BesTV 新威体育",
+   "tvg_id": "BesTV 新威体育",
+   "tvg_logo": "",
+   "group_primary": "BesTV",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 123,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 125,
+   "channel_key": "睛彩竞技",
+   "name": "睛彩竞技",
+   "tvg_id": "睛彩竞技",
+   "tvg_logo": "https://myepg.org/Logo/%E7%9D%9B%E5%BD%A9%E7%AB%9E%E6%8A%80.png",
+   "group_primary": "睛彩",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 124,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 126,
+   "channel_key": "睛彩篮球",
+   "name": "睛彩篮球",
+   "tvg_id": "睛彩篮球",
+   "tvg_logo": "https://myepg.org/Logo/%E7%9D%9B%E5%BD%A9%E7%AF%AE%E7%90%83.png",
+   "group_primary": "睛彩",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 125,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 127,
+   "channel_key": "睛彩青少",
+   "name": "睛彩青少",
+   "tvg_id": "睛彩青少",
+   "tvg_logo": "https://myepg.org/Logo/%E7%9D%9B%E5%BD%A9%E9%9D%92%E5%B0%91.png",
+   "group_primary": "睛彩",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 126,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 128,
+   "channel_key": "珠峰直播2",
+   "name": "珠峰直播2",
+   "tvg_id": "珠峰直播2",
+   "tvg_logo": "",
+   "group_primary": "其他",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 127,
+   "status": "active",
+   "epg_channel_id": "5376124"
+  },
+  {
+   "channel_id": 129,
+   "channel_key": "华数娱乐",
+   "name": "华数娱乐",
+   "tvg_id": "华数娱乐",
+   "tvg_logo": "",
+   "group_primary": "其他",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 128,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 130,
+   "channel_key": "历史",
+   "name": "历史",
+   "tvg_id": "历史",
+   "tvg_logo": "https://cdn.jsdelivr.net/gh/CCSH/IPTV@main/logo/%E5%8E%86%E5%8F%B2.png",
+   "group_primary": "其他",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 129,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 131,
+   "channel_key": "大熊猫的一天",
+   "name": "大熊猫的一天",
+   "tvg_id": "大熊猫的一天",
+   "tvg_logo": "",
+   "group_primary": "其他",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 130,
+   "status": "active",
+   "epg_channel_id": "67227365"
+  },
+  {
+   "channel_id": 132,
+   "channel_key": "央广购物",
+   "name": "央广购物",
+   "tvg_id": "央广购物",
+   "tvg_logo": "https://cdn.jsdelivr.net/gh/CCSH/IPTV@main/logo/%E5%A4%AE%E5%B9%BF%E8%B4%AD%E7%89%A9.png",
+   "group_primary": "其他",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 131,
+   "status": "active",
+   "epg_channel_id": "5672"
+  },
+  {
+   "channel_id": 133,
+   "channel_key": "导视频道",
+   "name": "导视频道",
+   "tvg_id": "导视频道",
+   "tvg_logo": "",
+   "group_primary": "其他",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 132,
+   "status": "active",
+   "epg_channel_id": "4464"
+  },
+  {
+   "channel_id": 134,
+   "channel_key": "熊猫宝宝幼儿园",
+   "name": "熊猫宝宝幼儿园",
+   "tvg_id": "熊猫宝宝幼儿园",
+   "tvg_logo": "",
+   "group_primary": "其他",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 133,
+   "status": "active",
+   "epg_channel_id": "67227294"
+  },
+  {
+   "channel_id": 135,
+   "channel_key": "爱看熊猫",
+   "name": "爱看熊猫",
+   "tvg_id": "爱看熊猫",
+   "tvg_logo": "",
+   "group_primary": "其他",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 134,
+   "status": "active",
+   "epg_channel_id": "67227410"
+  },
+  {
+   "channel_id": 136,
+   "channel_key": "浙江之声广播",
+   "name": "浙江之声广播",
+   "tvg_id": "浙江之声广播",
+   "tvg_logo": "https://myepg.org/Logo/%E6%B5%99%E6%B1%9F%E4%B9%8B%E5%A3%B0%E5%B9%BF%E6%92%AD.png",
+   "group_primary": "广播",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 135,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 137,
+   "channel_key": "浙江交通之声",
+   "name": "浙江交通之声",
+   "tvg_id": "浙江交通之声",
+   "tvg_logo": "https://myepg.org/Logo/%E6%B5%99%E6%B1%9F%E4%BA%A4%E9%80%9A%E4%B9%8B%E5%A3%B0.png",
+   "group_primary": "广播",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 136,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 138,
+   "channel_key": "浙江城市之声",
+   "name": "浙江城市之声",
+   "tvg_id": "浙江城市之声",
+   "tvg_logo": "https://myepg.org/Logo/%E6%B5%99%E6%B1%9F%E5%9F%8E%E5%B8%82%E4%B9%8B%E5%A3%B0.png",
+   "group_primary": "广播",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 137,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 139,
+   "channel_key": "浙江新闻广播",
+   "name": "浙江新闻广播",
+   "tvg_id": "浙江新闻广播",
+   "tvg_logo": "https://myepg.org/Logo/%E6%B5%99%E6%B1%9F%E6%96%B0%E9%97%BB%E5%B9%BF%E6%92%AD.png",
+   "group_primary": "广播",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 138,
+   "status": "active",
+   "epg_channel_id": "4851"
+  },
+  {
+   "channel_id": 140,
+   "channel_key": "浙江旅游之声_女主播",
+   "name": "浙江旅游之声_女主播",
+   "tvg_id": "浙江旅游之声_女主播",
+   "tvg_logo": "https://myepg.org/Logo/%E6%B5%99%E6%B1%9F%E6%97%85%E6%B8%B8%E4%B9%8B%E5%A3%B0.png",
+   "group_primary": "广播",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 139,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 141,
+   "channel_key": "浙江民生资讯广播",
+   "name": "浙江民生资讯广播",
+   "tvg_id": "浙江民生资讯广播",
+   "tvg_logo": "https://myepg.org/Logo/%E6%B5%99%E6%B1%9F%E6%B0%91%E7%94%9F%E8%B5%84%E8%AE%AF%E5%B9%BF%E6%92%AD.png",
+   "group_primary": "广播",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 140,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 142,
+   "channel_key": "浙江经济广播",
+   "name": "浙江经济广播",
+   "tvg_id": "浙江经济广播",
+   "tvg_logo": "https://myepg.org/Logo/%E6%B5%99%E6%B1%9F%E7%BB%8F%E6%B5%8E%E5%B9%BF%E6%92%AD.png",
+   "group_primary": "广播",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 141,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 143,
+   "channel_key": "浙江音乐调频",
+   "name": "浙江音乐调频",
+   "tvg_id": "浙江音乐调频",
+   "tvg_logo": "https://myepg.org/Logo/%E6%B5%99%E6%B1%9F%E9%9F%B3%E4%B9%90%E8%B0%83%E9%A2%91.png",
+   "group_primary": "广播",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 142,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 144,
+   "channel_key": "浙江政务",
+   "name": "浙江政务",
+   "tvg_id": "浙江政务",
+   "tvg_logo": "",
+   "group_primary": "其他",
+   "group_extra": "",
+   "enabled": 1,
+   "timeshift": 0,
+   "sort_hint": 143,
+   "status": "active",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 145,
+   "channel_key": "__UNKNOWN__",
+   "name": "未知待查",
+   "tvg_id": null,
+   "tvg_logo": null,
+   "group_primary": null,
+   "group_extra": null,
+   "enabled": 0,
+   "timeshift": 0,
+   "sort_hint": null,
+   "status": "placeholder",
+   "epg_channel_id": null
+  },
+  {
+   "channel_id": 146,
+   "channel_key": "__JUNK__",
+   "name": "垃圾/测试流",
+   "tvg_id": null,
+   "tvg_logo": null,
+   "group_primary": null,
+   "group_extra": null,
+   "enabled": 0,
+   "timeshift": 0,
+   "sort_hint": null,
+   "status": "placeholder",
+   "epg_channel_id": null
+  }
+ ],
+ "channel_groups": [
+  {
+   "channel_id": 1,
+   "group_name": "央视",
+   "is_primary": 1,
+   "order_in_group": 0
+  },
+  {
+   "channel_id": 2,
+   "group_name": "央视",
+   "is_primary": 1,
+   "order_in_group": 1
+  },
+  {
+   "channel_id": 3,
+   "group_name": "央视",
+   "is_primary": 1,
+   "order_in_group": 2
+  },
+  {
+   "channel_id": 4,
+   "group_name": "央视",
+   "is_primary": 1,
+   "order_in_group": 3
+  },
+  {
+   "channel_id": 5,
+   "group_name": "央视",
+   "is_primary": 1,
+   "order_in_group": 5
+  },
+  {
+   "channel_id": 6,
+   "group_name": "央视",
+   "is_primary": 1,
+   "order_in_group": 4
+  },
+  {
+   "channel_id": 7,
+   "group_name": "央视",
+   "is_primary": 1,
+   "order_in_group": 6
+  },
+  {
+   "channel_id": 8,
+   "group_name": "央视",
+   "is_primary": 1,
+   "order_in_group": 7
+  },
+  {
+   "channel_id": 9,
+   "group_name": "央视",
+   "is_primary": 1,
+   "order_in_group": 8
+  },
+  {
+   "channel_id": 10,
+   "group_name": "央视",
+   "is_primary": 1,
+   "order_in_group": 9
+  },
+  {
+   "channel_id": 11,
+   "group_name": "央视",
+   "is_primary": 1,
+   "order_in_group": 10
+  },
+  {
+   "channel_id": 12,
+   "group_name": "央视",
+   "is_primary": 1,
+   "order_in_group": 11
+  },
+  {
+   "channel_id": 13,
+   "group_name": "央视",
+   "is_primary": 1,
+   "order_in_group": 12
+  },
+  {
+   "channel_id": 14,
+   "group_name": "央视",
+   "is_primary": 1,
+   "order_in_group": 13
+  },
+  {
+   "channel_id": 15,
+   "group_name": "央视",
+   "is_primary": 1,
+   "order_in_group": 14
+  },
+  {
+   "channel_id": 16,
+   "group_name": "央视",
+   "is_primary": 1,
+   "order_in_group": 15
+  },
+  {
+   "channel_id": 17,
+   "group_name": "央视",
+   "is_primary": 1,
+   "order_in_group": 16
+  },
+  {
+   "channel_id": 18,
+   "group_name": "央视",
+   "is_primary": 1,
+   "order_in_group": 17
+  },
+  {
+   "channel_id": 19,
+   "group_name": "4K超高清",
+   "is_primary": 1,
+   "order_in_group": 0
+  },
+  {
+   "channel_id": 19,
+   "group_name": "BesTV",
+   "is_primary": 0,
+   "order_in_group": 2
+  },
+  {
+   "channel_id": 19,
+   "group_name": "少儿",
+   "is_primary": 0,
+   "order_in_group": 0
+  },
+  {
+   "channel_id": 20,
+   "group_name": "4K超高清",
+   "is_primary": 1,
+   "order_in_group": 1
+  },
+  {
+   "channel_id": 20,
+   "group_name": "BesTV",
+   "is_primary": 0,
+   "order_in_group": 0
+  },
+  {
+   "channel_id": 21,
+   "group_name": "4K超高清",
+   "is_primary": 1,
+   "order_in_group": 2
+  },
+  {
+   "channel_id": 21,
+   "group_name": "BesTV",
+   "is_primary": 0,
+   "order_in_group": 1
+  },
+  {
+   "channel_id": 22,
+   "group_name": "4K超高清",
+   "is_primary": 1,
+   "order_in_group": 3
+  },
+  {
+   "channel_id": 23,
+   "group_name": "4K超高清",
+   "is_primary": 1,
+   "order_in_group": 4
+  },
+  {
+   "channel_id": 24,
+   "group_name": "4K超高清",
+   "is_primary": 1,
+   "order_in_group": 5
+  },
+  {
+   "channel_id": 25,
+   "group_name": "4K超高清",
+   "is_primary": 1,
+   "order_in_group": 6
+  },
+  {
+   "channel_id": 25,
+   "group_name": "上海",
+   "is_primary": 0,
+   "order_in_group": 4
+  },
+  {
+   "channel_id": 26,
+   "group_name": "4K超高清",
+   "is_primary": 1,
+   "order_in_group": 7
+  },
+  {
+   "channel_id": 27,
+   "group_name": "4K超高清",
+   "is_primary": 1,
+   "order_in_group": 8
+  },
+  {
+   "channel_id": 28,
+   "group_name": "4K超高清",
+   "is_primary": 1,
+   "order_in_group": 9
+  },
+  {
+   "channel_id": 29,
+   "group_name": "4K超高清",
+   "is_primary": 1,
+   "order_in_group": 10
+  },
+  {
+   "channel_id": 30,
+   "group_name": "4K超高清",
+   "is_primary": 1,
+   "order_in_group": 11
+  },
+  {
+   "channel_id": 31,
+   "group_name": "4K超高清",
+   "is_primary": 1,
+   "order_in_group": 12
+  },
+  {
+   "channel_id": 32,
+   "group_name": "4K超高清",
+   "is_primary": 1,
+   "order_in_group": 13
+  },
+  {
+   "channel_id": 33,
+   "group_name": "北京",
+   "is_primary": 0,
+   "order_in_group": 0
+  },
+  {
+   "channel_id": 33,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 0
+  },
+  {
+   "channel_id": 34,
+   "group_name": "上海",
+   "is_primary": 0,
+   "order_in_group": 0
+  },
+  {
+   "channel_id": 34,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 1
+  },
+  {
+   "channel_id": 35,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 2
+  },
+  {
+   "channel_id": 35,
+   "group_name": "浙江",
+   "is_primary": 0,
+   "order_in_group": 6
+  },
+  {
+   "channel_id": 36,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 3
+  },
+  {
+   "channel_id": 37,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 4
+  },
+  {
+   "channel_id": 38,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 5
+  },
+  {
+   "channel_id": 39,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 6
+  },
+  {
+   "channel_id": 40,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 7
+  },
+  {
+   "channel_id": 41,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 8
+  },
+  {
+   "channel_id": 42,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 9
+  },
+  {
+   "channel_id": 43,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 10
+  },
+  {
+   "channel_id": 44,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 11
+  },
+  {
+   "channel_id": 45,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 12
+  },
+  {
+   "channel_id": 46,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 13
+  },
+  {
+   "channel_id": 47,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 14
+  },
+  {
+   "channel_id": 48,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 15
+  },
+  {
+   "channel_id": 49,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 16
+  },
+  {
+   "channel_id": 50,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 17
+  },
+  {
+   "channel_id": 51,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 18
+  },
+  {
+   "channel_id": 52,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 19
+  },
+  {
+   "channel_id": 53,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 20
+  },
+  {
+   "channel_id": 54,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 21
+  },
+  {
+   "channel_id": 55,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 22
+  },
+  {
+   "channel_id": 56,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 23
+  },
+  {
+   "channel_id": 57,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 24
+  },
+  {
+   "channel_id": 58,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 25
+  },
+  {
+   "channel_id": 59,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 26
+  },
+  {
+   "channel_id": 60,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 27
+  },
+  {
+   "channel_id": 61,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 28
+  },
+  {
+   "channel_id": 62,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 29
+  },
+  {
+   "channel_id": 63,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 30
+  },
+  {
+   "channel_id": 64,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 31
+  },
+  {
+   "channel_id": 65,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 32
+  },
+  {
+   "channel_id": 66,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 33
+  },
+  {
+   "channel_id": 67,
+   "group_name": "卫视",
+   "is_primary": 1,
+   "order_in_group": 34
+  },
+  {
+   "channel_id": 68,
+   "group_name": "浙江",
+   "is_primary": 1,
+   "order_in_group": 0
+  },
+  {
+   "channel_id": 69,
+   "group_name": "浙江",
+   "is_primary": 1,
+   "order_in_group": 1
+  },
+  {
+   "channel_id": 70,
+   "group_name": "浙江",
+   "is_primary": 1,
+   "order_in_group": 2
+  },
+  {
+   "channel_id": 71,
+   "group_name": "浙江",
+   "is_primary": 1,
+   "order_in_group": 3
+  },
+  {
+   "channel_id": 72,
+   "group_name": "浙江",
+   "is_primary": 1,
+   "order_in_group": 4
+  },
+  {
+   "channel_id": 73,
+   "group_name": "浙江",
+   "is_primary": 1,
+   "order_in_group": 5
+  },
+  {
+   "channel_id": 74,
+   "group_name": "浙江",
+   "is_primary": 1,
+   "order_in_group": 7
+  },
+  {
+   "channel_id": 75,
+   "group_name": "浙江",
+   "is_primary": 1,
+   "order_in_group": 8
+  },
+  {
+   "channel_id": 76,
+   "group_name": "浙江",
+   "is_primary": 1,
+   "order_in_group": 9
+  },
+  {
+   "channel_id": 77,
+   "group_name": "浙江",
+   "is_primary": 1,
+   "order_in_group": 10
+  },
+  {
+   "channel_id": 78,
+   "group_name": "浙江",
+   "is_primary": 1,
+   "order_in_group": 11
+  },
+  {
+   "channel_id": 79,
+   "group_name": "浙江",
+   "is_primary": 1,
+   "order_in_group": 12
+  },
+  {
+   "channel_id": 80,
+   "group_name": "浙江",
+   "is_primary": 1,
+   "order_in_group": 13
+  },
+  {
+   "channel_id": 81,
+   "group_name": "浙江",
+   "is_primary": 1,
+   "order_in_group": 14
+  },
+  {
+   "channel_id": 82,
+   "group_name": "浙江",
+   "is_primary": 1,
+   "order_in_group": 15
+  },
+  {
+   "channel_id": 83,
+   "group_name": "浙江",
+   "is_primary": 1,
+   "order_in_group": 16
+  },
+  {
+   "channel_id": 84,
+   "group_name": "浙江",
+   "is_primary": 1,
+   "order_in_group": 17
+  },
+  {
+   "channel_id": 85,
+   "group_name": "浙江",
+   "is_primary": 1,
+   "order_in_group": 18
+  },
+  {
+   "channel_id": 86,
+   "group_name": "浙江",
+   "is_primary": 1,
+   "order_in_group": 19
+  },
+  {
+   "channel_id": 87,
+   "group_name": "浙江",
+   "is_primary": 1,
+   "order_in_group": 20
+  },
+  {
+   "channel_id": 88,
+   "group_name": "浙江",
+   "is_primary": 1,
+   "order_in_group": 21
+  },
+  {
+   "channel_id": 89,
+   "group_name": "浙江",
+   "is_primary": 1,
+   "order_in_group": 22
+  },
+  {
+   "channel_id": 90,
+   "group_name": "浙江",
+   "is_primary": 1,
+   "order_in_group": 23
+  },
+  {
+   "channel_id": 91,
+   "group_name": "浙江",
+   "is_primary": 1,
+   "order_in_group": 24
+  },
+  {
+   "channel_id": 92,
+   "group_name": "浙江",
+   "is_primary": 1,
+   "order_in_group": 25
+  },
+  {
+   "channel_id": 93,
+   "group_name": "浙江",
+   "is_primary": 1,
+   "order_in_group": 26
+  },
+  {
+   "channel_id": 94,
+   "group_name": "浙江",
+   "is_primary": 1,
+   "order_in_group": 27
+  },
+  {
+   "channel_id": 95,
+   "group_name": "浙江",
+   "is_primary": 1,
+   "order_in_group": 28
+  },
+  {
+   "channel_id": 96,
+   "group_name": "北京",
+   "is_primary": 1,
+   "order_in_group": 1
+  },
+  {
+   "channel_id": 97,
+   "group_name": "北京",
+   "is_primary": 1,
+   "order_in_group": 2
+  },
+  {
+   "channel_id": 97,
+   "group_name": "少儿",
+   "is_primary": 0,
+   "order_in_group": 1
+  },
+  {
+   "channel_id": 98,
+   "group_name": "上海",
+   "is_primary": 1,
+   "order_in_group": 1
+  },
+  {
+   "channel_id": 99,
+   "group_name": "上海",
+   "is_primary": 1,
+   "order_in_group": 2
+  },
+  {
+   "channel_id": 100,
+   "group_name": "上海",
+   "is_primary": 1,
+   "order_in_group": 3
+  },
+  {
+   "channel_id": 101,
+   "group_name": "上海",
+   "is_primary": 1,
+   "order_in_group": 5
+  },
+  {
+   "channel_id": 102,
+   "group_name": "上海",
+   "is_primary": 1,
+   "order_in_group": 6
+  },
+  {
+   "channel_id": 103,
+   "group_name": "上海",
+   "is_primary": 1,
+   "order_in_group": 7
+  },
+  {
+   "channel_id": 104,
+   "group_name": "上海",
+   "is_primary": 1,
+   "order_in_group": 8
+  },
+  {
+   "channel_id": 105,
+   "group_name": "上海",
+   "is_primary": 1,
+   "order_in_group": 9
+  },
+  {
+   "channel_id": 106,
+   "group_name": "上海",
+   "is_primary": 1,
+   "order_in_group": 10
+  },
+  {
+   "channel_id": 107,
+   "group_name": "上海",
+   "is_primary": 1,
+   "order_in_group": 11
+  },
+  {
+   "channel_id": 109,
+   "group_name": "上海",
+   "is_primary": 1,
+   "order_in_group": 13
+  },
+  {
+   "channel_id": 110,
+   "group_name": "上海",
+   "is_primary": 1,
+   "order_in_group": 14
+  },
+  {
+   "channel_id": 111,
+   "group_name": "上海",
+   "is_primary": 1,
+   "order_in_group": 15
+  },
+  {
+   "channel_id": 111,
+   "group_name": "少儿",
+   "is_primary": 0,
+   "order_in_group": 2
+  },
+  {
+   "channel_id": 112,
+   "group_name": "湖南",
+   "is_primary": 1,
+   "order_in_group": 0
+  },
+  {
+   "channel_id": 113,
+   "group_name": "湖南",
+   "is_primary": 1,
+   "order_in_group": 1
+  },
+  {
+   "channel_id": 114,
+   "group_name": "少儿",
+   "is_primary": 0,
+   "order_in_group": 3
+  },
+  {
+   "channel_id": 114,
+   "group_name": "湖南",
+   "is_primary": 1,
+   "order_in_group": 2
+  },
+  {
+   "channel_id": 115,
+   "group_name": "港澳台",
+   "is_primary": 1,
+   "order_in_group": 0
+  },
+  {
+   "channel_id": 116,
+   "group_name": "港澳台",
+   "is_primary": 1,
+   "order_in_group": 1
+  },
+  {
+   "channel_id": 117,
+   "group_name": "央视教育",
+   "is_primary": 1,
+   "order_in_group": 0
+  },
+  {
+   "channel_id": 118,
+   "group_name": "央视教育",
+   "is_primary": 1,
+   "order_in_group": 1
+  },
+  {
+   "channel_id": 119,
+   "group_name": "央视国际",
+   "is_primary": 1,
+   "order_in_group": 0
+  },
+  {
+   "channel_id": 120,
+   "group_name": "央视国际",
+   "is_primary": 1,
+   "order_in_group": 1
+  },
+  {
+   "channel_id": 121,
+   "group_name": "央视国际",
+   "is_primary": 1,
+   "order_in_group": 2
+  },
+  {
+   "channel_id": 122,
+   "group_name": "央视国际",
+   "is_primary": 1,
+   "order_in_group": 3
+  },
+  {
+   "channel_id": 123,
+   "group_name": "央视国际",
+   "is_primary": 1,
+   "order_in_group": 4
+  },
+  {
+   "channel_id": 124,
+   "group_name": "BesTV",
+   "is_primary": 1,
+   "order_in_group": 3
+  },
+  {
+   "channel_id": 125,
+   "group_name": "睛彩",
+   "is_primary": 1,
+   "order_in_group": 0
+  },
+  {
+   "channel_id": 126,
+   "group_name": "睛彩",
+   "is_primary": 1,
+   "order_in_group": 1
+  },
+  {
+   "channel_id": 127,
+   "group_name": "睛彩",
+   "is_primary": 1,
+   "order_in_group": 2
+  },
+  {
+   "channel_id": 128,
+   "group_name": "其他",
+   "is_primary": 1,
+   "order_in_group": 0
+  },
+  {
+   "channel_id": 129,
+   "group_name": "其他",
+   "is_primary": 1,
+   "order_in_group": 1
+  },
+  {
+   "channel_id": 130,
+   "group_name": "其他",
+   "is_primary": 1,
+   "order_in_group": 2
+  },
+  {
+   "channel_id": 131,
+   "group_name": "其他",
+   "is_primary": 1,
+   "order_in_group": 3
+  },
+  {
+   "channel_id": 132,
+   "group_name": "其他",
+   "is_primary": 1,
+   "order_in_group": 4
+  },
+  {
+   "channel_id": 133,
+   "group_name": "其他",
+   "is_primary": 1,
+   "order_in_group": 5
+  },
+  {
+   "channel_id": 134,
+   "group_name": "其他",
+   "is_primary": 1,
+   "order_in_group": 6
+  },
+  {
+   "channel_id": 135,
+   "group_name": "其他",
+   "is_primary": 1,
+   "order_in_group": 7
+  },
+  {
+   "channel_id": 136,
+   "group_name": "广播",
+   "is_primary": 1,
+   "order_in_group": 0
+  },
+  {
+   "channel_id": 137,
+   "group_name": "广播",
+   "is_primary": 1,
+   "order_in_group": 1
+  },
+  {
+   "channel_id": 138,
+   "group_name": "广播",
+   "is_primary": 1,
+   "order_in_group": 2
+  },
+  {
+   "channel_id": 139,
+   "group_name": "广播",
+   "is_primary": 1,
+   "order_in_group": 3
+  },
+  {
+   "channel_id": 140,
+   "group_name": "广播",
+   "is_primary": 1,
+   "order_in_group": 4
+  },
+  {
+   "channel_id": 141,
+   "group_name": "广播",
+   "is_primary": 1,
+   "order_in_group": 5
+  },
+  {
+   "channel_id": 142,
+   "group_name": "广播",
+   "is_primary": 1,
+   "order_in_group": 6
+  },
+  {
+   "channel_id": 143,
+   "group_name": "广播",
+   "is_primary": 1,
+   "order_in_group": 7
+  },
+  {
+   "channel_id": 144,
+   "group_name": "其他",
+   "is_primary": 1,
+   "order_in_group": 8
+  }
+ ]
+}

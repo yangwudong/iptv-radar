@@ -1,0 +1,49 @@
+# ==== 敏感数据(含真实账号/隐私,绝不上传) ====
+.env
+*.pcap
+*.pcapng
+reference/pcap/
+data/*.db
+data/*.db-journal
+data/*.bak
+data/*.bak.*
+data/*.db.bak*
+data/backup_*/
+
+# ==== 本地私密文档(含真实SSH/域名/拓扑,给AI接班用,不公开) ====
+# 公开门面见 README.md;AGENTS.md 是本地私密工作笔记
+AGENTS.md
+reference/orphan_todo.md
+
+# ==== 大文件/中间产物 ====
+output/iptv.m3u
+output/epg_today.json
+output/dashboard/screenshots/*.jpg
+output/dashboard/index.html
+output/dashboard/channels.html
+*.log
+
+# ==== 保留的静态资源(dashboard图标,上传) ====
+!output/dashboard/icons/
+!output/dashboard/icons/*.png
+
+# ==== Python ====
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# ==== 系统 ====
+.DS_Store
+Thumbs.db
+
+# ==== 保留的样本(可上传,已脱敏) ====
+!reference/channels.sample.json
+!reference/logo_index.json
+!output/dashboard/screenshots/.gitkeep
+reference/orphan_shots/
+
+# ==== 孤儿源识别运行时数据(不上git) ====
+output/orphan_review/
+data/orphan_inbox/

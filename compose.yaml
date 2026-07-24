@@ -1,0 +1,27 @@
+# iptv-radar Docker Compose
+# 部署在 NAS1 <docker根>/iptv-radar/ 。详见 docs/DEPLOY.md
+#
+# 用法(瞬时任务,跑完即退,不常驻):
+#   增量(每周):  docker compose run --rm pipeline --publish
+#   全量(每月):  docker compose run --rm pipeline --full --publish
+#   从0建库:     docker compose run --rm --entrypoint bash pipeline \
+#                  -c "cd /app/src && python3 db_schema.py && python3 seed.py load"
+#
+# 群晖任务计划触发示例(每周一03:00):
+#   cd <docker根>/iptv-radar && docker compose run --rm pipeline --publish
+
+services:
+  pipeline:
+    build: .
+    image: iptv-radar:latest
+    network_mode: host          # 需访问组播(msd_lite)和RTSP专网,host网络最简单可靠
+    env_file:
+      - .env                    # 真实配置(MSD/EPG凭证等),不进镜像
+    environment:
+      - TZ=Asia/Shanghai
+      - NGINX_M3U_DIR=/nginx_m3u   # 容器内发布路径(下方挂载)
+    volumes:
+      - ./data:/app/data                     # SQLite主库+种子+inbox(持久化)
+      - ./output:/app/output                 # m3u + dashboard + orphan_review
+      - /volume1/docker/nginx/m3u:/nginx_m3u # 发布: 挂载现有nginx的m3u目录
+    restart: "no"               # 瞬时任务,跑完即退,不自动重启
