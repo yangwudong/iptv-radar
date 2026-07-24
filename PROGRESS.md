@@ -99,3 +99,13 @@ gitignore: output/orphan_review/ + data/orphan_inbox/ (运行时数据不上git)
   - 坑修复(治本): icons静态资源没进镜像(Dockerfile只COPY src/reference)→移到reference/icons/,gen_dashboard运行时复制到output。
 - 验收全200: iptv.m3u / 旧m3u / dashboard主页 / channels.html / icons。
 待办: 群晖任务计划配cron(每周known/每月full);等新镜像build完下次pipeline自带icons。
+
+## 2026-07-24 群晖任务计划(cron)配置完成 + icons治本验证
+- 两个任务计划(root身份):
+  - iptv-radar weekly incremental: 每周四04:00, `docker compose run --rm pipeline --publish`(known增量)
+  - iptv-radar monthly full scan: 每月第2周二03:00, 加--full(全量)
+- 验证: 以root完整跑任务计划命令,端到端通(306/306零误报653s+发布), 容器--rm自动退出(瞬时任务)。
+  注: synoschedtask --run 手动触发不生效(命令行方式限制),但不影响DSM调度器到点自动执行。
+- icons治本生效: 新镜像(reference/icons进镜像)+gen_dashboard运行时复制→output/dashboard/icons/8个,不再手动传。
+- <PUBLISH_HOST>:<PUBLISH_PORT> 全200: iptv.m3u / dashboard/ / icons。
+- 部署+自动化全部完成。
