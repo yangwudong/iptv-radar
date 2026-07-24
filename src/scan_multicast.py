@@ -8,7 +8,7 @@ iptv-radar 采集层: scan_multicast.py
   - 优化probe参数(8M),救回高码率4K
   - 并发适中(默认8),避免多路组播抢IGMP/带宽
   - 失败重试(默认2次)
-  - 新源(DB没见过的)抓3张截图
+  - 新源(DB没见过的)记录待识别(截图由orphan_export产出)
   - 更新 available/fail_count/last_scan;写 scan_history
 
 运行: python3 scan_multicast.py [--db] [--msd HOST:PORT] [--segments 200,201,202]
@@ -28,7 +28,6 @@ import probe
 
 RADAR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 DEFAULT_DB = os.path.join(RADAR, 'data', 'iptv.db')
-SHOTS_DIR = os.path.join(RADAR, 'output', 'dashboard', 'screenshots')
 NOW = lambda: datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 
@@ -176,26 +175,7 @@ def main():
             new_sources.append(address)
 
     conn.commit()
-    conn.close()   # 截图阶段不需要主连接,提前关闭避免持锁
-
-    # 新源抓截图(先全部抓完,再用独立连接批量写,避免长时间持锁)
-    if new_sources:
-        print(f"\n  新源 {len(new_sources)} 个,抓截图...")
-        shot_updates = []
-        for address in new_sources:
-            ip = address.split(':')[0]
-            url = f"http://{args.msd}/rtp/{address}"
-            shots = probe.capture_screenshots(url, SHOTS_DIR, ip.replace('.', '_'), count=3)
-            if shots:
-                rel = ';'.join(os.path.relpath(s, RADAR) for s in shots)
-                shot_updates.append((rel, address))
-                print(f"    {address}: {len(shots)}张")
-        # 批量写(独立连接,带锁等待)
-        if shot_updates:
-            conn2 = sqlite3.connect(args.db, timeout=30)
-            conn2.executemany("UPDATE sources SET screenshots=? WHERE address=?", shot_updates)
-            conn2.commit()
-            conn2.close()
+    conn.close()
 
     elapsed = (datetime.datetime.now() - t0).total_seconds()
     print("\n" + "=" * 55)

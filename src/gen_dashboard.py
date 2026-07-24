@@ -55,7 +55,7 @@ def load_data(db_path):
                ch.epg_channel_id, ch.tvg_id, ch.timeshift, ch.sort_hint,
                s.source_type, s.address, s.resolution, s.res_label, s.video_codec,
                s.fps, s.vbitrate, s.hdr, s.audio_codec, s.audio_channels, s.available,
-               s.redirect_hops, s.redirect_loop, s.screenshots
+               s.redirect_hops, s.redirect_loop
         FROM channels ch
         LEFT JOIN channel_preferred_sources p ON ch.channel_id = p.channel_id AND p.rank = 1
         LEFT JOIN sources s ON p.source_id = s.source_id
@@ -76,7 +76,7 @@ def load_data(db_path):
             'vbitrate': r['vbitrate'] or 0, 'hdr': r['hdr'] or '',
             'acodec': (r['audio_codec'] or '').upper(), 'achannels': r['audio_channels'] or 0,
             'available': r['available'], 'redirect_hops': r['redirect_hops'] or 0,
-            'redirect_loop': r['redirect_loop'], 'screenshots': r['screenshots'] or '',
+            'redirect_loop': r['redirect_loop'],
             'category': cat,
         })
     # 排序: 保持 merged_multicast.m3u 原始顺序(sort_hint,即分组优先级+组内顺序)
@@ -219,12 +219,6 @@ def build_html(data, epg=None):
             play_html = f'<a class="play-btn play-iina" href="{esc(iina_url)}" title="用IINA播放">▶ IINA</a>'
         else:
             addr_html = '<span class="muted">-</span>'
-        # 截图
-        shots = ''
-        if d['screenshots']:
-            for sp in d['screenshots'].split(';')[:3]:
-                fn = os.path.basename(sp)
-                shots += f'<img class="thumb" src="screenshots/{esc(fn)}" onclick="zoom(this.src)" loading="lazy">'
         grp = esc(d['group']) + (f'<small>+{esc(d["group_extra"])}</small>' if d['group_extra'] else '')
         ts = '<span class="tag t-ts">时移</span>' if d['timeshift'] else ''
 
@@ -239,7 +233,6 @@ def build_html(data, epg=None):
           <td class="c-play">{play_html}</td>
           <td class="c-status">{badge}</td>
           <td class="c-id">{epg_link}</td>
-          <td class="c-shots">{shots}</td>
         </tr>''')
 
     # 只嵌入实际用到的频道节目单(减小体积)
@@ -406,13 +399,9 @@ tbody tr:hover td {{ background:var(--hover); }}
 .c-name small,.c-grp small {{ color:var(--muted); font-weight:400; font-size:11px; margin-left:4px; }}
 .dot {{ display:inline-block; width:9px; height:9px; border-radius:50%; }}
 .dot.ok {{ background:#17b26a; }} .dot.off {{ background:#f04438; }} .dot.new {{ background:#f79009; }}
-.thumb {{ height:34px; border-radius:5px; margin-right:4px; cursor:pointer; border:1px solid var(--border); vertical-align:middle; }}
-/* lightbox */
-#lb {{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.9); z-index:99; justify-content:center; align-items:center; }}
-#lb img {{ max-width:92%; max-height:92%; border-radius:10px; }}
 footer {{ text-align:center; color:var(--muted); font-size:13px; padding:30px 0; }}
 footer a {{ color:var(--accent); text-decoration:none; }}
-@media(max-width:768px) {{ .c-grp,.c-shots {{ display:none; }} header h1 {{ font-size:24px; }} }}
+@media(max-width:768px) {{ .c-grp {{ display:none; }} header h1 {{ font-size:24px; }} }}
 </style></head>
 <body>
 <button class="theme-btn" onclick="toggleTheme()"><span id="themeIcon">🌙</span> <span id="themeTxt">深色</span></button>
@@ -440,7 +429,7 @@ footer a {{ color:var(--accent); text-decoration:none; }}
     <table>
       <thead><tr>
         <th>#</th><th>频道</th><th>分组</th>
-        <th>视频信息</th><th>音频</th><th>源</th><th>地址</th><th>播放</th><th>状态</th><th>节目单</th><th>截图</th>
+        <th>视频信息</th><th>音频</th><th>源</th><th>地址</th><th>播放</th><th>状态</th><th>节目单</th>
       </tr></thead>
       <tbody id="tbody">{rows}</tbody>
     </table>
@@ -450,7 +439,6 @@ footer a {{ color:var(--accent); text-decoration:none; }}
     数据源 EPG {epg_server}
   </footer>
 </div>
-<div id="lb" onclick="this.style.display='none'"><img id="lbimg"></div>
 <div id="epgModal" onclick="if(event.target===this)this.style.display='none'">
   <div class="epg-panel">
     <div class="epg-head"><span id="epgTitle"></span><span class="close" onclick="document.getElementById('epgModal').style.display='none'">×</span></div>
@@ -493,7 +481,6 @@ function doFilter() {{
     else tr.style.display='none';
   }});
 }}
-function zoom(src) {{ document.getElementById('lbimg').src=src; document.getElementById('lb').style.display='flex'; }}
 // 节目单弹窗
 function showEpg(tvgId, name) {{
   var progs = EPG[tvgId] || [];
