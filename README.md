@@ -143,7 +143,9 @@ ip mroute show          # 观看时应出现 (源, 组) Iif:<IPTV接口> Oifs:la
 LAN 设备用播放器打开 `rtp://@<组播地址>` 即可直接观看。
 
 **排查提示**(按此顺序,逐步用证据定位):
-- 设备发不出 IGMP join → 检查客户端(macOS 上 Docker/OrbStack 的虚拟网桥会干扰组播 join,关掉即可);
+- 设备发不出 IGMP join → 检查客户端(macOS 上 OrbStack/Docker Desktop 会创建虚拟网桥,
+  干扰主机组播 join 的接口选择;OrbStack 里关掉 "Allow access to container domains & IPs"
+  即可恢复,无需退出 Docker);
 - `ip mroute show` 无 resolved 条目 → igmpproxy 上游/altnet/scope 配置(某些运营商组播是 organization-local,igmpproxy 默认只代理 global);
 - 有 resolved 但设备收不到、物理口抓不到包 → **十有八九是防火墙 forward 拦了(见第3步)**。
 
