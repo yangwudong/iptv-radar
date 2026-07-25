@@ -17,6 +17,7 @@ import sqlite3
 import json
 import os
 import re
+import shutil
 import argparse
 
 RADAR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
@@ -80,35 +81,46 @@ def main():
     c = conn.cursor()
 
     # === 1. channel_key 主数据: 频道的规范名(channels.channel_key 已由迁移建好) ===
-    # key2id: channel_key(规范名) → channel_id, 用于回填 sources.channel_id(关联键)
-    key2id = {}      # channel_key → channel_id
-    norm2key = {}    # 归一化名 → channel_key
-    # 只认 enabled 频道做匹配目标(占位/黑名单频道不参与自动归并)
-    ch_rows = c.execute("SELECT channel_id, channel_key FROM channels WHERE enabled=1 AND channel_key IS NOT NULL").fetchall()
-    for r in ch_rows:
+    # 两张表分工(别合并!):
+    #   key2id_all  = 全部频道(含 enabled=0 / placeholder) → 用于"保留已有归并"和最终回填 channel_id。
+    #                 禁用是"是否发布"的决定,不是"解除归并"。占位频道(__JUNK__/__UNKNOWN__)挂靠的源
+    #                 也必须保住,否则孤儿识别结果每次 pipeline 都被打回,同一批垃圾流反复出现。
+    #   key2id      = 仅 enabled 频道 → 用于按官方名自动匹配新地址(占位/黑名单频道不当自动归并目标)。
+    # 曾经的bug: 两者混用一张 enabled-only 表 → 禁用一个频道就把它的人工归并结果清空,
+    #            且快照被全量重建覆盖(见下方 §5),不可逆。
+    key2id_all = {}  # channel_key → channel_id (全部频道)
+    key2id = {}      # channel_key → channel_id (仅enabled,自动匹配用)
+    norm2key = {}    # 归一化名 → channel_key (仅enabled)
+    for r in c.execute("SELECT channel_id, channel_key, enabled FROM channels WHERE channel_key IS NOT NULL").fetchall():
         key = r['channel_key']
-        key2id[key] = r['channel_id']
-        norm2key[norm(key)] = key
-    canon = key2id  # 兼容下方报告
+        key2id_all[key] = r['channel_id']
+        if r['enabled']:
+            key2id[key] = r['channel_id']
+            norm2key[norm(key)] = key
+    canon = key2id  # 兼容下方报告(自动匹配目标数)
 
     # === 2. 种子: 已关联的源 → 用其channel的规范名 ===
+    # 不按 enabled 过滤: 已建立的归并关系是事实,禁用/占位频道的关联同样要保留。
     addr2key = {}    # address → channel_key
     for r in c.execute("""SELECT s.address, ch.channel_key FROM sources s
                           JOIN channels ch ON s.channel_id=ch.channel_id
-                          WHERE ch.enabled=1 AND ch.channel_key IS NOT NULL""").fetchall():
+                          WHERE ch.channel_key IS NOT NULL""").fetchall():
         addr2key[r['address']] = r['channel_key']
 
     # === 2.5 加载持久化归并快照(人工确认的归并结果,最高优先) ===
     # data/source_links.json: {address: channel_key},保证人工归并/别名识别的结果重跑不丢
     snapshot_path = os.path.join(RADAR, 'data', 'source_links.json')
-    snap_loaded = 0
+    snap_loaded, snap_dropped, snap_prev_count = 0, 0, 0
     if os.path.exists(snapshot_path):
         snap = json.load(open(snapshot_path, encoding='utf-8'))
-        valid = set(key2id.keys())
+        snap_prev_count = len(snap)
+        valid = set(key2id_all.keys())   # 全部频道(含禁用/占位),只挡"频道已不存在"
         for a, k in snap.items():
-            if k in valid:      # 只认还存在的enabled频道(避免归到已删/占位频道)
+            if k in valid:
                 addr2key[a] = k
                 snap_loaded += 1
+            else:
+                snap_dropped += 1        # 频道确实已被删除,才丢弃(会打印警告)
 
     # === 3. 官方channels.json: 同一官方频道的多地址 → 同一channel_key ===
     name_ov = load_name_overrides()   # 官方名→规范名(159条)
@@ -153,7 +165,8 @@ def main():
     ts_updates = []  # (timeshift_query, source_id) 仅单播
     for r in src_rows:
         key = addr2key.get(r['address'])
-        cid = key2id.get(key) if key else None
+        # 用 key2id_all: 归到禁用/占位频道也算已归并(禁用≠解除归并)
+        cid = key2id_all.get(key) if key else None
         if cid:
             updates.append((cid, key, r['source_id']))
             linked += 1
@@ -175,12 +188,23 @@ def main():
         # 回写归并快照(持久化: 新归并的下次也不丢)。快照存 address→channel_key(规范名,稳定可读)
         links = {r['address']: r['channel_key'] for r in
                  c.execute("SELECT address,channel_key FROM sources WHERE channel_key IS NOT NULL").fetchall()}
-        json.dump(links, open(snapshot_path, 'w', encoding='utf-8'),
-                  ensure_ascii=False, indent=1, sort_keys=True)
+        # 缩水告警: 快照是全量重建覆盖写,一旦归并逻辑出错(如误把频道排除在匹配目标外),
+        # 人工归并成果会被静默销毁且不可逆。降幅>10% 先备份旧快照再写,并打印警告。
+        if snap_prev_count and len(links) < snap_prev_count * 0.9:
+            shutil.copy(snapshot_path, snapshot_path + '.bak')
+            print(f"\n  ⚠️  归并快照从 {snap_prev_count} 条降到 {len(links)} 条(降幅>10%)!")
+            print(f"      可能有频道被禁用/删除导致归并丢失。旧快照已备份: {snapshot_path}.bak")
+        # 原子写: 先写临时文件再 rename,避免中途被杀留下截断的快照
+        tmp = snapshot_path + '.tmp'
+        with open(tmp, 'w', encoding='utf-8') as f:
+            json.dump(links, f, ensure_ascii=False, indent=1, sort_keys=True)
+        os.replace(tmp, snapshot_path)
 
     # === 报告 ===
-    print(f"\n  channel_key主数据(频道): {len(canon)}")
+    print(f"\n  自动匹配目标(enabled频道): {len(canon)}")
     print(f"  持久化快照加载: {snap_loaded} 条(人工归并结果)")
+    if snap_dropped:
+        print(f"  快照丢弃: {snap_dropped} 条(所指频道已不存在)")
     print(f"  官方台账新增地址映射: {official_added}")
     print(f"  源归并结果: 已归并 {linked}, 孤儿 {orphan}")
     print(f"  单播回看query回写(含token): {ts_written} 个单播源")

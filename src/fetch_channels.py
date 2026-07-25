@@ -80,24 +80,43 @@ AREA_ID = _ENV.get('AREA_ID', '57104')
 TEMPLATE_NAME = "epg30"
 USER_GROUP_ID = "12"
 UA = "Mozilla/5.0 (X11; U; Linux i686; en-US) AppleWebKit/534.0 (KHTML, like Gecko)"
+# 本机IP探测目标(仅用于 socket.connect 反查本机出口IP,不发送任何数据)。
+# 可用 .env 覆盖,避免把具体网络地址写死在代码里。
+EPG_HOST = _ENV.get('EPG_PROBE_HOST', '115.233.40.140')
+EPG_PORT_PROBE = int(_ENV.get('EPG_PROBE_PORT', '33200'))
+LAN_PROBE_HOST = _ENV.get('LAN_PROBE_HOST', '10.225.136.1')
+FALLBACK_LOCAL_IP = _ENV.get('FALLBACK_LOCAL_IP', '10.225.140.58')
 
 # ==================== 工具函数 ====================
+def _mask(secret, keep=4):
+    """日志脱敏: token 是有效凭证,完整打印会随 cron 日志/日志聚合泄露。"""
+    if not secret:
+        return '(empty)'
+    s = str(secret)
+    if len(s) <= keep * 2:
+        return '*' * len(s)
+    return f"{s[:keep]}...{s[-keep:]}(len={len(s)})"
+
+
 def get_local_ip():
     # 如果命令行指定了IP,直接用
     for i, arg in enumerate(sys.argv):
         if arg == '--ip' and i + 1 < len(sys.argv):
             return sys.argv[i + 1]
     # 否则自动检测(从OpenWRT上跑时用本机IP)
+    # 用裸 except 会连 KeyboardInterrupt 都吞掉,且网络故障时静默返回兜底IP,
+    # 导致认证串里带错IP、排查无线索。这里只捕 OSError 并打印告警。
+    probe_targets = [(EPG_HOST, EPG_PORT_PROBE), (LAN_PROBE_HOST, 80)]
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        s.connect(("115.233.40.140", 33200))
-        return s.getsockname()[0]
-    except:
-        try:
-            s.connect(("10.225.136.1", 80))
-            return s.getsockname()[0]
-        except:
-            return "10.225.140.58"
+        for host, port in probe_targets:
+            try:
+                s.connect((host, port))
+                return s.getsockname()[0]
+            except OSError as e:
+                print(f"  ⚠ 本机IP探测失败({host}:{port}): {e}")
+        print(f"  ⚠ 全部探测失败,回退硬编码IP {FALLBACK_LOCAL_IP}(认证可能失败,建议用 --ip 显式指定)")
+        return FALLBACK_LOCAL_IP
     finally:
         s.close()
 
@@ -149,7 +168,7 @@ def authenticate():
     m2 = re.search(r'userToken\.value\s*=\s*"([^"]+)"', html)
     if m2 and not token:
         token = m2.group(1)
-    print(f"  Token: {token}")
+    print(f"  Token: {_mask(token)}")
 
     # Step 2: authLogin
     print("[2/5] authLogin...")
@@ -170,7 +189,7 @@ def authenticate():
         m = re.search(r'EncryptToken\s*=\s*"([^"]+)"', html2)
         if m:
             token = m.group(1)
-            print(f"  Token(from authLogin): {token}")
+            print(f"  Token(from authLogin): {_mask(token)}")
 
     # Step 3: ValidAuthentication
     print("[3/5] ValidAuthentication...")
@@ -303,8 +322,18 @@ def main():
         ts = [c for c in channels if c.get('timeshift_url')]
         print(f"\n  共 {len(channels)} 频道 (组播{len(mc)} 单播{len(uc)} 有时移{len(ts)})")
         # 只存 channels.json(带新token),供 link_sources/scan_rtsp/probe_timeshift/gen 用
-        with open(out_json, 'w', encoding='utf-8') as f:
+        # 原子写: 该文件是下游全部环节的输入(归并/扫描/回看query),写一半被杀会让
+        # 下游拿到损坏JSON。先写 .tmp 再 rename。
+        if os.path.isdir(out_json):
+            # compose 单文件挂载时,若宿主机上该文件还不存在,docker 会创建成目录,
+            # 导致 open(...,'w') 抛 IsADirectoryError。这里显式报错,别静默失败。
+            print(f"\n❌ {out_json} 是一个目录(通常是 docker 单文件挂载时宿主机文件不存在导致)。")
+            print(f"   解决: 在宿主机执行 touch {out_json} 后重新部署。")
+            sys.exit(2)
+        tmp_json = out_json + '.tmp'
+        with open(tmp_json, 'w', encoding='utf-8') as f:
             json.dump(channels, f, ensure_ascii=False, indent=1)
+        os.replace(tmp_json, out_json)
         print(f"  已保存(含新token): {out_json}")
     else:
         print(f"\n⚠ 未解析到频道。原始响应前500字符:\n{raw[:500]}")

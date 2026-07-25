@@ -67,6 +67,24 @@ def main():
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
+    # === 0. 清理脏优选(防串台) ===
+    # 优选行必须指向"仍属于本频道"的源。以下三种情况会产生脏行,必须先清:
+    #   a) 源被人工改判给别的频道(link_sources 只改 sources.channel_id,不动本表)
+    #   b) 源被归并逻辑判成孤儿(channel_id=NULL)
+    #   c) 源被删除
+    # 不清的后果(已实证): 频道A残留指向B的源 → gen_m3u 里A和B输出同一地址 → 点A播出B的内容。
+    # 放在优选循环之前: 保证后续 INSERT 不会撞上 rank=1 的 source_id 唯一约束。
+    stale = c.execute("""DELETE FROM channel_preferred_sources
+                         WHERE NOT EXISTS (
+                             SELECT 1 FROM sources s
+                             WHERE s.source_id = channel_preferred_sources.source_id
+                               AND s.channel_id = channel_preferred_sources.channel_id)""").rowcount
+
+    # 自愈: 旧库补上防串台唯一索引(新库由 db_schema.py 建)。必须在上面清理之后建,
+    # 否则库里已存在的脏行会让建索引失败。
+    c.execute("""CREATE UNIQUE INDEX IF NOT EXISTS idx_pref_rank1_source
+                 ON channel_preferred_sources(source_id) WHERE rank = 1""")
+
     # === 1. 源优选 ===
     # 给所有源打分,每频道选最高分为主源,写入 channel_preferred_sources(rank=1)
     changed_primary = 0
@@ -107,19 +125,30 @@ def main():
     # === 2. 变更检测:下线 ===
     # 频道的主源(或所有源)连续fail_count>=阈值 → offline
     offline = []
-    for ch in c.execute("""SELECT ch.channel_id,ch.name,ch.status,
+    recovered = 0
+    # 必须 fetchall(): 下面循环里会 UPDATE,而 UPDATE 会重置同一个 cursor 的结果集,
+    # 边遍历边写会让循环在第一次 UPDATE 后静默中断(后面的频道全部漏判)。
+    # AGENTS.md 规则3。曾经的bug: 一次运行只有第一个状态变更生效。
+    status_rows = c.execute("""SELECT ch.channel_id,ch.name,ch.status,
                            MAX(CASE WHEN s.available=1 THEN 1 ELSE 0 END) any_avail,
                            MIN(s.fail_count) min_fail
                            FROM channels ch LEFT JOIN sources s ON ch.channel_id=s.channel_id
-                           WHERE ch.enabled=1 GROUP BY ch.channel_id"""):
-        # 所有源都不可用 且 最少失败次数>=阈值
-        if ch['any_avail'] == 0 and (ch['min_fail'] or 0) >= args.offline_threshold:
+                           WHERE ch.enabled=1 GROUP BY ch.channel_id""").fetchall()
+    for ch in status_rows:
+        # 判下线的两种情形:
+        #   a) 有源但全部不可用,且最少失败次数>=阈值(排除临时误报)
+        #   b) 一个源都没有(LEFT JOIN 下 min_fail IS NULL) —— 无源频道同样是下线状态。
+        #      注意别写成 (min_fail or 0) >= 阈值: NULL 会被兜成 0,永远不满足条件,
+        #      导致无源频道永久停留在 active(已实证生产库12个频道错标)。
+        no_src = ch['min_fail'] is None
+        if ch['any_avail'] == 0 and (no_src or ch['min_fail'] >= args.offline_threshold):
             if ch['status'] != 'offline':
                 c.execute("UPDATE channels SET status='offline' WHERE channel_id=?", (ch['channel_id'],))
                 offline.append(ch['name'])
         elif ch['any_avail'] == 1 and ch['status'] == 'offline':
             # 恢复
             c.execute("UPDATE channels SET status='active' WHERE channel_id=?", (ch['channel_id'],))
+            recovered += 1
 
     # === 3. 变更检测:新增(孤儿源) ===
     orphans = c.execute("""SELECT COUNT(*) n FROM sources
@@ -128,8 +157,10 @@ def main():
     conn.commit()
 
     # 统计
+    if stale:
+        print(f"  清理脏优选(源已改判/成孤儿/被删): {stale} 条")
     print(f"  源优选: {len(channels)}频道已评分, 主源变更 {changed_primary}, 全失效无主源 {no_source}")
-    print(f"  下线检测(阈值{args.offline_threshold}): 新标记下线 {len(offline)}")
+    print(f"  下线检测(阈值{args.offline_threshold}): 新标记下线 {len(offline)}, 恢复 {recovered}")
     if offline:
         for n in offline[:10]:
             print(f"    - {n}")

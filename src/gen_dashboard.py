@@ -26,6 +26,8 @@ import sys
 RADAR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from template_util import render_template
+# 分组顺序从 gen_m3u 复用同一份定义: 两处各写一份必然漂移(m3u 与 Dashboard 顺序会不一致)
+from gen_m3u import GROUP_ORDER
 DEFAULT_DB = os.path.join(RADAR, 'data', 'iptv.db')
 DEFAULT_OUT = os.path.join(RADAR, 'output', 'dashboard', 'index.html')
 EPG_SERVER = os.environ.get('EPG_SERVER', '115.233.40.140:33200')
@@ -49,21 +51,47 @@ def esc(s):
     return html.escape(str(s or ''))
 
 
+def json_for_script(obj):
+    r"""把数据序列化成可安全嵌进 <script> 块的 JSON。
+
+    json.dumps 不转义 "</script>" —— EPG 节目名来自第三方源(epg.112114.xyz)且未做清洗,
+    一旦某个节目名含 "</script><script>...", 生成的静态页会提前闭合script块并执行注入的JS
+    (Dashboard 若公开分享即为真实攻击面)。把 < > & 转成 \uXXXX: 既杜绝闭合,又仍是合法JSON。
+    """
+    raw = json.dumps(obj, ensure_ascii=False, separators=(',', ':'))
+    return (raw.replace('<', r'\u003c')
+               .replace('>', r'\u003e')
+               .replace('&', r'\u0026'))
+
+
 def load_data(db_path):
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path, timeout=30)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     rows = c.execute("""
-        SELECT ch.name, ch.group_primary, ch.group_extra, ch.tvg_logo, ch.status,
+        SELECT ch.channel_id, ch.name, ch.group_primary, ch.group_extra, ch.tvg_logo, ch.status,
                ch.epg_channel_id, ch.tvg_id, ch.timeshift, ch.sort_hint,
                s.source_type, s.address, s.resolution, s.res_label, s.video_codec,
                s.fps, s.vbitrate, s.hdr, s.audio_codec, s.audio_channels, s.available,
                s.redirect_hops, s.redirect_loop
         FROM channels ch
         LEFT JOIN channel_preferred_sources p ON ch.channel_id = p.channel_id AND p.rank = 1
-        LEFT JOIN sources s ON p.source_id = s.source_id
+        LEFT JOIN sources s ON p.source_id = s.source_id AND s.channel_id = ch.channel_id
         WHERE ch.enabled = 1
     """).fetchall()
+    # 排序键: 与 gen_m3u 用同一套规则(GROUP_ORDER 分组优先级 + 组内 order_in_group)。
+    # 不能用 channels.sort_hint: 那是迁移期遗留字段,orphan_import 新建频道只写 order_in_group、
+    # 不写 sort_hint(默认兜成9999),会被甩到列表最末 → Dashboard 与 m3u 顺序不一致
+    # (已实证: 浙江政务 在m3u里排"其他"组末尾,在Dashboard里却排到广播组之后)。
+    order_key = {}
+    for r in c.execute("""SELECT channel_id, group_name, order_in_group, is_primary
+                          FROM channel_groups"""):
+        gi = GROUP_ORDER.index(r['group_name']) if r['group_name'] in GROUP_ORDER else len(GROUP_ORDER)
+        key = (gi, r['order_in_group'] if r['order_in_group'] is not None else 9999)
+        cid = r['channel_id']
+        # 一频道可属多组(主组+附加组),Dashboard每频道只一行 → 取最靠前的位置
+        if cid not in order_key or key < order_key[cid]:
+            order_key[cid] = key
     conn.close()
     data = []
     for r in rows:
@@ -73,6 +101,7 @@ def load_data(db_path):
             'logo': r['tvg_logo'] or '', 'status': r['status'] or 'active',
             'epg_id': r['epg_channel_id'] or '', 'tvg_id': r['tvg_id'] or '', 'timeshift': r['timeshift'],
             'sort_hint': r['sort_hint'] if r['sort_hint'] is not None else 9999,
+            '_order': order_key.get(r['channel_id'], (len(GROUP_ORDER), 9999)),
             'stype': r['source_type'] or '', 'address': r['address'] or '',
             'resolution': r['resolution'] or '', 'res_label': r['res_label'] or '',
             'vcodec': (r['video_codec'] or '').upper(), 'fps': r['fps'] or 0,
@@ -82,8 +111,8 @@ def load_data(db_path):
             'redirect_loop': r['redirect_loop'],
             'category': cat,
         })
-    # 排序: 保持 merged_multicast.m3u 原始顺序(sort_hint,即分组优先级+组内顺序)
-    data.sort(key=lambda x: x['sort_hint'])
+    # 排序: 与 m3u 同序(见上方 order_key 说明)
+    data.sort(key=lambda x: x['_order'])
     return data
 
 
@@ -234,7 +263,7 @@ def build_html(data, epg=None):
 
     # 只嵌入实际用到的频道节目单(减小体积)
     epg_subset = {k: epg[k] for k in used_epg if k in epg}
-    epg_json = json.dumps(epg_subset, ensure_ascii=False, separators=(',', ':'))
+    epg_json = json_for_script(epg_subset)
 
     return render_template(
         'dashboard.html',

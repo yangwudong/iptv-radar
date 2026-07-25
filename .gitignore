@@ -53,3 +53,4 @@ output/orphan_review/
 data/orphan_inbox/
 output/*.m3u.bak
 output/iptv_catchup_test.m3u
+.venv-test/

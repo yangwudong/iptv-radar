@@ -25,9 +25,11 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import probe
 
 RADAR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
-BASE = os.path.join(RADAR, '..')
 DEFAULT_DB = os.path.join(RADAR, 'data', 'iptv.db')
-DEFAULT_EPG = os.path.join(BASE, 'channels.json')
+# 默认EPG指向仓库内的 reference/(曾误写成 RADAR/../channels.json,解析到项目目录之外,
+# 不带 --epg 跑必然 FileNotFoundError)。运行时优先用 fetch_channels 刷出的 channels.json。
+_EPG_FRESH = os.path.join(RADAR, 'reference', 'channels.json')
+DEFAULT_EPG = _EPG_FRESH if os.path.exists(_EPG_FRESH) else os.path.join(RADAR, 'reference', 'channels.sample.json')
 NOW = lambda: datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 

@@ -5,7 +5,8 @@ iptv-radar 阶段2 生成层: gen_m3u.py
 
 规则(见 M3U_ACCEPTANCE_CRITERIA.md 生成层 G1-G8):
   - 只输出 enabled=1 的频道
-  - 频道按 sort_hint(迁移自m3u顺序,即分组优先级+组内排序)输出
+  - 频道按 GROUP_ORDER(分组固定优先级) + channel_groups.order_in_group(组内位置)输出
+    (注: 不用 channels.sort_hint —— 那是迁移期遗留字段,新频道不写它,会导致顺序漂移)
   - 附加分组(group_extra): 一个频道额外输出到每个附加组(复制法)
   - 每频道用主源(channel_preferred_sources rank=1)的地址
   - EXTINF格式: #EXTINF:-1 tvg-id="" tvg-logo="" group-title="",name
@@ -27,6 +28,12 @@ DEFAULT_MSD = '127.0.0.1:4088'
 GROUP_ORDER = ['央视', '4K超高清', '卫视', '浙江', '北京', '上海', '湖南',
                '港澳台', '央视教育', '央视国际', '少儿', 'BesTV', '睛彩',
                '其他', '广播', '未识别']
+
+
+def attr(value):
+    """m3u 属性值转义: EXTINF 的属性是双引号包裹的,值里出现裸双引号会让属性提前闭合,
+    生成畸形行(如 tvg-id="ID"X")导致播放器解析错乱。统一换成 %22(URL里合法,名称里可读)。"""
+    return str(value or '').replace('"', '%22')
 
 
 def addr_to_url(source_type, address, msd, timeshift_query=None, multicast_mode='msd', fcc=None):
@@ -65,7 +72,7 @@ def generate(db_path, out_path, msd, multicast_mode='msd', prefer_multicast=Fals
                s.source_type, s.address, s.playback_days, s.timeshift_query
         FROM channels ch
         LEFT JOIN channel_preferred_sources p ON ch.channel_id = p.channel_id AND p.rank = 1
-        LEFT JOIN sources s ON p.source_id = s.source_id
+        LEFT JOIN sources s ON p.source_id = s.source_id AND s.channel_id = ch.channel_id
         WHERE ch.enabled = 1
     """).fetchall()
     ch_by_id = {r['channel_id']: dict(r) for r in rows}
@@ -101,29 +108,36 @@ def generate(db_path, out_path, msd, multicast_mode='msd', prefer_multicast=Fals
     # 每组内按 order_in_group 排序输出
     lines = ['#EXTM3U']
     count = 0
+    skipped = []
     for g in group_order:
         members = sorted(group_members[g], key=lambda x: x[0])
         for _, cid in members:
             r = ch_by_id[cid]
             url = addr_to_url(r['source_type'], r['address'], msd, r['timeshift_query'], multicast_mode, fcc) if r['address'] else ''
             if not url:
+                # 静默跳过会让频道从m3u里凭空消失且无从排查(只有总数变小)。记下来打印。
+                skipped.append(f"{r['name']}({g})")
                 continue
-            logo_attr = f' tvg-logo="{r["tvg_logo"]}"' if r['tvg_logo'] else ''
-            id_attr = f' tvg-id="{r["tvg_id"]}"' if r['tvg_id'] else ''
+            logo_attr = f' tvg-logo="{attr(r["tvg_logo"])}"' if r['tvg_logo'] else ''
+            id_attr = f' tvg-id="{attr(r["tvg_id"])}"' if r['tvg_id'] else ''
             # 回看: 单播源(含PLTV) + playback_days>0 → 加catchup标签(APTV等可回看)
             # catchup-source用&playseek(直播url已有?参数,用&接续);本地时间(实测电信playseek用北京时间)
             catchup_attr = ''
             if r['source_type'] == 'rtsp' and (r['playback_days'] or 0) > 0:
                 catchup_attr = ' catchup="append" catchup-source="&playseek=${(b)yyyyMMddHHmmss}-${(e)yyyyMMddHHmmss}"'
-            lines.append(f'#EXTINF:-1{id_attr}{logo_attr}{catchup_attr} group-title="{g}",{r["name"]}')
+            lines.append(f'#EXTINF:-1{id_attr}{logo_attr}{catchup_attr} group-title="{attr(g)}",{r["name"]}')
             lines.append(url)
             count += 1
 
     conn.close()
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    with open(out_path, 'w', encoding='utf-8') as f:
+    # 原子写: 直写最终路径时,进程若在写入中被杀(OOM/磁盘满/docker stop/Ctrl-C),
+    # 会留下截断的 m3u 覆盖上一次正常发布的播放列表。先写 .tmp 再 rename(同分区原子操作)。
+    tmp_path = out_path + '.tmp'
+    with open(tmp_path, 'w', encoding='utf-8') as f:
         f.write('\n'.join(lines) + '\n')
-    return count, len(group_order)
+    os.replace(tmp_path, out_path)
+    return count, len(group_order), skipped
 
 
 if __name__ == '__main__':
@@ -144,7 +158,11 @@ if __name__ == '__main__':
     print("=" * 50)
     print("  iptv-radar 生成m3u (gen_m3u.py)")
     print("=" * 50)
-    n, ng = generate(args.db, args.out, args.msd, args.multicast_mode, args.prefer_multicast, args.fcc)
+    n, ng, skipped = generate(args.db, args.out, args.msd, args.multicast_mode, args.prefer_multicast, args.fcc)
     print(f"  输出: {args.out}  (组播模式: {args.multicast_mode}, 组播优先: {args.prefer_multicast}, FCC: {args.fcc or '无'})")
     print(f"  频道条目: {n}, 分组: {ng}")
+    if skipped:
+        print(f"  ⚠ 跳过 {len(skipped)} 个enabled频道(无可用主源,不会出现在m3u):")
+        for s_ in skipped:
+            print(f"      - {s_}")
     print("完成")

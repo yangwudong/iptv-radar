@@ -13,6 +13,7 @@ import subprocess
 import json
 import re
 import os
+import select
 import signal
 import time
 
@@ -147,7 +148,15 @@ def probe_stream(url, timeout=12, analyzeduration=8_000_000, probesize=8_000_000
 
 
 def measure_bitrate(url, duration=4, timeout=15, rtsp_transport=None):
-    """实测视频码率(bps): 抓duration秒流,算 bytes*8/duration"""
+    """实测视频码率(bps): 抓duration秒流,算 bytes*8/duration
+
+    注意: 必须用 select 非阻塞轮询读,不能直接 proc.stdout.read()。
+    ffmpeg 卡在读流时(信号衰减/IGMP join延迟/僵尸源)stdout 既无数据也不关闭,
+    阻塞 read() 会永久挂住 —— 外层 while 只在两次读之间检查时间,救不回来。
+    该函数在 ThreadPoolExecutor 里被调用,一个线程挂死会让整轮扫描的
+    shutdown(wait=True) 永远等不到结束,整条 pipeline 卡住。
+    (同文件 trace_rtsp_redirects 用的就是下面这个 select 轮询写法。)
+    """
     cmd = ['ffmpeg', '-v', 'quiet']
     if rtsp_transport:
         cmd += ['-rtsp_transport', rtsp_transport]
@@ -161,10 +170,20 @@ def measure_bitrate(url, duration=4, timeout=15, rtsp_transport=None):
     total = 0
     try:
         while time.time() - start < timeout:
-            chunk = proc.stdout.read(65536)
-            if not chunk:
+            try:
+                r, _, _ = select.select([proc.stdout], [], [], 0.2)
+            except Exception:
                 break
-            total += len(chunk)
+            if r:
+                try:
+                    chunk = os.read(proc.stdout.fileno(), 65536)
+                except OSError:
+                    break
+                if not chunk:      # EOF: ffmpeg 正常结束
+                    break
+                total += len(chunk)
+            elif proc.poll() is not None:
+                break              # 进程已退出且无残留数据
     finally:
         try:
             os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
@@ -214,7 +233,6 @@ def trace_rtsp_redirects(url, timeout=15):
                 pass
             break
         try:
-            import select
             r, _, _ = select.select([proc.stderr], [], [], 0.2)
             if r:
                 stderr_data += os.read(proc.stderr.fileno(), 65536)

@@ -83,6 +83,12 @@ CREATE TABLE IF NOT EXISTS channel_preferred_sources (
     FOREIGN KEY(source_id)  REFERENCES sources(source_id)
 );
 
+-- 防串台约束: 同一个源不能同时是两个频道的主源(rank=1)。
+-- PRIMARY KEY(channel_id,rank) 只保证"一频道一个1号源",挡不住"一个源被两个频道当1号源"。
+-- 缺这条约束时(已实证): 源被改判后旧优选行残留 → 两个频道输出同一地址 → 点A播出B的内容。
+CREATE UNIQUE INDEX IF NOT EXISTS idx_pref_rank1_source
+    ON channel_preferred_sources(source_id) WHERE rank = 1;
+
 -- ============ channel_groups 频道-分组关联(多对多,保序) ============
 -- 一个频道可属于多个组(主组+附加组),每个(频道,组)对记录组内位置
 CREATE TABLE IF NOT EXISTS channel_groups (
