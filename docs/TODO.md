@@ -35,8 +35,18 @@
 
 ## 📋 真正的待办
 
-- [ ] 9个 RTSP 单播孤儿源(名字没对上)人工识别 → 走 orphan 流程
-- [ ] Electron App(独立项目): 孤儿源识别客户端, 契约见 design/ORPHAN_REVIEW.md §3
+- [ ] **9个 RTSP 单播孤儿源人工识别** → 走 orphan 流程
+  - 现状: 孤儿源共26个 = 组播17(黑名单/无效, 不用管) + RTSP 9个(1080P, available=1, 名字对不上已知频道)
+  - 流程已就绪: `orphan_export.py` 产出待识别包(orphans.json + 截图) → 人工识别 → `resolved.json` → `orphan_import.py` 消费写库
+  - 5种 action: assign / new / junk / unknown / skip; **json 契约见 design/ORPHAN_REVIEW.md §3**
+  - 可手动做: 播放这9个地址看画面认频道 → 手写 resolved.json → 跑 orphan_import
+  - 注意: 单播地址需带 token 才能播(完整地址 = `sources.address` + "?" + `sources.timeshift_query`), 且需在能到 IPTV 专网的环境(NAS/软路由)
+- [ ] Electron App(独立项目): 孤儿源识别客户端(看截图 + 播放 + 选 tag), 契约见 design/ORPHAN_REVIEW.md §3
+- [ ] **RTSP 回看转 HTTP 验证**(让只支持 HTTP 的网页播放器也能回看)
+  - 动机: 兼容版 m3u(网页播放器用)现在是组播优先、**无回看**; rtp2httpd 支持 RTSP→HTTP, 理论上能把 rtsp 回看转成 HTTP
+  - 要验证: ①rtp2httpd 转 RTSP 的确切 URL 格式 ②带 token 的回看地址(含 `&playseek=`)能否透传 ③网页播放器实测能否回看 ④可行则 gen_m3u 兼容版加 catchup
+  - rtp2httpd 侧已就绪: `upstream_interface_rtsp` 已配; 参考其 docs/en/guide/url-formats.md
+  - 验证环境: 能到 IPTV 专网的主机(NAS)用 ffprobe 测转换后的 HTTP 地址
 - [ ] 内网IP暴露公网DNS(claw/tv子域名直解析到内网IP) — 另开 session, 非本项目范畴
 
 ## 🔮 未来可选(不紧急)
