@@ -18,6 +18,8 @@ import sys
 import signal
 import argparse
 import re
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import db_util
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 RADAR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')

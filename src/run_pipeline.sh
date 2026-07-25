@@ -82,6 +82,56 @@ publish_m3u() {
     cp "$src" "$dst.tmp" && mv -f "$dst.tmp" "$dst"
 }
 
+# 发布前安全闸(F5): 防止把空的/大幅缩水的播放列表盖到正常发布的文件上。
+# 场景: 组播网关挂了/IPTV路由断了 → 所有源探测失败 → 4次后ETL清主源 → m3u近乎空,
+# 而这一切退出码都是0。以前会照发,家里电视直接没台。
+PUBLISH_MIN_ENTRIES="${PUBLISH_MIN_ENTRIES:-50}"
+PUBLISH_MAX_SHRINK_PCT="${PUBLISH_MAX_SHRINK_PCT:-20}"
+check_m3u_sane() {
+    local f="$1" dst="$2"
+    [ -s "$f" ] || { echo "  ❌ $f 不存在或为空"; return 1; }
+    head -1 "$f" | grep -q '^#EXTM3U' || { echo "  ❌ $f 不是合法m3u(缺#EXTM3U)"; return 1; }
+    local n; n=$(grep -c '^#EXTINF' "$f")
+    if [ "$n" -lt "$PUBLISH_MIN_ENTRIES" ]; then
+        echo "  ❌ $(basename "$f") 只有 $n 个频道(下限 $PUBLISH_MIN_ENTRIES) —— 疑似扫描/网关故障"
+        return 1
+    fi
+    if [ -s "$dst" ]; then
+        local old; old=$(grep -c '^#EXTINF' "$dst")
+        if [ "$old" -gt 0 ]; then
+            local drop=$(( (old - n) * 100 / old ))
+            if [ "$drop" -gt "$PUBLISH_MAX_SHRINK_PCT" ]; then
+                echo "  ❌ $(basename "$f") 从 $old 降到 $n 个频道(降幅 ${drop}%,上限 ${PUBLISH_MAX_SHRINK_PCT}%)"
+                return 1
+            fi
+        fi
+    fi
+    echo "  ✅ $(basename "$f"): $n 个频道"
+    return 0
+}
+
+# 发布三套(带安全闸)。任一不通过则整批不发,保留上一次正常发布的文件。
+publish_all() {
+    if [ ! -d "$NGINX_M3U_DIR" ]; then
+        echo "  ❌ FATAL: 发布目录不存在: $NGINX_M3U_DIR" >&2
+        echo "     (指定了 --publish 却发不出去 = 播放列表会无声无息地过期)" >&2
+        return 6
+    fi
+    local ok=1
+    for f in iptv iptv_direct iptv_compat; do
+        check_m3u_sane "../output/$f.m3u" "$NGINX_M3U_DIR/$f.m3u" || ok=0
+    done
+    if [ "$ok" != 1 ]; then
+        echo "  ❌ FATAL: 安全闸未通过,本次不发布(保留上一次的播放列表)" >&2
+        return 7
+    fi
+    for f in iptv iptv_direct iptv_compat; do
+        publish_m3u "../output/$f.m3u" "$NGINX_M3U_DIR/$f.m3u"
+    done
+    echo "  已发布 iptv.m3u + iptv_direct.m3u + iptv_compat.m3u"
+    return 0
+}
+
 echo "############################################"
 echo "# iptv-radar pipeline  $STAMP"
 echo "############################################"
@@ -95,21 +145,15 @@ if [ "$OPT_GEN_ONLY" = 1 ]; then
     python3 gen_m3u.py --msd "$MSD" "${FCC_ARG[@]}" --multicast-mode msd --out ../output/iptv.m3u
     python3 gen_m3u.py --msd "$MSD" --multicast-mode direct --out ../output/iptv_direct.m3u
     python3 gen_m3u.py --msd "$MSD" "${FCC_ARG[@]}" --multicast-mode msd --prefer-multicast --out ../output/iptv_compat.m3u
-    echo ""; echo ">>> 抓EPG + 生成Dashboard + 频道页"
-    python3 fetch_epg.py || echo "  EPG抓取失败(继续,Dashboard将无节目单)"
-    python3 gen_dashboard.py
-    python3 gen_channels_page.py
+    # 先发布 m3u,再做 Dashboard/频道页(F11): 播放列表不该因为监控页出错而发不出去
     if [ "$OPT_PUBLISH" = 1 ]; then
         echo ""; echo ">>> 发布 m3u → $NGINX_M3U_DIR"
-        if [ -d "$NGINX_M3U_DIR" ]; then
-            publish_m3u ../output/iptv.m3u "$NGINX_M3U_DIR/iptv.m3u"
-            publish_m3u ../output/iptv_direct.m3u "$NGINX_M3U_DIR/iptv_direct.m3u"
-            publish_m3u ../output/iptv_compat.m3u "$NGINX_M3U_DIR/iptv_compat.m3u"
-            echo "  已发布 iptv.m3u + iptv_direct.m3u + iptv_compat.m3u"
-        else
-            echo "  ⚠️ Nginx目录不存在,跳过: $NGINX_M3U_DIR"
-        fi
+        publish_all || exit $?
     fi
+    echo ""; echo ">>> 抓EPG + 生成Dashboard + 频道页"
+    python3 fetch_epg.py || echo "  EPG抓取失败(继续,Dashboard将无节目单)"
+    python3 gen_dashboard.py || echo "  Dashboard生成失败(继续,不影响已发布的m3u)"
+    python3 gen_channels_page.py --json "$EPG_JSON" || echo "  频道页生成失败(继续)"
     echo ""; echo "# 完成(仅重新生成) $STAMP"
     exit 0
 fi
@@ -119,11 +163,21 @@ fi
 if [ "$OPT_TIMESHIFT_ONLY" = 1 ]; then
     echo "# 模式: 仅回看探测(--timeshift-only)"
     echo "############################################"
-    echo ""; echo ">>> 单播回看天数探测"
+    # 该模式不刷token,只能用已有的 channels.json。若只有脱敏样例可用,必须拒跑:
+    # 用假token探测,每个源都会失败 → find_days 返回0 → 把 playback_days 全写成0,
+    # 于是 ETL 的回看加成(+60)消失、约36个单播主源退回组播、m3u里所有catchup标签消失。
+    # 用户本意是"补回看数据",实际效果正好相反(已实证)。
+    if [ "$EPG_JSON" = "$EPG_SAMPLE" ]; then
+        echo "❌ FATAL: 只有脱敏样例可用($EPG_SAMPLE),拒绝探测。" >&2
+        echo "   用假token探测会把 playback_days 全写成0,反而清空所有回看数据。" >&2
+        echo "   请先跑一次完整 pipeline 刷新 token(需能到IPTV专网)。" >&2
+        exit 8
+    fi
+    echo ""; echo ">>> 单播回看天数探测(EPG: $EPG_JSON)"
     python3 probe_timeshift.py --epg "$EPG_JSON" || echo "  探测出错"
     echo ""; echo ">>> 重新生成页面(体现回看天数)"
-    python3 gen_channels_page.py
-    python3 gen_dashboard.py
+    python3 gen_channels_page.py --json "$EPG_JSON" || echo "  频道页生成失败(继续)"
+    python3 gen_dashboard.py || echo "  Dashboard生成失败(继续)"
     echo ""; echo "# 完成(仅回看探测) $STAMP"
     exit 0
 fi
@@ -192,24 +246,18 @@ python3 gen_m3u.py --msd "$MSD" "${FCC_ARG[@]}" --multicast-mode msd --out ../ou
 python3 gen_m3u.py --msd "$MSD" --multicast-mode direct --out ../output/iptv_direct.m3u
 python3 gen_m3u.py --msd "$MSD" "${FCC_ARG[@]}" --multicast-mode msd --prefer-multicast --out ../output/iptv_compat.m3u
 
-# 7. 生成 Dashboard + EPG
-echo ""; echo ">>> [7/7] 抓EPG + 生成Dashboard"
-python3 fetch_epg.py || echo "  EPG抓取失败(继续,Dashboard将无节目单)"
-python3 gen_dashboard.py
-python3 gen_channels_page.py
-
-# 发布(可选)
+# 发布(可选) —— 放在 Dashboard 之前(F11): 播放列表是主产物,
+# 不该因为监控页/EPG 抓取出错(纯展示)而发不出去。
 if [ "$OPT_PUBLISH" = 1 ]; then
     echo ""; echo ">>> 发布 m3u → $NGINX_M3U_DIR"
-    if [ -d "$NGINX_M3U_DIR" ]; then
-        publish_m3u ../output/iptv.m3u "$NGINX_M3U_DIR/iptv.m3u"
-        publish_m3u ../output/iptv_direct.m3u "$NGINX_M3U_DIR/iptv_direct.m3u"
-        publish_m3u ../output/iptv_compat.m3u "$NGINX_M3U_DIR/iptv_compat.m3u"
-        echo "  已发布 iptv.m3u(msd版) + iptv_direct.m3u(组播直通版) + iptv_compat.m3u(兼容版)"
-    else
-        echo "  ⚠️ Nginx目录不存在,跳过: $NGINX_M3U_DIR"
-    fi
+    publish_all || exit $?
 fi
+
+# 7. 生成 Dashboard + EPG(纯展示,失败不阻断)
+echo ""; echo ">>> [7/7] 抓EPG + 生成Dashboard"
+python3 fetch_epg.py || echo "  EPG抓取失败(继续,Dashboard将无节目单)"
+python3 gen_dashboard.py || echo "  Dashboard生成失败(继续,不影响已发布的m3u)"
+python3 gen_channels_page.py --json "$EPG_JSON" || echo "  频道页生成失败(继续)"
 
 echo ""; echo "############################################"
 echo "# 完成 $STAMP  (模式:$SCAN_MODE)"

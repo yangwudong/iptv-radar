@@ -296,14 +296,23 @@ def main():
     print("=" * 50)
     if not USERID or not STBID or not MAC or not EPG_SERVER:
         print("\n❌ .env 缺 EPG_USERID/STB_ID/STB_MAC/EPG_SERVER,无法认证")
-        return
+        sys.exit(1)
 
     opener, user_token, stbid = authenticate()
     if not opener:
         print("\n❌ 认证失败")
-        return
+        sys.exit(1)
 
     channels, raw = get_channels(opener, user_token, stbid)
+
+    # 频道数暴跌保护: 解析被截断/接口变更时,宁可保留上次的好文件也不要覆盖。
+    # (曾经的隐患: `if channels:` 对1条和169条一视同仁,静默覆盖)
+    MIN_CHANNELS = int(_ENV.get('MIN_CHANNELS', '50'))
+    if channels and len(channels) < MIN_CHANNELS:
+        print(f"\n❌ 只解析到 {len(channels)} 个频道(阈值 {MIN_CHANNELS}),"
+              f"疑似响应被截断或接口变更 —— 拒绝覆盖已有 channels.json")
+        print(f"   若运营商确实缩减了频道,在 .env 里下调 MIN_CHANNELS")
+        sys.exit(1)
 
     print(f"\n[5/5] 保存结果...")
     root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
@@ -349,7 +358,8 @@ def main():
                 json.dump(channels, f, ensure_ascii=False, indent=1)
         print(f"  已保存(含新token): {out_json}")
     else:
-        print(f"\n⚠ 未解析到频道。原始响应前500字符:\n{raw[:500]}")
+        print(f"\n❌ 未解析到频道(认证可能成功但响应异常)。原始响应前500字符:\n{raw[:500]}")
+        sys.exit(1)
 
 if __name__ == '__main__':
     main()

@@ -13,6 +13,29 @@ from conftest import SRC, add_channel, add_source, set_preferred, run_script
 # XSS: 第三方EPG节目名未转义直接塞进 <script> 块
 # ============================================================
 
+def test_epg注入不得逃出script块_端到端(db, conn):
+    """真正的注入点是 build_html→模板的 `var EPG = {{ epg_json | safe }}`。
+    只测 helper 的话,把 build_html 里改回裸 json.dumps 也照样通过 —— 那是假通过。
+    """
+    sys.path.insert(0, SRC)
+    import json as _json
+    import re as _re
+    import gen_dashboard
+    cid = add_channel(conn, '测试台')
+    conn.execute("UPDATE channels SET tvg_id='T1' WHERE channel_id=?", (cid,))
+    conn.commit()
+    set_preferred(conn, cid, add_source(conn, '233.1.1.1:5140',
+                                        channel_id=cid, channel_key='测试台'))
+    payload = {'T1': [{'title': '</script><script>alert(1)</script>', 'start': '20:00'}]}
+    doc = gen_dashboard.build_html(gen_dashboard.load_data(db), payload)
+
+    m = _re.search(r'var EPG = (.*?);\n', doc, _re.S)
+    assert m, "模板里找不到 var EPG 赋值,测试需要跟进模板改动"
+    embedded = m.group(1)
+    assert '</script>' not in embedded, f"EPG数据可逃出script块: {embedded[:120]}"
+    assert _json.loads(embedded) == payload, "转义破坏了数据(前端 JSON.parse 会拿到错内容)"
+
+
 def test_epg_json_不得逃出script标签(tmp_path):
     """第三方EPG(112114.xyz)的节目名若含 </script>, 会闭合script块执行任意JS。
     json.dumps 不转义 </script>, 必须额外处理。"""
@@ -22,8 +45,8 @@ def test_epg_json_不得逃出script标签(tmp_path):
     payload = {'CCTV1': [{'title': '</script><script>alert(1)</script>', 'start': '20:00'}]}
     rendered = gen_dashboard.json_for_script(payload)
     assert '</script>' not in rendered, f"EPG数据可逃出script标签: {rendered}"
-    # 仍必须是合法JSON(前端 JSON.parse / var= 都要能用)
-    assert json.loads(rendered.replace('\\u003c', '<').replace('\\u003e', '>'))
+    # 仍必须是合法JSON且内容无损(原来只断言"非空dict",丢字段也能过)
+    assert json.loads(rendered) == payload
 
 
 def test_m3u_属性含双引号不得破坏格式(db, conn, tmp_path):
@@ -62,15 +85,36 @@ def test_无可用主源的频道应有日志(db, conn, tmp_path, capfd):
     assert '没源的频道' in r.stdout, f"跳过的频道未记录日志:\n{r.stdout}"
 
 
-def test_m3u生成是原子的(db, conn, tmp_path):
-    """写入过程中不得留下 .tmp 残留;最终文件应完整。"""
+def test_m3u生成失败时不得破坏已发布的播放列表(db, conn, tmp_path, monkeypatch):
+    """原子写的真正含义: 写入中途失败时,上一次正常发布的文件必须完好无损。
+
+    (原来的写法只断言"没有 .tmp 残留" —— 把代码改回朴素的 open().write() 也照样通过,
+     因为朴素写法根本不产生 .tmp。那是个假通过的测试。)
+    """
+    sys.path.insert(0, SRC)
+    import gen_m3u
     cid = add_channel(conn, '频道A')
-    sid = add_source(conn, '233.6.6.6:5140', channel_id=cid, channel_key='频道A')
-    set_preferred(conn, cid, sid)
+    set_preferred(conn, cid, add_source(conn, '233.6.6.6:5140',
+                                        channel_id=cid, channel_key='频道A'))
+    out = tmp_path / 'a.m3u'
+    out.write_text('#EXTM3U\n#EXTINF:-1,上一次正常发布的内容\nhttp://old\n', encoding='utf-8')
+
+    def boom(*a, **k):
+        raise OSError('disk full')
+    monkeypatch.setattr(gen_m3u.os, 'replace', boom)
+    with pytest.raises(OSError):
+        gen_m3u.generate(db, str(out), 'H:4088')
+    assert '上一次正常发布的内容' in out.read_text(encoding='utf-8'), \
+        "非原子写: 生成失败后旧播放列表已被截断/覆盖"
+
+
+def test_m3u生成成功后不留临时文件(db, conn, tmp_path):
+    cid = add_channel(conn, '频道A')
+    set_preferred(conn, cid, add_source(conn, '233.6.6.6:5140',
+                                        channel_id=cid, channel_key='频道A'))
     out = str(tmp_path / 'a.m3u')
     run_script('gen_m3u.py', '--db', db, '--out', out, '--msd', 'H:4088')
-    assert os.path.exists(out)
-    assert not os.path.exists(out + '.tmp'), "遗留 .tmp 文件"
+    assert os.path.exists(out) and not os.path.exists(out + '.tmp')
     assert open(out, encoding='utf-8').read().startswith('#EXTM3U')
 
 

@@ -26,6 +26,16 @@ DEFAULT_DB = os.path.join(RADAR, 'data', 'iptv.db')
 DEFAULT_EPG = os.path.join(RADAR, 'reference', 'channels.sample.json')
 
 
+# 脱敏样例(reference/channels.sample.json)里的假token特征。
+# 该文件是提交进仓库的示例数据,token 与账号都被占位化过。
+_PLACEHOLDER_MARKS = ('SAMPLE_TOKEN_REDACTED', 'accountinfo=%2C00000000%2C')
+
+
+def is_placeholder_query(q):
+    """这个 query 是否来自脱敏样例(=假token,写进库会让频道播不了)。"""
+    return bool(q) and any(m in q for m in _PLACEHOLDER_MARKS)
+
+
 def norm(s):
     """归一化用于匹配: 去画质后缀/空格"""
     return re.sub(r'(高清|HD|标清|SD|4K| )', '', s or '').strip()
@@ -161,6 +171,7 @@ def main():
     src_rows = c.execute("SELECT source_id, address, source_type FROM sources").fetchall()
     linked, orphan = 0, 0
     ts_written = 0
+    ts_skipped = 0   # 因是脱敏假token而拒写的数量
     updates = []   # (channel_id, channel_key, source_id)
     ts_updates = []  # (timeshift_query, source_id) 仅单播
     for r in src_rows:
@@ -175,9 +186,16 @@ def main():
             updates.append((None, None, r['source_id']))
             orphan += 1
         # 单播源: 回写完整回看query(含token)。每周pipeline刷token→此列随之更新。
+        # 但绝不能用**脱敏样例**里的假token覆盖库里的真token(已实证的严重故障):
+        #   认证失败 → pipeline 回退 reference/channels.sample.json → 这里把167个源的
+        #   timeshift_query 全写成 it=SAMPLE_TOKEN_REDACTED_NOT_REAL → 其中53个是m3u主源
+        #   → 播放列表38%的频道直接播不了,而且退出码0、静默发布。
+        # 真token不可恢复(要等下次认证成功),所以宁可保留旧token(可能过期)也不能覆盖成假的。
         if r['source_type'] == 'rtsp':
             q = addr2query.get(r['address'])
-            if q:
+            if q and is_placeholder_query(q):
+                ts_skipped += 1
+            elif q:
                 ts_updates.append((q, r['source_id']))
                 ts_written += 1
     if not args.dry_run:
@@ -208,6 +226,10 @@ def main():
     print(f"  官方台账新增地址映射: {official_added}")
     print(f"  源归并结果: 已归并 {linked}, 孤儿 {orphan}")
     print(f"  单播回看query回写(含token): {ts_written} 个单播源")
+    if ts_skipped:
+        print(f"\n  ⚠️  拒绝写入 {ts_skipped} 个**脱敏样例**的假token(已保留库里原有token)!")
+        print(f"      说明本次用的EPG是 reference/channels.sample.json,即 token 刷新失败。")
+        print(f"      单播回看会随旧token过期而失效,请检查 fetch_channels 的认证。")
     print(f"\n  验证: 钱江频道的所有源")
     for r in c.execute("SELECT address, resolution, channel_key, source_type FROM sources WHERE channel_key LIKE '%钱江%'"):
         print(f"    {r['address']:<26} {r['resolution']:<10} → {r['channel_key']}")

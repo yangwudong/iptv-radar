@@ -6,6 +6,7 @@
 import json
 import os
 import sqlite3
+import subprocess
 import sys
 
 import pytest
@@ -108,22 +109,36 @@ def test_h5_零源频道应标offline(db, conn):
 
 
 def test_h5_有可用源的频道保持active(db, conn):
-    """反向保护: 不能把正常频道误标 offline。"""
+    """反向保护: 不能把正常频道误标 offline。
+
+    带 canary: 光断言 active 是无效的(频道本来就是active),必须同时证明
+    下线逻辑确实执行了 —— 否则把整段下线检测删掉,这个测试照样通过。
+    """
     cid = add_channel(conn, '正常频道')
     add_source(conn, '233.1.1.2:5140', channel_id=cid, channel_key='正常频道', available=1)
+    canary = add_channel(conn, '零源必须下线')      # 必须被翻成 offline
     run_script('etl_process.py', '--db', db)
-    st = conn.execute("SELECT status FROM channels WHERE channel_id=?", (cid,)).fetchone()['status']
-    assert st == 'active'
+    got = {r['channel_key']: r['status'] for r in
+           conn.execute("SELECT channel_key,status FROM channels")}
+    assert got['零源必须下线'] == 'offline', "下线逻辑没跑,本测试的 active 断言无意义"
+    assert got['正常频道'] == 'active'
 
 
-def test_h5_源失效未达阈值不应标offline(db, conn):
-    """容错: fail_count < 阈值 视为可能误报,不下线。"""
-    cid = add_channel(conn, '临时失效频道')
-    add_source(conn, '233.1.1.3:5140', channel_id=cid, channel_key='临时失效频道',
-               available=0, fail_count=2)
+@pytest.mark.parametrize('fail_count,expect', [(3, 'active'), (4, 'offline'), (5, 'offline')])
+def test_h5_下线阈值边界(db, conn, fail_count, expect):
+    """精确锁住 >= 还是 > : 阈值4时,fail_count=3不下线、=4下线。
+
+    带 canary 确保 ETL 真的执行了(否则 active 那半边是空断言)。
+    """
+    cid = add_channel(conn, '边界频道', status='active')
+    add_source(conn, '233.1.1.3:5140', channel_id=cid, channel_key='边界频道',
+               available=0, fail_count=fail_count)
+    add_channel(conn, '零源必须下线')
     run_script('etl_process.py', '--db', db, '--offline-threshold', '4')
-    st = conn.execute("SELECT status FROM channels WHERE channel_id=?", (cid,)).fetchone()['status']
-    assert st == 'active', "fail_count=2 < 阈值4, 不该下线"
+    got = {r['channel_key']: r['status'] for r in
+           conn.execute("SELECT channel_key,status FROM channels")}
+    assert got['零源必须下线'] == 'offline', "下线逻辑没跑,断言无意义"
+    assert got['边界频道'] == expect, f"fail_count={fail_count} 期望 {expect}, 实际 {got['边界频道']}"
 
 
 def test_h5_多个零源频道必须全部被标记(db, conn):
@@ -268,3 +283,75 @@ def test_h3_体检能发现人工删频道留下的悬空引用(db, conn):
 
     r = run_script('etl_process.py', '--db', db)
     assert '悬空外键引用' in r.stdout, f"ETL 未报告悬空引用:\n{r.stdout}"
+
+
+# ============================================================
+# F2 脱敏样例的假token不得覆盖库里的真token(已实证: 会毁掉38%播放列表)
+# ============================================================
+
+def _isolated_radar(tmp_path, db):
+    """搭一个隔离的 RADAR 目录(link_sources 用 RADAR/data/source_links.json)。"""
+    import shutil
+    radar = tmp_path / 'radar'
+    (radar / 'src').mkdir(parents=True)
+    (radar / 'data').mkdir(exist_ok=True)
+    (radar / 'reference').mkdir(exist_ok=True)
+    for f in ('link_sources.py', 'db_util.py'):
+        shutil.copy(os.path.join(SRC, f), radar / 'src' / f)
+    shutil.copy(db, radar / 'data' / 'iptv.db')
+    return radar
+
+
+def _run_link_sources(radar, epg):
+    return subprocess.run(
+        [sys.executable, str(radar / 'src' / 'link_sources.py'),
+         '--db', str(radar / 'data' / 'iptv.db'), '--epg', str(epg)],
+        capture_output=True, text=True)
+
+
+def test_f2_脱敏假token不得覆盖真token(db, conn, tmp_path):
+    """认证失败时 pipeline 会回退到脱敏样例。此时绝不能把假token写进库 ——
+    真token不可恢复(要等下次认证成功),覆盖=让这些频道直接播不了。"""
+    cid = add_channel(conn, 'CCTV1综合')
+    real = 'zoneoffset=480&accountinfo=%2C12345678%2C&it=REAL_TOKEN_ABC'
+    sid = add_source(conn, 'rtsp://h/1.smil', channel_id=cid, channel_key='CCTV1综合',
+                     source_type='rtsp', timeshift_query=real)
+    set_preferred(conn, cid, sid)
+
+    radar = _isolated_radar(tmp_path, db)
+    # 造一个脱敏样例(和 reference/channels.sample.json 同特征)
+    fake_q = 'zoneoffset=480&accountinfo=%2C00000000%2C&it=SAMPLE_TOKEN_REDACTED_NOT_REAL'
+    epg = radar / 'reference' / 'sample.json'
+    json.dump([{'id': '1', 'name': 'CCTV1综合',
+                'url': f'rtsp://h/1.smil?{fake_q}',
+                'timeshift_url': f'rtsp://h/1.smil?{fake_q}'}],
+              open(epg, 'w', encoding='utf-8'), ensure_ascii=False)
+
+    r = _run_link_sources(radar, epg)
+    assert r.returncode == 0, r.stderr
+
+    got = sqlite3.connect(radar / 'data' / 'iptv.db').execute(
+        "SELECT timeshift_query FROM sources WHERE address='rtsp://h/1.smil'").fetchone()[0]
+    assert 'SAMPLE_TOKEN_REDACTED' not in got, "假token覆盖了真token → 该频道会播不了"
+    assert got == real, f"真token被改动: {got}"
+    assert '拒绝写入' in r.stdout, f"拒写假token时必须告警,否则运维不知道token没刷新:\n{r.stdout}"
+
+
+def test_f2_真token正常情况下必须能更新(db, conn, tmp_path):
+    """反向保护: 别把防护做成'永不更新token'。"""
+    cid = add_channel(conn, 'CCTV1综合')
+    sid = add_source(conn, 'rtsp://h/1.smil', channel_id=cid, channel_key='CCTV1综合',
+                     source_type='rtsp', timeshift_query='it=OLD_TOKEN')
+    set_preferred(conn, cid, sid)
+    radar = _isolated_radar(tmp_path, db)
+    new_q = 'zoneoffset=480&accountinfo=%2C12345678%2C&it=NEW_REAL_TOKEN'
+    epg = radar / 'reference' / 'fresh.json'
+    json.dump([{'id': '1', 'name': 'CCTV1综合',
+                'url': f'rtsp://h/1.smil?{new_q}',
+                'timeshift_url': f'rtsp://h/1.smil?{new_q}'}],
+              open(epg, 'w', encoding='utf-8'), ensure_ascii=False)
+    r = _run_link_sources(radar, epg)
+    assert r.returncode == 0, r.stderr
+    got = sqlite3.connect(radar / 'data' / 'iptv.db').execute(
+        "SELECT timeshift_query FROM sources WHERE address='rtsp://h/1.smil'").fetchone()[0]
+    assert got == new_q, f"新的真token未写入(防护做过头了): {got}"
