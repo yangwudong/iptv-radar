@@ -141,8 +141,6 @@ erDiagram
         TEXT name "展示名 NOT NULL"
         TEXT tvg_id "EPG匹配id"
         TEXT tvg_logo "台标URL"
-        TEXT group_primary "主分组"
-        TEXT group_extra "附加分组 分号分隔"
         INTEGER enabled "1出m3u 0黑名单占位"
         INTEGER timeshift "是否时移"
         INTEGER sort_hint "组内排序"
@@ -222,7 +220,8 @@ erDiagram
 | FK | channel_groups.channel_id → channels.channel_id | 分组归属频道 |
 
 ### 4.5 索引
-- `idx_channels_group(group_primary)` `idx_channels_key(channel_key)`
+- `idx_channels_key(channel_key)`
+- `idx_pref_rank1_source(source_id) WHERE rank=1` — 防串台: 同一个源不能是两个频道的主源
 - `idx_sources_channel(channel_id)` `idx_sources_type(source_type)` `idx_sources_avail(available)`
 - `idx_history_run(scan_run)`
 

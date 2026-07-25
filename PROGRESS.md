@@ -2,6 +2,58 @@
 
 > 倒序: 最新在最上面
 
+## 2026-07-25 按ROI排序做5项改进(设计层面)
+
+第二轮深度审查列出8项,按 (静默丢数据/出错概率 × 触发频率) ÷ 改动风险 排序,
+做了ROI最高的5项;6/7/8(prefer-multicast选源归还ETL、scan_history导出、权重进config)
+判定ROI低,明确不做。
+
+### 1. CI 两个洞
+- pytest 未锁版本 → requirements-dev.txt 锁 9.1.1(大版本更新最坏是**静默少收测试**)
+- **paths 过滤器对 tags 也生效** → 打tag时过滤不可靠 → test被skip → build(needs:test)跟着skip
+  → 发版静默不出镜像。拆出 release.yml 专管 tag(不设paths)
+- paths 补 .dockerignore/compose.yaml/.env.example;加 concurrency + timeout-minutes
+
+### 2. 孤儿源截图不再每周重拍
+17个源×3张=51次ffmpeg抓帧,单张超时20s → 最坏每周白烧17分钟。
+根因是**拍完从不回写库**(473个源里只有1条有screenshots)→ "复用"分支形同死代码。
+修: 回写库 + 已有截图跳过 + --reshoot 强制重拍。实测 17分钟 → 0.03秒。
+
+### 3. 归并快照改用 channel_id 做键
+data/source_links.json(447条,人工归并唯一持久化记录)原用 channel_key(会变的频道名)做键。
+实测: 改名「浙江钱江都市」→「钱江都市」后,5条归并被当"频道已不存在"丢弃,
+而缩水告警抓不住(447丢5=1.1% < 10%阈值)。用户已做过此类操作(欢笑剧场_上海并入多彩文体4K)。
+修: 格式改 {address: {channel_id, channel_key}},按id解析;旧格式仍能读(447条无缝升级)。
+验证: 升级后再改名 → 5条归并全部保住,快照自动跟着更新为新名。
+
+### 4. .smil 地址规则收敛到 address_util
+同一条正则在5个文件抄了8遍,横跨三层。它就是"官方URL ↔ 库里address"的身份规则,
+运营商改格式时改漏一处 → 地址分裂成重复/孤儿行、token写不到目标上,全程零报错。
+修: 新增 src/address_util.py(canonical_rtsp / _strict / split_query / multicast_addr /
+parse_official_url),8处全替换。19条契约测试含"用生产库全部rtsp地址验证幂等"的护栏。
+三套m3u + Dashboard + 频道页全部与改前逐字节一致。
+
+### 5. 分组只保留一份真相
+channels.group_primary/group_extra 与 channel_groups 表存同样信息,而 m3u 读表、
+Dashboard 显示读列。实测只往表里加一行"少儿": m3u 出现在少儿组,Dashboard 标签却没有。
+修: 删两列,Dashboard 从表推导(主组=is_primary=1,附加组=其余按order_in_group)。
+**多分组能力不变**(能力在表里,不在列里)。
+顺带: schema自愈集中到 db_util.ensure_schema()(pipeline开头调一次,幂等),
+移除 link_sources/probe_timeshift 里散落的 ALTER。
+迁移保护: 列有值但表无对应行时拒绝删列;踩坑: 必须先 DROP INDEX 再 DROP COLUMN。
+验证: 生产库副本迁移后143个频道分组显示零差异、三套m3u逐字节一致、端到端实跑通过。
+
+### 过程中额外抓到的bug(都是新测试抓出来的)
+- orphan_export 在回写截图路径前就 conn.close() → ProgrammingError
+- link_sources 结尾硬编码"钱江频道"的调试打印,resolution 为 NULL 时会崩掉整个脚本
+- **ensure_schema 在空库/缺表时崩** → pipeline 开头 FATAL exit 9,连 --gen-only 都跑不了。
+  这是首次部署的真实场景,本地一直有库测不出来 —— **是 CI 挡下来的**
+
+测试 65 → 96 条。每条新测试都做了反向验证(故意改坏代码确认变红)。
+过程中还发现: `py_compile` 留下的陈旧 .pyc 会让反向验证结果失真(差点误判测试无效);
+用 `python3 -c "..."` 改代码做验证时 shell 转义会让替换静默不生效(又一次"假验证")。
+
+---
 ## 2026-07-25 RTSP回看转HTTP 验证(结论: 技术可行,飞牛不可行)
 
 **目标**: 让只支持HTTP的网页播放器(飞牛影音)也能回看 —— 兼容版m3u现在是组播优先、无回看。
