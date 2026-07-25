@@ -2,7 +2,10 @@
 .env
 .env.*
 !.env.example
-reference/channels.json      # 含真实token的EPG快照(gitignore,但本地build时可能存在)
+# 含真实token的EPG快照(gitignore,但本地build时可能存在)
+# 注意: .dockerignore 不支持行内注释,注释必须独占一行,
+# 否则整行被当成字面 pattern → 排除规则静默失效(踩过)
+reference/channels.json
 reference/pcap/
 data/
 output/
