@@ -129,3 +129,31 @@ gitignore: output/orphan_review/ + data/orphan_inbox/ (运行时数据不上git)
 验证: 两页重构后内容完全一致(dashboard 11项/channels 9项指标全对),视觉不变。
 NAS用新镜像生成+发布,<PUBLISH_HOST>全200。为将来改样式/CF公开版铺路。
 待办(未来): CF Pages公开(学myepg,静态托管,别暴露家里服务);内网IP暴露公网DNS问题(另开session)。
+
+## 2026-07-25 组播网关升级 + 三套m3u + FCC快速换台
+
+**单播回看可持续化**: sources 加 timeshift_query 列(含token的query,link_sources 从 channels.json 写),
+gen_m3u 拼 `address?query` 完整回看地址 + catchup 标签, etl 回看加成(+60)让可回看单播成主源(约36频道)。
+pipeline 每次开头 fetch_channels 刷 token。实测 NAS 端到端: 新token直播+回看都能播, APTV 回看正常。
+关键定论: **CDN 不校验 token 里绑的 IP**(换IP无需重刷token), 换IP后单播全挂的真凶是 hotplug 路由脚本
+被 netifd 冲掉(已加固: 加路由后循环校验30s)。
+
+**组播 LAN 直通**: 软路由 igmpproxy(替 omcproxy, 后者对 IPv4 IPTV 不干活) + scope=organization(233.x 非 global)
++ **防火墙放行 IPTV→lan 组播UDP(224.0.0.0/4)** —— 这条是真凶: IPTV zone forward=REJECT 静默丢弃转发的组播,
+症状极迷惑(ip_mr_vif 下游计数在涨但物理口抓不到包), 一度误判内核 bridge 限制。加规则秒通。
+LAN 设备(IINA)可直接 `rtp://@233.50.x` 收组播, 绕过转码中转。
+Mac 坑: OrbStack 的 bridge100-104 干扰 macOS 组播 join → 关掉"Allow access to container domains & IPs"即可(容器功能保留)。
+
+**rtp2httpd 替代 msd_lite**: 抓包定位 FCC 服务器(RTCP PT=205 FMT=5 RTCP-SR-REQ, 115.233.45.x:8027, 负载均衡不绑频道)。
+部署 3 个 ipk, 端口 4088(drop-in, m3u 不用改), upstream 全 eth1.43。实测 FCC 换台快1-2秒+明显更稳。
+优化: workers=4(扫描40源4并发 40/40满分) + zerocopy + udp_rcvbuf 2MB + cors_allow_origin(3.15.3 原生支持,
+deepwiki 说不支持是旧版信息)。FEC: 抓包证实本地 IPTV 无独立 FEC 组播流, `?fec=` 用不上。
+扫描并发定论: rtp2httpd 和 msd 一样 4并发甜点、8并发暴跌 —— 瓶颈是设备同时收多路组播流的物理限制, 非 workers。
+
+**三套 m3u**: 标准版(组播+FCC / 单播回看catchup, 远程+APTV) / 直通版(rtp://@直收, LAN低延迟, IINA) /
+兼容版(全组播HTTP+FCC, 组播优先无回看, 适配不支持rtsp的网页播放器如飞牛影音)。
+飞牛影音适配链: Mixed Content(改用http访问) → CORS(网关加头) → 不支持rtsp(兼容版组播优先, 单播55→9)。
+
+**pipeline `--gen-only`**: 改模板/样式后几秒重出 m3u+Dashboard+页面(不扫描/不刷token)。
+**Dashboard**: 加 m3u 订阅区(三套, 点击复制完整URL) + 修 footer 链接(../iptv.m3u)。
+**文档**: README 双语(英文主 + README.zh-CN.md) + 网关三者对比(udpxy/msd_lite/rtp2httpd) + ARCHITECTURE 图更新。

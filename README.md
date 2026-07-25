@@ -1,129 +1,178 @@
 # iptv-radar
 
-浙江电信 IPTV 频道 **扫描 · 管理 · 发布** 系统。
+[English](README.md) | [中文](README.zh-CN.md)
 
-自动扫描组播/单播频道质量,以 **SQLite 为唯一主数据源**,生成带台标 /EPG 的
-m3u 播放列表 + 频道监控 Dashboard。
+**Scan · Manage · Publish** system for China Telecom IPTV (Zhejiang) channels.
 
-> ⚠️ 本项目为个人自用的逆向研究与自动化工具,仅供学习交流。所涉及的组播/单播地址
-> 为运营商公开分发信息,不含任何个人账号信息(认证凭证等敏感配置通过 `.env` 隔离,
-> 不随仓库分发)。
+Automatically probes multicast/unicast stream quality, uses **SQLite as the single source
+of truth**, and generates m3u playlists (with logos & EPG) plus a channel-monitoring dashboard.
 
-## 架构(三层解耦)
+> ⚠️ A personal reverse-engineering / automation project, for study and reference only.
+> The multicast/unicast addresses involved are carrier-distributed information; no personal
+> account data is included (credentials live in `.env`, which is never committed).
+
+## Architecture (three decoupled layers)
 
 ```
-采集(scan) → SQLite主库 → 加工(ETL:归并/优选) → 生成(m3u+Dashboard) → 发布
+scan → SQLite (source of truth) → ETL (link/select) → generate (m3u + dashboard) → publish
 ```
 
-- **采集** 扫描组播/单播源,只写事实(技术属性),不做命名/优选
-- **加工** 归并源到频道(link_sources) + 源优选(etl_process)
-- **生成** m3u 播放列表 + 检测 Dashboard + 官方频道列表页 + EPG 节目单
+- **Scan** — probe multicast/unicast sources, record facts (technical attributes) only; no naming or ranking
+- **ETL** — link sources to channels (`link_sources`) + pick the best source per channel (`etl_process`)
+- **Generate** — m3u playlists + monitoring dashboard + official channel list page + EPG
 
-## 核心数据模型
+## Core data model
 
-以 SQLite 为唯一主数据源,三张核心表职责严格解耦:
+SQLite is the single source of truth; three tables with strictly separated responsibilities:
 
-| 表 | 职责 |
-|----|------|
-| `channels` | 频道元数据台账(名/台标/EPG-id/分组),只增不删 |
-| `sources` | 采集到的播放源清单(组播/单播),进表≠已识别 |
-| `channel_preferred_sources` | 优选关系(ETL 产出,带 rank,支持一频道多源按画质排序) |
+| Table | Responsibility |
+|-------|----------------|
+| `channels` | Channel metadata ledger (name / logo / EPG id / groups). Append-only |
+| `sources` | Discovered playable sources (multicast / unicast). Being listed ≠ identified |
+| `channel_preferred_sources` | Preference relation produced by ETL (with `rank`, supports multiple sources per channel ordered by quality) |
 
-设计要点:
+Design highlights:
 
-- **主键用稳定代理键 `channel_id`(自增整数)**,频道改名不影响关联
-- `channel_key`(规范频道名)作 UNIQUE 列,人可读、可沟通、作台标匹配入口
-- 源失效不删,标记 `available=0`/`fail_count`;频道无源可用仍保留(标 offline)
-- 任意源地址 → channel_id → 频道全部信息(名/台标/EPG),台标匹配走这条路
+- **Stable surrogate key `channel_id`** (autoincrement integer) — renaming a channel never breaks relations
+- `channel_key` (canonical channel name) is a UNIQUE column: human-readable, used for logo matching
+- Dead sources are never deleted — flagged via `available=0` / `fail_count`; a channel with no usable source is kept (marked `offline`)
+- Any source address → `channel_id` → all channel info (name / logo / EPG). Logo matching follows this path
 
-## 目录结构
+## Layout
 
 ```
 src/
-  db_schema.py         # 权威建库 schema
-  scan_multicast.py    # 组播扫描
-  scan_rtsp.py         # RTSP 单播扫描 + 重定向链追踪
-  probe.py             # ffprobe 流探测
-  link_sources.py      # 数据清洗:源归并到频道
-  etl_process.py       # 源优选 + 变更检测
-  gen_m3u.py           # 生成 m3u
-  gen_dashboard.py     # 生成检测 Dashboard(优选源列表)
-  gen_channels_page.py # 生成官方频道列表页
-  fetch_epg.py         # 抓取 EPG 节目单
-  run_pipeline.sh      # 一键流水线
-docs/                  # 设计文档与工作原理
-reference/             # 官方频道样例、台标索引
-data/                  # SQLite 主库(不随仓库分发)
-output/                # 生成产物(m3u/dashboard)
+  db_schema.py         # authoritative schema
+  scan_multicast.py    # multicast scanning
+  scan_rtsp.py         # RTSP unicast scanning + redirect chain tracing
+  probe.py             # ffprobe stream probing
+  link_sources.py      # ETL: link sources to channels
+  etl_process.py       # source selection + change detection
+  gen_m3u.py           # m3u generation
+  gen_dashboard.py     # monitoring dashboard (preferred sources)
+  gen_channels_page.py # official channel list page
+  fetch_channels.py    # EPG authentication, refreshes unicast/catchup tokens
+  probe_timeshift.py   # catchup (time-shift) day detection
+  fetch_epg.py         # EPG program guide
+  run_pipeline.sh      # one-shot pipeline
+docs/                  # design docs & how the carrier IPTV works
+reference/             # official channel sample, logo index
+data/                  # SQLite database (not distributed)
+output/                # artifacts (m3u / dashboard)
 ```
 
-## 使用
+## Usage
 
 ```bash
-# 建库(首次)
+# Create the database (first run)
 python3 src/db_schema.py
 
-# 一键流水线: 采集 → 清洗 → 优选 → 生成
+# One-shot pipeline: scan → ETL → select → generate
 ./src/run_pipeline.sh
 
-# 流水线模式(均可加 --publish 发布 m3u):
-./src/run_pipeline.sh                  # 默认: known 增量扫描(只扫已知源,~11分钟,适合每周)
-./src/run_pipeline.sh --full           # 全量扫描(全网段+回看探测,~20分钟,适合每月/初始化)
-./src/run_pipeline.sh --timeshift-only # 只补回看天数数据(不重扫,~5分钟)
-./src/run_pipeline.sh --gen-only       # 只从现有库重新生成 m3u+Dashboard+页面(改模板/样式后用,几秒)
+# Pipeline modes (append --publish to publish the m3u files):
+./src/run_pipeline.sh                  # default: incremental scan of known sources (~11 min, weekly)
+./src/run_pipeline.sh --full           # full scan of all ranges + catchup probing (~20 min, monthly)
+./src/run_pipeline.sh --timeshift-only # only refresh catchup-day data (~5 min)
+./src/run_pipeline.sh --gen-only       # only regenerate m3u + dashboard from the existing DB (seconds)
 
-# 或分步执行
-python3 src/scan_multicast.py     # 组播扫描
-python3 src/scan_rtsp.py --trace  # 单播扫描
-python3 src/link_sources.py       # 归并
-python3 src/etl_process.py        # 优选
-python3 src/gen_m3u.py            # 生成 m3u
-python3 src/gen_dashboard.py     # 生成 Dashboard
+# Or step by step
+python3 src/scan_multicast.py     # multicast scan
+python3 src/scan_rtsp.py --trace  # unicast scan
+python3 src/link_sources.py       # link
+python3 src/etl_process.py        # select
+python3 src/gen_m3u.py            # generate m3u
+python3 src/gen_dashboard.py      # generate dashboard
 ```
 
-组播源需通过 `udpxy`/`msd_lite` 转 HTTP 播放。Dashboard 支持在页面顶部
-填入你的转码前缀(存 localStorage),用于 IINA 播放。
+## Configuration
 
-## 配置
+Real carrier addresses, credentials and deployment paths come from `.env` in the project root
+(never committed — see `.env.example`).
 
-真实的运营商地址、认证凭证、部署路径等通过项目根目录的 `.env` 提供
-(不随仓库分发)。参考各脚本的默认参数与命令行选项。
+## Multicast gateway: udpxy vs msd_lite vs rtp2httpd
 
-## 进阶: OpenWRT 让 IPTV 组播在 LAN 内直接播放
+IPTV multicast can't be consumed directly by most players/networks, so a gateway converts
+multicast RTP/UDP into HTTP unicast. Three common choices — all work with this project
+(the m3u output only needs `http://<host>:<port>/rtp/<multicast>`, a de-facto standard URL
+shape shared by all three):
 
-默认组播需经 `udpxy`/`msd_lite` 转 HTTP 单播,软路由要为每个观看者做一路转码,
-是 CPU 瓶颈。若软路由是 OpenWRT,可让 LAN 设备(IINA/APTV 等)**直接收组播 RTP**
-(`rtp://@<组播地址>`),绕过转码中转。原理是用 IGMP proxy 把 IPTV 上游接口的组播
-按需转发到 LAN 网桥。
+| | **udpxy** | **msd_lite** | **rtp2httpd** |
+|---|---|---|---|
+| Multicast → HTTP | ✅ | ✅ | ✅ |
+| Maturity | Oldest, everywhere | Mature, widely packaged | Newer, actively developed |
+| Performance | Single-threaded, simple | Multi-threaded, efficient | epoll + multi-worker + zero-copy |
+| **FCC (fast channel change)** | ❌ | ❌ | ✅ Telecom/ZTE/Fiberhome + Huawei |
+| **RTSP → HTTP (catchup/VOD)** | ❌ | ❌ | ✅ |
+| FEC / RTP reordering | ❌ | ❌ | ✅ (Reed-Solomon FEC, sliding-window reorder) |
+| Custom HTTP headers (CORS) | ❌ | ✅ via `headersList` | ✅ via `--cors-allow-origin` |
+| Status page / web player | ❌ | Basic status | ✅ `/status` + `/player` + snapshots |
+| Dependencies | Tiny C | Tiny C | Tiny C (zero deps) |
+| OpenWRT package | ✅ | ✅ | ✅ (may need manual ipk) |
 
-> 以下为通用步骤,`<IPTV接口>`/`<LAN接口>`/`<组播源网段>` 请替换为你自己的实际值。
-> 组播只在**同一局域网**内可达;跨 VPN(如 WireGuard/Tailscale)不转发组播,远程仍需 HTTP 转码那套。
+**Recommendation** — any of them is fine for plain multicast→HTTP. Prefer **rtp2httpd** if you
+want faster channel switching (FCC), catchup over HTTP, or better resilience on lossy links;
+its URL format is a drop-in replacement for udpxy/msd_lite, so existing playlists keep working.
+**msd_lite** remains a solid, battle-tested choice (and supports custom headers such as CORS,
+which web players need).
 
-**1. 装 igmpproxy(比自带的 omcproxy 更适合 IPv4 IPTV)**
+CORS matters if you play the streams in a **browser-based** player: the gateway response needs
+`Access-Control-Allow-Origin`, otherwise the fetch is blocked cross-origin.
+- msd_lite: add `<header>Access-Control-Allow-Origin: *</header>` to `headersList` in its config
+- rtp2httpd: `option cors_allow_origin '*'` (UCI) or `--cors-allow-origin '*'`
+
+### FCC (fast channel change) with rtp2httpd
+
+FCC asks a carrier FCC server for a unicast burst (IDR frame + initial data) so playback starts
+immediately, then transparently switches to multicast. Append the FCC server to the URL:
+
+```
+http://<gateway>:<port>/rtp/<multicast>:<port>?fcc=<fcc_server_ip>:<fcc_port>
+```
+
+Find your FCC server by capturing set-top-box traffic: look for **RTCP packets with payload
+type 205 (Generic RTP Feedback), FMT=5 (RTCP-SR-REQ)** — the destination is the FCC server.
+Gateways that don't understand `?fcc=` simply ignore the parameter, so the same playlist stays
+compatible. In this project the FCC server is configured via `FCC_SERVER` in `.env` and applied
+by `gen_m3u.py --fcc`.
+
+## Advanced: native multicast to LAN clients on OpenWRT
+
+By default multicast is transcoded to HTTP unicast by the gateway, which means the router does
+one stream per viewer — a CPU bottleneck. On OpenWRT you can let LAN devices (IINA, APTV, …)
+**receive the multicast RTP directly** (`rtp://@<multicast>`), bypassing the gateway. The trick
+is an IGMP proxy that forwards multicast from the IPTV upstream interface to the LAN bridge on demand.
+
+> Replace `<IPTV_iface>` / `<multicast source subnet>` with your own values.
+> Multicast only works **inside the same LAN**; VPNs (WireGuard/Tailscale) do not forward
+> multicast, so remote clients still need the HTTP gateway.
+
+**1. Install igmpproxy** (better suited to IPv4 IPTV than the bundled omcproxy)
 ```sh
 opkg update && opkg install igmpproxy
 ```
 
-**2. 配 igmpproxy: 上游=IPTV接口, 下游=LAN**  (`/etc/config/igmpproxy`)
+**2. Configure igmpproxy: upstream = IPTV interface, downstream = LAN** (`/etc/config/igmpproxy`)
 ```
 config igmpproxy
     option quickleave 1
 
 config phyint
-    option network   <IPTV接口>      # 组播上游(如 IPTV 的 VLAN 接口)
+    option network   <IPTV_iface>    # multicast upstream (e.g. the IPTV VLAN interface)
     option direction upstream
-    list   altnet    <组播源网段>    # 允许接收组播的源网段,如 x.x.0.0/16
+    list   altnet    <source subnet> # allowed multicast source subnet, e.g. x.x.0.0/16
 config phyint
-    option network   lan             # LAN 下游
+    option network   lan             # LAN downstream
     option direction downstream
 ```
-注意上游用**真实接口/VLAN 子接口**,不要用网桥(`br-lan`)。
+Use the **real interface / VLAN sub-interface** upstream — not the bridge (`br-lan`).
 
-**3. ⚠️ 关键: 放行防火墙的组播转发(最容易漏、最难查的坑)**
+**3. ⚠️ Critical: allow multicast forwarding in the firewall (the easiest thing to miss)**
 
-IPTV 所在防火墙 zone 的 `forward` 若是 `REJECT/DROP`(常见默认),转发的组播 UDP
-会被静默丢弃 —— 现象是 `ip_mr_vif` 里下游计数在涨(内核以为转发了),但设备/物理口
-上抓不到数据包。**加一条允许 IPTV→LAN 组播 UDP 的规则**:
+If the IPTV zone's `forward` policy is `REJECT/DROP` (a common default), forwarded multicast UDP
+is silently dropped — the symptom is that `ip_mr_vif` shows the downstream counter increasing
+(the kernel thinks it forwarded) while nothing is captured on the device or physical port.
+**Add a rule allowing IPTV→LAN multicast UDP:**
 ```
 config rule
     option name   'Allow-IPTV-Multicast-to-LAN'
@@ -134,38 +183,45 @@ config rule
     option target 'ACCEPT'
 ```
 
-**4. LAN 网桥关闭 IGMP snooping(泛洪,最省心)**
+**4. IGMP snooping on the LAN bridge**
 ```sh
-uci set network.@device[0].igmp_snooping='0'   # 对应 br-lan 的 device
+uci set network.@device[0].igmp_snooping='1'   # the br-lan device; needs a querier
 uci commit network
 ```
-(千兆 LAN 泛洪压力可忽略;按需 join 时只有被观看的组会真正拉流。)
+(`1` delivers multicast only to ports that joined — cleaner for Wi-Fi clients. `0` floods, which
+also works on a gigabit LAN. Either way only groups actually being watched are pulled upstream.)
 
-**5. 重载并验证**
+**5. Reload and verify**
 ```sh
 /etc/init.d/igmpproxy restart; /etc/init.d/firewall reload; /etc/init.d/network reload
-ip mroute show          # 观看时应出现 (源, 组) Iif:<IPTV接口> Oifs:lan State:resolved
+ip mroute show   # while watching, expect (source, group) Iif:<IPTV_iface> Oifs:lan State:resolved
 ```
-LAN 设备用播放器打开 `rtp://@<组播地址>` 即可直接观看。
+LAN devices can then open `rtp://@<multicast>` directly.
 
-**排查提示**(按此顺序,逐步用证据定位):
-- 设备发不出 IGMP join → 检查客户端(macOS 上 OrbStack/Docker Desktop 会创建虚拟网桥,
-  干扰主机组播 join 的接口选择;OrbStack 里关掉 "Allow access to container domains & IPs"
-  即可恢复,无需退出 Docker);
-- `ip mroute show` 无 resolved 条目 → igmpproxy 上游/altnet/scope 配置(某些运营商组播是 organization-local,igmpproxy 默认只代理 global);
-- 有 resolved 但设备收不到、物理口抓不到包 → **十有八九是防火墙 forward 拦了(见第3步)**。
+**Troubleshooting** (in this order, evidence first):
+- Client sends no IGMP join → check the client. On macOS, OrbStack / Docker Desktop create virtual
+  bridges that confuse the host's multicast interface selection; turning off
+  *"Allow access to container domains & IPs"* in OrbStack restores it (no need to quit Docker).
+- No `resolved` entry in `ip mroute show` → igmpproxy upstream / altnet / scope. Some carriers use
+  organization-local groups (`233.x`), while igmpproxy defaults to proxying global scope only.
+- `resolved` but nothing arrives / nothing on the physical port → **almost certainly the firewall
+  forward policy (step 3)**.
+- High-concurrency probing drops out: a device can only receive a handful of simultaneous multicast
+  streams (carrier CPAR rate limits, snooping table pressure). ~4 concurrent streams is the sweet spot.
 
-本仓库的 pipeline 生成三套 m3u,分别适配不同播放场景:
+## The three generated playlists
 
-| m3u | 组播源 | 单播/回看 | 适用 |
-|-----|--------|-----------|------|
-| `iptv.m3u` 标准版 | `http://msd/rtp/`(HTTP 转码) | 可回看频道用单播主源 + catchup | 远程 / Tailscale / 支持回看的原生播放器(如 APTV) |
-| `iptv_direct.m3u` 直通版 | `rtp://@`(组播直收) | 同标准版 | 仅 LAN 内、低延迟省转码 CPU(如 IINA) |
-| `iptv_compat.m3u` 兼容版 | `http://msd/rtp/` | 有组播源的一律回退组播(无回看),纯单播保留 rtsp | 只支持组播、不支持 rtsp 的播放器(如网页播放器) |
+The pipeline emits three m3u files for different playback scenarios:
 
-对应 `gen_m3u.py` 参数: `--multicast-mode msd|direct` 控制组播源形式,`--prefer-multicast` 生成兼容版。
-组播直通(direct)只在 LAN 内可用;跨 VPN(WireGuard/Tailscale)不转发组播,远程请用标准版。
+| m3u | Multicast source | Unicast / catchup | Best for |
+|-----|------------------|-------------------|----------|
+| `iptv.m3u` standard | `http://<gateway>/rtp/…` (+`?fcc=` when configured) | catchup channels use the unicast source + `catchup` tags | remote / Tailscale / native players with catchup (e.g. APTV) |
+| `iptv_direct.m3u` direct | `rtp://@…` (received natively) | same as standard | LAN only, lowest latency, no transcoding (e.g. IINA) |
+| `iptv_compat.m3u` compat | `http://<gateway>/rtp/…` (+`?fcc=`) | channels that have a multicast source fall back to it (no catchup); pure-unicast channels keep rtsp | players that only speak multicast-over-HTTP and not rtsp (e.g. browser-based players) |
+
+Corresponding `gen_m3u.py` flags: `--multicast-mode msd|direct` selects the multicast URL form,
+`--prefer-multicast` produces the compat variant, `--fcc <ip:port>` adds FCC.
 
 ## License
 
-个人自用项目,仅供学习交流。
+Personal project, for study and reference only.

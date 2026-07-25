@@ -21,8 +21,8 @@
 |----|----|
 | 宿主 | NAS1 (Intel N100, Synology, 内存可用~3G) |
 | 部署目录 | `/volume1/docker/iptv-radar/` |
-| 发布 | 复用现有 Nginx: `/volume1/docker/nginx/m3u/` → `https://<发布域名>:<PUBLISH_PORT>/iptv.m3u` |
-| 网络 | 同 LAN,经软路由可达 msd_lite(组播) 和电信CDN(RTSP单播) |
+| 发布 | 复用现有 Nginx: `/volume1/docker/nginx/m3u/` → `https://<发布域名>:<PUBLISH_PORT>/{iptv,iptv_direct,iptv_compat}.m3u`(三套) |
+| 网络 | 同 LAN,经软路由可达组播网关(rtp2httpd/msd_lite)和电信CDN(RTSP单播/回看) |
 | 触发 | 群晖 控制面板→任务计划→计划的任务(定时) |
 
 **⚠️ 部署前必做的只读验证(在 NAS1 上)**:
@@ -170,7 +170,7 @@ curl -s https://<发布域名>:<PUBLISH_PORT>/iptv.m3u | head
 │   ├── channels_seed.json    # 频道种子
 │   └── orphan_inbox/         # 待消费的App识别结果
 └── output/                   # 挂载,产出
-    ├── iptv.m3u              # → 发布时cp到nginx
+    ├── iptv.m3u              # → 发布时cp到nginx(另有 iptv_direct/iptv_compat 共三套)
     ├── dashboard/            # 静态HTML(index/channels)
     └── orphan_review/        # 待识别包(给Electron App)
 ```

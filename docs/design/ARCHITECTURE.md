@@ -26,42 +26,53 @@
 ```mermaid
 flowchart TB
     subgraph ext["外部输入"]
-        MSD["msd_lite 组播转HTTP"]
-        CDN["电信CDN RTSP单播"]
-        CJSON["channels sample json 官方台账"]
+        GW["组播网关 rtp2httpd 4088<br>组播转HTTP + FCC快速换台<br>(可替换 msd_lite udpxy)"]
+        CDN["电信CDN RTSP单播 + 回看"]
+        EPGAUTH["电信EPG认证<br>fetch_channels 刷token"]
         EPGSRC["第三方EPG 112114"]
     end
     subgraph seed["种子数据 可从0重建"]
         SEEDJSON["channels_seed 频道台账+分组"]
         LINKS["source_links 归并快照"]
     end
-    subgraph pipeline["run_pipeline 瞬时任务 cron触发 7步"]
+    subgraph pipeline["run_pipeline 瞬时任务 cron触发"]
+        ST["刷token fetch_channels<br>→ channels json 含新token"]
         S0["0 orphan_import 消费识别结果"]
         S1["1 scan_multicast 三轮递进4并发"]
         S2["2 scan_rtsp 单播+重定向链"]
-        S3["3 link_sources 数据清洗归并"]
-        S4["4 etl_process 优选+失效容错"]
+        S2B["2b probe_timeshift 回看天数<br>(仅full)"]
+        S3["3 link_sources 归并 + 写timeshift_query"]
+        S4["4 etl_process 优选+回看加成+失效容错"]
         S5["5 orphan_export 产出待识别包"]
-        S6["6 gen_m3u"]
+        S6["6 gen_m3u 三套"]
         S7["7 fetch_epg + Dashboard生成"]
-        S0 --> S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7
+        ST --> S0 --> S1 --> S2 --> S2B --> S3 --> S4 --> S5 --> S6 --> S7
     end
     DB[("iptv db 主库<br>channels sources<br>preferred groups history")]
     PROBE["probe 共享探测<br>ffprobe rw_timeout"]
-    M3U["iptv m3u"]
+    subgraph m3us["三套 m3u 各适配不同播放器"]
+        M1["iptv m3u 标准版<br>组播+FCC / 单播回看catchup"]
+        M2["iptv_direct 直通版<br>rtp 组播直收 LAN低延迟"]
+        M3["iptv_compat 兼容版<br>全组播HTTP 网页播放器"]
+    end
+    IGMP["igmpproxy 组播LAN直通<br>软路由转发到LAN"]
     DASH["Dashboard 两页"]
     REVIEW["orphan_review 待识别包"]
     EAPP["Electron App 独立后做<br>看截图 IINA播放 选tag"]
     NGINX["Nginx发布 NAS"]
 
-    MSD --> S1
+    EPGAUTH --> ST
+    GW --> S1
     CDN --> S2
-    CJSON --> S3
+    CDN --> S2B
+    ST -. channels json .-> S2
+    ST -. channels json .-> S3
     S1 -.-> PROBE
     S2 -.-> PROBE
     S5 -.-> PROBE
     S1 --> DB
     S2 --> DB
+    S2B --> DB
     S3 --> DB
     S3 -. 加载回写 .-> LINKS
     S4 --> DB
@@ -71,11 +82,17 @@ flowchart TB
     REVIEW -.-> EAPP
     EAPP -. resolved .-> S0
     S0 --> DB
-    DB --> S6 --> M3U
+    DB --> S6 --> M1
+    S6 --> M2
+    S6 --> M3
     DB --> S7 --> DASH
     EPGSRC --> S7
-    M3U --> NGINX
-    DASH --> NGINX
+    M1 --> NGINX
+    M2 --> NGINX
+    M3 --> NGINX
+    M2 -. 播放需 .-> IGMP
+    M1 -. 播放经 .-> GW
+    M3 -. 播放经 .-> GW
 ```
 
 ---
@@ -144,6 +161,8 @@ erDiagram
         INTEGER vbitrate "码率bps"
         TEXT hdr "SDR HLG HDR10"
         REAL quality_score "ETL优选评分"
+        INTEGER playback_days "单播回看天数 0=不支持"
+        TEXT timeshift_query "单播完整回看query 含token"
         INTEGER fail_count "连续失败次数"
         TEXT screenshots "截图路径"
         TEXT redirect_chain "RTSP重定向链"

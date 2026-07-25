@@ -1,6 +1,6 @@
 # IPTV 待办事项
 
-> 最后更新: 2026-07-24
+> 最后更新: 2026-07-25
 > 状态总览: 核心功能全部完成并上线(NAS部署+cron自动化+GitHub+Docker Hub)。
 
 ## ✅ 已完成
@@ -12,6 +12,14 @@
 - 失效容错: fail_count 阈值, 全失效频道不选主源, 僵尸频道 bug 已修
 - 回看天数探测(probe_timeshift.py): 单播源 timeshift_url + playseek 二分查找, 仅 full 跑, --timeshift-only 可补数据
 - 孤儿源识别流程 Python 侧: orphan_export 产出待识别包 + orphan_import 消费(5种action), 异步文件交换
+
+### 组播网关与播放适配(2026-07-25)
+- 组播 LAN 直通: 软路由 igmpproxy + 防火墙放行组播转发(真凶是 IPTV zone forward=REJECT 静默丢包), LAN 设备可直接 `rtp://@` 收组播
+- rtp2httpd 替代 msd_lite: FCC 快速换台(换台快1-2秒+更稳, 抓包定位 FCC 服务器 RTCP PT=205/FMT=5) + CORS + RTSP转HTTP + zerocopy/2MB缓冲优化
+- 三套 m3u: 标准版(组播+FCC/单播回看catchup) + 直通版(rtp直收, LAN低延迟) + 兼容版(全组播HTTP, 适配不支持rtsp的网页播放器如飞牛影音)
+- 单播回看可持续: sources.timeshift_query 存含 token 的 query, pipeline 每次 fetch_channels 刷 token, etl 回看加成让可回看单播成主源
+- pipeline 加 `--gen-only`(改模板/样式后几秒重出静态页, 不重扫)
+- 网页播放器适配: Mixed Content(用 http 访问) + CORS(网关加 Access-Control-Allow-Origin) + 不支持rtsp(兼容版组播优先)
 
 ### 界面/输出
 - 双 Dashboard: 优选源列表(index) + 官方频道列表(channels), Jinja2 模板重构(数据/界面分离)
@@ -30,7 +38,6 @@
 - [ ] 9个 RTSP 单播孤儿源(名字没对上)人工识别 → 走 orphan 流程
 - [ ] Electron App(独立项目): 孤儿源识别客户端, 契约见 design/ORPHAN_REVIEW.md §3
 - [ ] 内网IP暴露公网DNS(claw/tv子域名直解析到内网IP) — 另开 session, 非本项目范畴
-- [ ] [调研] 组播引入 LAN 直接收 RTP 绕过 msd_lite(需改软路由网络, 待同意) — 根治 J1900 CPU 瓶颈
 
 ## 🔮 未来可选(不紧急)
 

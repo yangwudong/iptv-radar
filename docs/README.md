@@ -8,7 +8,7 @@ iptv-radar 的全部文档,按用途分四类。
 | [01_浙江IPTV工作原理](mechanism/01_浙江IPTV工作原理.md) | 分发方式(组播/单播/EPG)、各自要求、**杭州市区可看/萧山不可看的深度分析案例** |
 | [02_光猫与软路由配置](mechanism/02_光猫与软路由配置.md) | 光猫桥接、**网口绑定 vs VLAN透传优缺点对比**、OpenWRT配置/注意事项/原理 |
 | [03_EPG认证与频道获取](mechanism/03_EPG认证与频道获取.md) | 华为HWCTC认证算法、DES密钥爆破、频道表获取 |
-| [04_msd_lite优化](mechanism/04_msd_lite优化.md) | 组播转HTTP、msd_lite配置优化、**vs udpxy对比** |
+| [04_msd_lite优化](mechanism/04_msd_lite优化.md) | 组播转HTTP、msd_lite配置优化、**vs udpxy对比**(网关三者对比含 rtp2httpd 见 README) |
 
 ## 📚 knowledge-base/ — 项目知识库(积累的事实与分析)
 | 文档 | 内容 |
