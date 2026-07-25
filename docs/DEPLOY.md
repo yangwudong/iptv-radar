@@ -100,9 +100,15 @@ services:
     restart: "no"   # 瞬时任务: 用 `run --rm` 触发,跑完即退
 ```
 
-> **首次部署必做**: `touch reference/channels.json`。
-> 单文件挂载时若宿主机上该文件不存在,Docker 会在两端创建成**目录**,
-> 导致 fetch_channels 写入失败、token 永远刷不上(现在会显式报错而非静默回退)。
+> **容器运行身份**: 镜像以非 root(uid 1000)运行。若宿主挂载目录属主不是 1000
+> (群晖/飞牛常见,本项目实测是 `1026:100`),必须在 `.env` 里设 `DOCKER_UID`/`DOCKER_GID`
+> 为实际属主,否则容器写不进 `data/`、`output/`。查法: `ls -ln <挂载目录>`。
+> 群晖目录默认 mode 555(靠ACL授权),需 `chmod u+w data output <nginx m3u目录>`。
+>
+> **token 文件位置**: 刷新出的 `channels.json` 存在 `data/`(不是 `reference/`)。
+> 早期版本放 reference/ 并用单文件 bind mount 持久化,有三个坑: 非root写不进镜像层、
+> 原子写跨挂载点失败、宿主文件不存在时 docker 把挂载点创建成目录。现在 `data/`
+> 整目录挂载即可,无需单文件挂载。
 >
 > **发布路径说明**: compose 把 nginx 目录挂载为 `/nginx_m3u`,并通过
 > `environment: NGINX_M3U_DIR=/nginx_m3u` 传给 run_pipeline.sh(`--publish` 写入此处)。
