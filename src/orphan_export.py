@@ -112,12 +112,21 @@ def main():
     ap.add_argument('--reshoot', action='store_true',
                     help='强制重拍已有截图的源(默认: 已有截图的跳过,只拍新出现的孤儿源)')
     ap.add_argument('--limit', type=int, default=0, help='只导出前N个(测试用)')
-    # 识别完把 resolved.json 放回 NAS 的提示命令(页面上一键复制)。
-    # 真实主机/端口不写死在代码里(AGENTS.md 规则2),由 pipeline 从 .env 传入。
-    ap.add_argument('--cp-hint', default='cp ~/Downloads/{f} /Volumes/docker/iptv-radar/data/orphan_inbox/',
-                    help='页面提示: SMB 已挂载时的拷贝命令({f}=文件名占位)')
-    ap.add_argument('--scp-hint', default='scp -O ~/Downloads/{f} <user>@<nas>:/volume1/docker/iptv-radar/data/orphan_inbox/',
+    # 识别完把 resolved.json 放回 orphan_inbox 的提示命令(页面上一键复制)。
+    # 真实主机/端口/路径不写死在代码里(AGENTS.md 规则2),从环境变量读 —— 由 .env 提供,
+    # pipeline 通过 env_file 传进容器。没配就退化成占位符(能看出该填什么)。
+    #   INBOX_SCP_TARGET  如 user@host:/volume1/docker/iptv-radar/data/orphan_inbox/
+    #   INBOX_SSH_PORT    如 1222(非22时才需要)
+    #   INBOX_LOCAL_PATH  已挂载(SMB/NFS)时的本地路径,如 /Volumes/docker/iptv-radar/data/orphan_inbox/
+    scp_target = os.environ.get('INBOX_SCP_TARGET', '<user>@<nas>:/volume1/docker/iptv-radar/data/orphan_inbox/')
+    ssh_port = os.environ.get('INBOX_SSH_PORT', '').strip()
+    port_arg = f'-P {ssh_port} ' if ssh_port else ''
+    local_path = os.environ.get('INBOX_LOCAL_PATH', '/Volumes/docker/iptv-radar/data/orphan_inbox/')
+    ap.add_argument('--cp-hint', default=f'cp ~/Downloads/{{f}} {local_path}',
+                    help='页面提示: 已挂载时的拷贝命令({f}=文件名占位)')
+    ap.add_argument('--scp-hint', default=f'scp -O {port_arg}~/Downloads/{{f}} {scp_target}',
                     help='页面提示: scp 命令({f}=文件名占位)')
+
     args = ap.parse_args()
 
     print("=" * 55)

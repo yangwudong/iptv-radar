@@ -997,3 +997,55 @@ def test_orphan_review新建频道必须有确认动作(db, conn, tmp_path, monk
     html_txt = _export_with_page(db, tmp_path, monkeypatch)
     assert 'confirmNew(' in html_txt, "新建频道没有确认动作 → 用户无法确定这条是否算数"
     assert 'pending' in html_txt, "没把'正在输入的草稿'与'已确定的决定'分开存"
+
+
+def test_orphan_new_同名多个源只建一个频道(db, conn, tmp_path):
+    """一个频道常有组播+单播两个源,用户会对两条都选 new 并填同一个频道名。
+    必须只建 1 个频道、两个源都挂上去 —— 建出两个重名频道等于数据污染
+    (channels.channel_key 有 UNIQUE,真建两次会直接报错)。"""
+    add_source(conn, '233.7.7.1:5140', channel_id=None, source_type='multicast')
+    add_source(conn, 'rtsp://h/x/1.smil', channel_id=None, source_type='rtsp')
+    radar = _isolated_radar(tmp_path, db)
+    inbox = _write_inbox(tmp_path, [
+        {'address': '233.7.7.1:5140', 'action': 'new', 'channel_key': '好易购', 'group': '购物'},
+        {'address': 'rtsp://h/x/1.smil', 'action': 'new', 'channel_key': '好易购', 'group': '购物'}])
+    r = _run_import(db, inbox, radar)
+    assert r.returncode == 0, r.stdout + r.stderr
+
+    n = conn.execute("SELECT COUNT(*) FROM channels WHERE channel_key='好易购'").fetchone()[0]
+    assert n == 1, f"建出了 {n} 个'好易购'频道"
+    cid = conn.execute("SELECT channel_id FROM channels WHERE channel_key='好易购'").fetchone()[0]
+    srcs = conn.execute("SELECT address FROM sources WHERE channel_id=?", (cid,)).fetchall()
+    assert len(srcs) == 2, f"只挂上了 {len(srcs)} 个源(应为2)"
+    g = conn.execute("SELECT COUNT(*) FROM channel_groups WHERE channel_id=?", (cid,)).fetchall()[0][0]
+    assert g == 1, f"分组行数 {g}(应为1,不能同组挂两次)"
+
+
+def test_orphan_new_复用已有频道时文案不得说新频道(db, conn, tmp_path):
+    """一台多源时用户会对每条都填同名 → 只有第一条真建频道,其余是归并。
+    但日志一律写"新频道[X]",害用户以为建了 N 个重名频道(用户实际被误导过)。"""
+    cid = add_channel(conn, '好易购', group='购物', order=1)
+    add_source(conn, '233.7.7.9:5140', channel_id=None, source_type='multicast')
+    radar = _isolated_radar(tmp_path, db)
+    inbox = _write_inbox(tmp_path, [
+        {'address': '233.7.7.9:5140', 'action': 'new', 'channel_key': '好易购', 'group': '购物'}])
+    r = _run_import(db, inbox, radar)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert '新频道' not in r.stdout, f"复用已有频道却说建了新频道:\n{r.stdout}"
+    assert '已有频道' in r.stdout or '归并' in r.stdout, f"没说明是归并到已有频道:\n{r.stdout}"
+    n = conn.execute("SELECT COUNT(*) FROM channels WHERE channel_key='好易购'").fetchone()[0]
+    assert n == 1
+
+
+def test_orphan_export_放回命令可由环境变量注入(db, conn, tmp_path, monkeypatch):
+    """默认是占位符 <user>@<nas>,用户得每次自己拼一遍。真实值放 .env(不进代码库),
+    由 pipeline 传进来。"""
+    add_source(conn, '233.7.7.8:5140', channel_id=None, source_type='multicast', available=1)
+    monkeypatch.setenv('INBOX_SCP_TARGET', 'me@myhost:/srv/radar/data/orphan_inbox/')
+    monkeypatch.setenv('INBOX_SSH_PORT', '2222')
+    monkeypatch.setenv('INBOX_LOCAL_PATH', '/Volumes/x/radar/data/orphan_inbox/')
+    html_txt = _export_with_page(db, tmp_path, monkeypatch)
+    assert 'me@myhost:/srv/radar/data/orphan_inbox/' in html_txt, "scp 目标没注入"
+    assert '-P 2222' in html_txt, "ssh 端口没注入"
+    assert '/Volumes/x/radar/data/orphan_inbox/' in html_txt, "本地拷贝路径没注入"
+    assert '<nas>' not in html_txt, "仍留着占位符"

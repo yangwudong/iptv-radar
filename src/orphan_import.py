@@ -78,8 +78,11 @@ def apply_decision(c, d, snapshot):
         group = d.get('group', '其他')
         if not key:
             return f"⚠️ new缺channel_key,跳过: {addr}", False
-        # 已存在同名频道? 直接assign
+        # 已存在同名频道? 直接assign(不建重复频道)。
+        # 一台多源时用户会对每条都填同名,只有第一条真建 —— 文案必须说清楚是哪种,
+        # 否则看日志像是建了N个重名频道(实际用户被误导过)。
         ch = c.execute("SELECT channel_id FROM channels WHERE channel_key=?", (key,)).fetchone()
+        reused = bool(ch)
         if ch:
             cid = ch['channel_id']
         else:
@@ -94,7 +97,9 @@ def apply_decision(c, d, snapshot):
                          VALUES(?,?,1,?)""", (cid, group, maxord + 1))
         c.execute("UPDATE sources SET channel_id=?, channel_key=? WHERE address=?", (cid, key, addr))
         snapshot[addr] = {'channel_id': cid, 'channel_key': key}
-        return f"new: {addr} → 新频道[{key}]({group})", True
+        if reused:
+            return f"new→归并: {addr} → 已有频道[{key}](id={cid},未建重复频道)", True
+        return f"new: {addr} → 新频道[{key}]({group}) id={cid}", True
 
     return f"⚠️ 未知action '{action}': {addr}", False
 
