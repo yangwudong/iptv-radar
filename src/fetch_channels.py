@@ -4,6 +4,8 @@
 纯Python实现,无额外依赖
 """
 import re, socket, json, os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import db_util
 from urllib.request import Request, urlopen, build_opener, HTTPCookieProcessor, HTTPRedirectHandler
 from urllib.parse import urlencode
 from http.cookiejar import CookieJar
@@ -55,17 +57,8 @@ def des_ecb_encrypt(data, key):
 
 # ==================== 配置(从 .env 读,不硬编码凭证) ====================
 def _load_env():
-    """从项目根 .env 读配置。返回 dict。"""
-    env = {}
-    root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
-    envpath = os.path.join(root, '.env')
-    if os.path.exists(envpath):
-        for line in open(envpath, encoding='utf-8'):
-            line = line.strip()
-            if line and not line.startswith('#') and '=' in line:
-                k, v = line.split('=', 1)
-                env[k.strip()] = v.strip()
-    return env
+    """从项目根 .env 读配置(统一走 db_util.load_env,正确处理行内注释/引号)。"""
+    return db_util.load_env()
 
 _ENV = _load_env()
 EDS_SERVER = _ENV.get('EDS_SERVER', os.environ.get('EDS_SERVER', ''))
