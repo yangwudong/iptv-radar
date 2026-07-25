@@ -66,6 +66,12 @@ python3 src/db_schema.py
 # 一键流水线: 采集 → 清洗 → 优选 → 生成
 ./src/run_pipeline.sh
 
+# 流水线模式(均可加 --publish 发布 m3u):
+./src/run_pipeline.sh                  # 默认: known 增量扫描(只扫已知源,~11分钟,适合每周)
+./src/run_pipeline.sh --full           # 全量扫描(全网段+回看探测,~20分钟,适合每月/初始化)
+./src/run_pipeline.sh --timeshift-only # 只补回看天数数据(不重扫,~5分钟)
+./src/run_pipeline.sh --gen-only       # 只从现有库重新生成 m3u+Dashboard+页面(改模板/样式后用,几秒)
+
 # 或分步执行
 python3 src/scan_multicast.py     # 组播扫描
 python3 src/scan_rtsp.py --trace  # 单播扫描
