@@ -209,3 +209,67 @@
 | 一键全部标 junk | ✅ 做（17 个组播孤儿大概率都是 BesTV 垃圾流，逐个点太累） |
 | 待识别包保留策略 | 无需改 —— 实测本来就是"只留最近一份"(json 覆盖写、截图按地址固定命名原地覆盖，当前零残留) |
 | 单播 IINA 链接 | 实测本来就好的（直播不需要 token），**无需修** |
+
+---
+
+## 八、开工前的交接清单（compact 后接手直接看这里）
+
+### 起点状态（2026-07-25 定稿时）
+- HEAD `3e32696`，已推送，工作区干净，**102 条测试全绿**
+- 跑测试: `.venv-test/bin/python -m pytest`（本机虚拟环境，gitignore）
+- NAS 已部署最新镜像（`latest` = `e15dd18` 之后的构建），库 schema 已迁移完成
+- **NAS 才是权威数据源**（474 个源），本地 `data/iptv.db` 是旧拷贝（473 个）—— 验证时注意
+
+### 按此顺序实施（先数据侧、后界面，每步先写测试）
+
+**步骤 3 —— `junk`/`unknown` 写入归并快照**
+- 文件: `src/orphan_import.py`，`apply_decision()` 里 junk/unknown 分支目前 `return ..., False`
+  （第二个返回值 = 是否改动 snapshot），且不写 `snapshot[addr]`
+- 改成写 `snapshot[addr] = {'channel_id': <占位频道id>, 'channel_key': '__JUNK__'}` 并返回 True
+- ⚠️ 必须同时确认 `link_sources` 加载这类快照条目时**不会**把源当成正常归并
+  （`key2id_all` 含禁用频道，所以会正确指回占位频道 —— 但要写测试锁住）
+- 测试: 库丢失后从快照重建 → 17 个垃圾流不该变回孤儿
+
+**步骤 1 —— 单播也截图**
+- 文件: `src/orphan_export.py`，`need_shot = (stype == 'multicast' and ...)` 去掉类型限制
+- 单播截图用 `play_url`（裸 rtsp 地址即可，**直播不需要 token**，已实测）
+- 代价: 10 个单播源首次导出多花几分钟；已有复用机制，只拍新孤儿
+
+**步骤 2 —— 产出目录挪到 nginx 已挂载处**
+- 现在: `output/orphan_review/`（**nginx 访问不到**）
+- 改成: `output/dashboard/orphan-review.html` + `output/dashboard/orphan-shots/*.jpg`
+- nginx 已挂 `output/dashboard → /usr/share/nginx/html/dashboard`
+- `orphans.json` 仍留在 `output/orphan_review/`（契约产物），**不放进 dashboard**
+  （那 10 个单播地址含 token，少一个可直接下载的 URL 更好）
+
+**步骤 4 —— 生成 `orphan-review.html`**
+- 用 Jinja2（项目已有 `src/template_util.py` + `src/templates/`，风格照 `dashboard.html`）
+- 数据**内联**进 HTML（不 fetch，`file://` 下也能用）
+- 截图用 `<img src="orphan-shots/x.jpg">`（img 不受 CORS 限制）
+- 必备: IINA 按钮（`iina_url` 现成可用）/ 频道名 autocomplete（143 频道，显示所属分组）/
+  新建频道（名字 + 选现有分组或输入新组名）/ junk / unknown / skip /
+  **批量标 junk**（先筛选再勾选应用，避免误伤）/ localStorage 草稿 / 键盘操作
+
+**步骤 5 —— 导出时给出一键复制命令**
+```
+scp -O -P <port> ~/Downloads/resolved_xxx.json <user>@<nas>:/volume1/docker/iptv-radar/data/orphan_inbox/
+cp ~/Downloads/resolved_xxx.json /Volumes/docker/iptv-radar/data/orphan_inbox/   # 已挂 SMB 时
+```
+- 真实主机/端口从 `.env` 读，**不要写死在代码或文档里**（AGENTS.md 规则2）
+
+**步骤 6/7 —— 真实数据验证（不能省）**
+见本文 §六「第 7 步验证清单」8 条。重点:
+`--dry-run` → 小批量 2-3 个 → 查快照是**新格式** → 验幂等 → **验 junk 不被 link_sources 打回**
+
+### 两个已撤销的错误判断（别再犯）
+1. ~~"单播 IINA 链接缺 token 打不开"~~ → 实测裸地址直接能播，**直播不需要 token**
+2. ~~"待识别包只累积不清理"~~ → 实测 json 覆盖写、截图按地址固定命名原地覆盖，**当前零残留**
+
+两次都是"看到代码里没有某个处理就断定行为有问题，而没去看实际产物"。
+**动手前先跑一次看真实结果，别把推断写进计划。**
+
+### 不做的事（已决策，别重开）
+- ❌ Electron App（播放由 IINA 完成、写结果只是下载文件，唯一优势用不上）
+- ❌ nginx WebDAV 收提交 / 常驻小服务（用户判断"一周一次够了"，不值加基础设施）
+- ❌ AI 预识别（接入成本 + 使用频率低）
+- ❌ 依赖 SMB 挂载**打开页面**（用户不喜欢；SMB 仅作为放回结果的可选途径）
