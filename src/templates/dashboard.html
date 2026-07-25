@@ -161,6 +161,7 @@ footer a { color:var(--accent); text-decoration:none; }
 .m3u-label { font-size:13px; font-weight:600; margin-bottom:5px; }
 .m3u-tag { display:inline-block; font-size:11px; font-weight:500; padding:1px 8px; border-radius:10px; background:#e0f2fe; color:#0369a1; margin-left:6px; vertical-align:middle; }
 .m3u-tag.tag-direct { background:#dcfce7; color:#15803d; }
+.m3u-tag.tag-compat { background:#fef3c7; color:#b45309; }
 .m3u-url { display:block; font-family:ui-monospace,Menlo,monospace; font-size:12px; padding:7px 10px; background:var(--bg,#f9fafb); border:1px solid var(--border,#e4e7ec); border-radius:6px; cursor:pointer; word-break:break-all; color:var(--accent,#2563eb); }
 .m3u-url:hover { border-color:var(--accent,#2563eb); }
 .m3u-desc { font-size:12px; color:var(--muted); margin-top:5px; }
@@ -223,6 +224,11 @@ footer a { color:var(--accent); text-decoration:none; }
       <div class="m3u-label">直通版 <span class="m3u-tag tag-direct">仅局域网</span></div>
       <code class="m3u-url" onclick="copyText(this)" title="点击复制">../iptv_direct.m3u</code>
       <div class="m3u-desc">组播 rtp 直收,低延迟省路由器 CPU,仅家庭 LAN 内可用(Tailscale/远程请用标准版)。</div>
+    </div>
+    <div class="m3u-item">
+      <div class="m3u-label">兼容版 <span class="m3u-tag tag-compat">网页/组播播放器</span></div>
+      <code class="m3u-url" onclick="copyText(this)" title="点击复制">../iptv_compat.m3u</code>
+      <div class="m3u-desc">全部走 msd_lite 组播转 HTTP,不含回看;适配只支持组播、不支持 rtsp 单播的播放器(如飞牛影音)。</div>
     </div>
   </div>
   <footer>

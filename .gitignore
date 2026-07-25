@@ -20,6 +20,7 @@ reference/orphan_todo.md
 # ==== 大文件/中间产物 ====
 output/iptv.m3u
 output/iptv_direct.m3u
+output/iptv_compat.m3u
 output/epg_today.json
 output/dashboard/screenshots/*.jpg
 output/dashboard/index.html

@@ -49,7 +49,7 @@ def addr_to_url(source_type, address, msd, timeshift_query=None, multicast_mode=
     return address
 
 
-def generate(db_path, out_path, msd, multicast_mode='msd'):
+def generate(db_path, out_path, msd, multicast_mode='msd', prefer_multicast=False):
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
@@ -63,7 +63,21 @@ def generate(db_path, out_path, msd, multicast_mode='msd'):
         LEFT JOIN sources s ON p.source_id = s.source_id
         WHERE ch.enabled = 1
     """).fetchall()
-    ch_by_id = {r['channel_id']: r for r in rows}
+    ch_by_id = {r['channel_id']: dict(r) for r in rows}
+
+    # prefer_multicast: 主源是单播(rtsp)但有可用组播源的频道,改用最佳组播源。
+    # 用于只支持组播的播放器(如飞牛影音不支持rtsp);无组播源的纯单播频道(如4K)保持单播。
+    if prefer_multicast:
+        for cid, r in ch_by_id.items():
+            if r.get('source_type') == 'rtsp':
+                mc = c.execute("""SELECT address FROM sources
+                    WHERE channel_id=? AND source_type='multicast' AND available=1
+                    ORDER BY quality_score DESC, source_id LIMIT 1""", (cid,)).fetchone()
+                if mc:
+                    r['source_type'] = 'multicast'
+                    r['address'] = mc['address']
+                    r['timeshift_query'] = None
+                    r['playback_days'] = 0   # 组播无回看
 
     # 读频道-分组关联(含组内位置)
     from collections import defaultdict
@@ -116,11 +130,14 @@ if __name__ == '__main__':
     ap.add_argument('--multicast-mode', choices=['msd', 'direct'], default='msd',
                     help="组播源输出方式: msd=经msd_lite转HTTP(默认,远程/Tailscale可用); "
                          "direct=rtp://@直收(LAN内需软路由igmpproxy+防火墙放行组播)")
+    ap.add_argument('--prefer-multicast', action='store_true',
+                    help="兼容模式: 主源是单播但有组播源的频道改用组播(适配只支持组播/不支持rtsp的播放器,如飞牛影音);"
+                         "无组播源的纯单播频道(如4K)保留单播地址")
     args = ap.parse_args()
     print("=" * 50)
     print("  iptv-radar 生成m3u (gen_m3u.py)")
     print("=" * 50)
-    n, ng = generate(args.db, args.out, args.msd, args.multicast_mode)
-    print(f"  输出: {args.out}  (组播模式: {args.multicast_mode})")
+    n, ng = generate(args.db, args.out, args.msd, args.multicast_mode, args.prefer_multicast)
+    print(f"  输出: {args.out}  (组播模式: {args.multicast_mode}, 组播优先: {args.prefer_multicast})")
     print(f"  频道条目: {n}, 分组: {ng}")
     print("完成")

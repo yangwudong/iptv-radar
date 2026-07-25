@@ -49,6 +49,7 @@ if [[ "$*" == *"--gen-only"* ]]; then
     echo ""; echo ">>> 生成 m3u(msd版 + 直通版)"
     python3 gen_m3u.py --msd "$MSD" --multicast-mode msd --out ../output/iptv.m3u
     python3 gen_m3u.py --msd "$MSD" --multicast-mode direct --out ../output/iptv_direct.m3u
+    python3 gen_m3u.py --msd "$MSD" --multicast-mode msd --prefer-multicast --out ../output/iptv_compat.m3u
     echo ""; echo ">>> 抓EPG + 生成Dashboard + 频道页"
     python3 fetch_epg.py || echo "  EPG抓取失败(继续,Dashboard将无节目单)"
     python3 gen_dashboard.py
@@ -58,7 +59,8 @@ if [[ "$*" == *"--gen-only"* ]]; then
         if [ -d "$NGINX_M3U_DIR" ]; then
             cp ../output/iptv.m3u "$NGINX_M3U_DIR/iptv.m3u"
             cp ../output/iptv_direct.m3u "$NGINX_M3U_DIR/iptv_direct.m3u"
-            echo "  已发布 iptv.m3u + iptv_direct.m3u"
+            cp ../output/iptv_compat.m3u "$NGINX_M3U_DIR/iptv_compat.m3u"
+            echo "  已发布 iptv.m3u + iptv_direct.m3u + iptv_compat.m3u"
         else
             echo "  ⚠️ Nginx目录不存在,跳过: $NGINX_M3U_DIR"
         fi
@@ -133,6 +135,7 @@ python3 orphan_export.py --msd "$MSD" || echo "  无孤儿源或导出出错(继
 echo ""; echo ">>> [6/7] 生成m3u(msd版 + 组播直通版)"
 python3 gen_m3u.py --msd "$MSD" --multicast-mode msd --out ../output/iptv.m3u
 python3 gen_m3u.py --msd "$MSD" --multicast-mode direct --out ../output/iptv_direct.m3u
+python3 gen_m3u.py --msd "$MSD" --multicast-mode msd --prefer-multicast --out ../output/iptv_compat.m3u
 
 # 7. 生成 Dashboard + EPG
 echo ""; echo ">>> [7/7] 抓EPG + 生成Dashboard"
@@ -146,7 +149,8 @@ if [[ "$*" == *"--publish"* ]]; then
     if [ -d "$NGINX_M3U_DIR" ]; then
         cp ../output/iptv.m3u "$NGINX_M3U_DIR/iptv.m3u"
         cp ../output/iptv_direct.m3u "$NGINX_M3U_DIR/iptv_direct.m3u"
-        echo "  已发布 iptv.m3u(msd版) + iptv_direct.m3u(组播直通版)"
+        cp ../output/iptv_compat.m3u "$NGINX_M3U_DIR/iptv_compat.m3u"
+        echo "  已发布 iptv.m3u(msd版) + iptv_direct.m3u(组播直通版) + iptv_compat.m3u(兼容版)"
     else
         echo "  ⚠️ Nginx目录不存在,跳过: $NGINX_M3U_DIR"
     fi
