@@ -17,12 +17,14 @@ services:
     network_mode: host          # 需访问组播(msd_lite)和RTSP专网,host网络最简单可靠
     env_file:
       - .env                    # 真实配置(MSD/EPG凭证等),不进镜像
+    # 以宿主上真正拥有挂载目录的 uid/gid 运行(镜像默认 1000,群晖等系统常是别的 uid)。
+    # 在 .env 里设 DOCKER_UID/DOCKER_GID;查法: ls -ln 挂载目录 看属主。
+    user: "${DOCKER_UID:-1000}:${DOCKER_GID:-1000}"
     environment:
       - TZ=Asia/Shanghai
       - NGINX_M3U_DIR=/nginx_m3u   # 容器内发布路径(下方挂载)
     volumes:
       - ./data:/app/data                     # SQLite主库+种子+inbox(持久化)
       - ./output:/app/output                 # m3u + dashboard + orphan_review
-      - ./reference/channels.json:/app/reference/channels.json  # fetch_channels刷的token(持久化;容器退出不丢)
       - /volume1/docker/nginx/m3u:/nginx_m3u # 发布: 挂载现有nginx的m3u目录
     restart: "no"               # 瞬时任务,跑完即退,不自动重启

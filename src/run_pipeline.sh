@@ -63,7 +63,9 @@ FCC_ARG=()
 NGINX_M3U_DIR="${NGINX_M3U_DIR:-/volume1/docker/nginx/m3u}"
 # EPG源: 优先用 fetch_channels 刷新的 channels.json(含新token,单播回看可持续),
 #   没有(未刷成功)则回退历史快照 channels.sample.json(token可能过期,回看不保证)。
-EPG_FRESH="../reference/channels.json"
+# 刷新出的(含新token)channels.json: 现放 data/(可写挂载目录);兼容旧部署的 reference/ 位置
+EPG_FRESH="../data/channels.json"
+[ ! -s "$EPG_FRESH" ] && [ -s "../reference/channels.json" ] && EPG_FRESH="../reference/channels.json"
 EPG_SAMPLE="../reference/channels.sample.json"
 EPG_JSON="$EPG_SAMPLE"
 STAMP=$(date +%Y%m%d_%H%M%S)

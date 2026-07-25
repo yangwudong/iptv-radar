@@ -29,8 +29,11 @@ RADAR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 DEFAULT_DB = os.path.join(RADAR, 'data', 'iptv.db')
 # 默认EPG指向仓库内的 reference/(曾误写成 RADAR/../channels.json,解析到项目目录之外,
 # 不带 --epg 跑必然 FileNotFoundError)。运行时优先用 fetch_channels 刷出的 channels.json。
-_EPG_FRESH = os.path.join(RADAR, 'reference', 'channels.json')
-DEFAULT_EPG = _EPG_FRESH if os.path.exists(_EPG_FRESH) else os.path.join(RADAR, 'reference', 'channels.sample.json')
+# 优先用 fetch_channels 刷出的(含新token)channels.json,否则退到仓库自带的脱敏样例
+_CANDS = [os.path.join(RADAR, 'data', 'channels.json'),
+          os.path.join(RADAR, 'reference', 'channels.json')]      # 后者=旧部署位置
+DEFAULT_EPG = next((c for c in _CANDS if os.path.isfile(c)),
+                   os.path.join(RADAR, 'reference', 'channels.sample.json'))
 NOW = lambda: datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 

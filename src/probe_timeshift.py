@@ -22,7 +22,11 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 RADAR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 DEFAULT_DB = os.path.join(RADAR, 'data', 'iptv.db')
-DEFAULT_EPG = os.path.join(RADAR, 'reference', 'channels.sample.json')
+# 优先用 fetch_channels 刷出的(含新token)channels.json,否则退到仓库自带的脱敏样例
+_CANDS = [os.path.join(RADAR, 'data', 'channels.json'),
+          os.path.join(RADAR, 'reference', 'channels.json')]      # 后者=旧部署位置
+DEFAULT_EPG = next((c for c in _CANDS if os.path.isfile(c)),
+                   os.path.join(RADAR, 'reference', 'channels.sample.json'))
 
 
 def smil_path(url):

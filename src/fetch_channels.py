@@ -314,7 +314,16 @@ def main():
 
     print(f"\n[5/5] 保存结果...")
     root = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
-    out_json = os.path.join(root, 'reference', 'channels.json')
+    # 刷新出的 channels.json 含 token,是**可变运行时状态**,放 data/(挂载的可写目录),
+    # 不能放 reference/ —— 那是镜像里的静态资源目录:
+    #   ① 非root运行时容器写不进镜像层
+    #   ② 用单文件 bind mount 绕过时,原子写(tmp+rename)会因跨挂载点/目录不可写而失败
+    #   ③ 宿主机上该文件不存在时 docker 会把挂载点创建成目录,静默坏掉
+    # 兼容: 旧部署若已有 reference/channels.json 且 data/ 下没有,则继续写旧位置。
+    out_json = os.path.join(root, 'data', 'channels.json')
+    legacy = os.path.join(root, 'reference', 'channels.json')
+    if not os.path.exists(out_json) and os.path.isfile(legacy):
+        out_json = legacy
 
     if channels:
         mc = [c for c in channels if 'igmp://' in c.get('url','') or '233.50.' in c.get('url','')]
@@ -331,9 +340,20 @@ def main():
             print(f"   解决: 在宿主机执行 touch {out_json} 后重新部署。")
             sys.exit(2)
         tmp_json = out_json + '.tmp'
-        with open(tmp_json, 'w', encoding='utf-8') as f:
-            json.dump(channels, f, ensure_ascii=False, indent=1)
-        os.replace(tmp_json, out_json)
+        try:
+            with open(tmp_json, 'w', encoding='utf-8') as f:
+                json.dump(channels, f, ensure_ascii=False, indent=1)
+            os.replace(tmp_json, out_json)
+        except OSError as e:
+            # 兜底: 某些部署下目标是单文件 bind mount(目录不可写/跨挂载点),
+            # tmp+rename 会失败。退化成原地写 —— 失去原子性但不至于整条流水线挂掉。
+            print(f"  ⚠ 原子写失败({e.strerror}),退化为原地写: {out_json}")
+            try:
+                os.unlink(tmp_json)
+            except OSError:
+                pass
+            with open(out_json, 'w', encoding='utf-8') as f:
+                json.dump(channels, f, ensure_ascii=False, indent=1)
         print(f"  已保存(含新token): {out_json}")
     else:
         print(f"\n⚠ 未解析到频道。原始响应前500字符:\n{raw[:500]}")

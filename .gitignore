@@ -4,6 +4,8 @@
 *.pcapng
 reference/pcap/
 reference/channels.json
+# 刷新出的含token的EPG(新位置: 可变运行时状态放 data/)
+data/channels.json
 src/epg_raw_response.txt
 data/*.db
 data/*.db-journal
