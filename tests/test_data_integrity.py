@@ -715,3 +715,70 @@ def test_orphan_junk会连带同一官方频道的配对地址(db, conn, tmp_pat
     assert got[mc] == '__JUNK__', f"被标的组播没归 junk: {got[mc]!r}"
     assert got[rt] == '__JUNK__', (
         f"配对单播未连带(得 {got[rt]!r}) —— 若此行为变了,识别页面的配对提示要同步改")
+
+
+# ============================================================
+# 单播孤儿也要截图(官方名只是线索,画面才是证据)
+#   坑: 截图前缀原来是 addr.split(':')[0].replace('.','_'),
+#   对 'rtsp://...' 得到的是字面 'rtsp' → 10个单播源全部互相覆盖,
+#   最后只剩一套图,而且每个源都指向它 —— 静默错到"看图识别"直接失效。
+# ============================================================
+
+def _fake_capture_factory(calls):
+    def fake_capture(url, out_dir, prefix, count=3, **kw):
+        calls.append((prefix, url))
+        os.makedirs(out_dir, exist_ok=True)
+        paths = []
+        for i in range(1, count + 1):
+            fp = os.path.join(out_dir, f'{prefix}_{i}.jpg')
+            open(fp, 'wb').write(b'\xff\xd8\xff\xd9')
+            paths.append(fp)
+        return paths
+    return fake_capture
+
+
+def _run_export(db, tmp_path, monkeypatch, calls, extra=()):
+    sys.path.insert(0, SRC)
+    import orphan_export
+    shots = tmp_path / 'shots'
+    monkeypatch.setattr(orphan_export, 'REVIEW_DIR', str(tmp_path))
+    monkeypatch.setattr(orphan_export, 'SHOTS_DIR', str(shots))
+    monkeypatch.setattr(orphan_export.probe, 'capture_screenshots', _fake_capture_factory(calls))
+    monkeypatch.setattr(sys, 'argv', ['x', '--db', db, '--msd', 'H:4088', *extra])
+    orphan_export.main()
+    return shots
+
+
+RTSP_A = 'rtsp://115.233.40.137/PLTV/88888913/224/3221229213/53485722.smil'
+RTSP_B = 'rtsp://115.233.40.137/PLTV/88888913/224/3221229475/148775850.smil'
+
+
+def test_orphan_export_单播孤儿也要截图(db, conn, tmp_path, monkeypatch):
+    """单播源画面同样要能看(直播裸地址不需要token,已实测)。"""
+    add_source(conn, RTSP_A, channel_id=None, source_type='rtsp', available=1)
+    calls = []
+    _run_export(db, tmp_path, monkeypatch, calls)
+    assert len(calls) == 1, f"单播孤儿没被截图(calls={calls})"
+    assert calls[0][1] == RTSP_A, f"截图用的URL不对: {calls[0][1]!r}"
+    pkg = json.load(open(tmp_path / 'orphans.json', encoding='utf-8'))
+    o = pkg['orphans'][0]
+    assert len(o['shots']) == 3, f"待识别包里没带上截图: {o['shots']}"
+
+
+def test_orphan_export_不同单播源截图不得互相覆盖(db, conn, tmp_path, monkeypatch):
+    """回归: 前缀取 addr.split(':')[0] 对 rtsp 恒为 'rtsp',10个源共用一套图。"""
+    add_source(conn, RTSP_A, channel_id=None, source_type='rtsp', available=1)
+    add_source(conn, RTSP_B, channel_id=None, source_type='rtsp', available=1)
+    calls = []
+    _run_export(db, tmp_path, monkeypatch, calls)
+    prefixes = [p for p, _ in calls]
+    assert len(set(prefixes)) == 2, f"两个单播源用了相同截图前缀 {prefixes} → 图会互相覆盖"
+
+    pkg = json.load(open(tmp_path / 'orphans.json', encoding='utf-8'))
+    by_addr = {o['address']: o['shots'] for o in pkg['orphans']}
+    assert by_addr[RTSP_A] and by_addr[RTSP_B]
+    assert set(by_addr[RTSP_A]).isdisjoint(by_addr[RTSP_B]), (
+        f"两个源指向同一批截图文件: {by_addr[RTSP_A]} vs {by_addr[RTSP_B]}")
+
+    rows = dict(conn.execute("SELECT address, screenshots FROM sources").fetchall())
+    assert rows[RTSP_A] != rows[RTSP_B], "库里两个源的 screenshots 相同"

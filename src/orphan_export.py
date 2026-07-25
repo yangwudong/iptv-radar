@@ -19,6 +19,8 @@ import json
 import argparse
 import datetime
 import urllib.parse
+import re
+import hashlib
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import probe
@@ -34,6 +36,20 @@ def play_url(source_type, address, msd):
     if source_type == 'multicast':
         return f"http://{msd}/rtp/{address}"
     return address  # rtsp
+
+
+def shot_prefix(source_type, address):
+    """截图文件名前缀: 必须每个地址唯一,否则多个源共用一套图(看图识别直接失效)。
+
+    组播沿用 IP 形式(233_50_201_204),不改 —— 变了会让已有截图全部失效重拍。
+    单播不能用 addr.split(':')[0]: 'rtsp://...' 恒得字面 'rtsp',所有单播源互相覆盖。
+    单播用 尾部路径(可读,便于对照源) + 地址md5前6位(保证唯一,不依赖路径规律)。
+    """
+    if source_type == 'multicast':
+        return address.split(':')[0].replace('.', '_')
+    tail = re.sub(r'[^0-9A-Za-z]+', '_', address.rsplit('/', 2)[-1]).strip('_')[:24]
+    return f"u{tail}_{hashlib.md5(address.encode()).hexdigest()[:6]}" if tail \
+        else 'u' + hashlib.md5(address.encode()).hexdigest()[:10]
 
 
 def main():
@@ -101,12 +117,12 @@ def main():
         if r['screenshots']:
             shots = [os.path.basename(x) for x in r['screenshots'].split(';') if x]
         have = bool(shots) and all(os.path.exists(os.path.join(SHOTS_DIR, x)) for x in shots)
-        need_shot = (stype == 'multicast' and not args.no_shots
-                     and (args.reshoot or not have))
+        # 单播也截图: 官方名只是线索,画面才是证据。直播裸地址不需要token(已实测)。
+        need_shot = not args.no_shots and (args.reshoot or not have)
         if have and not args.reshoot:
             reused += 1
         if need_shot:
-            prefix = addr.split(':')[0].replace('.', '_')
+            prefix = shot_prefix(stype, addr)
             paths = probe.capture_screenshots(purl, SHOTS_DIR, prefix, count=3)
             if paths:
                 shots = [os.path.basename(x) for x in paths]
