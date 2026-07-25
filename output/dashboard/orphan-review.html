@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>孤儿源识别 · iptv-radar</title>
+<style>
+:root {
+  --bg:#f5f5f7; --card:#ffffff; --ink:#1d1d1f; --muted:#86868b;
+  --border:#e4e7ec; --accent:#2563eb; --ok:#17b26a; --warn:#f79009; --bad:#f04438;
+}
+html[data-theme="dark"] {
+  --bg:#000000; --card:#1c1c1e; --ink:#f5f5f7; --muted:#98989d;
+  --border:#2c2c2e; --accent:#4d8bf5;
+}
+* { box-sizing:border-box; }
+body { margin:0; font:14px/1.5 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--bg); color:var(--ink); transition:background .3s,color .3s; }
+.wrap { max-width:1200px; margin:0 auto; padding:20px 16px 80px; }
+h1 { font-size:22px; margin:0 0 4px; }
+.sub { color:var(--muted); font-size:13px; margin-bottom:16px; }
+.theme-btn { position:fixed; top:14px; right:14px; z-index:50; padding:6px 12px; border-radius:8px;
+  border:1px solid var(--border); background:var(--card); color:var(--ink); cursor:pointer; font-size:13px; }
+
+.bar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:12px; background:var(--card);
+  border:1px solid var(--border); border-radius:10px; margin-bottom:14px; }
+.bar input[type=text] { flex:1; min-width:180px; padding:7px 10px; border:1px solid var(--border);
+  border-radius:8px; background:var(--bg); color:var(--ink); }
+.btn { padding:7px 12px; border-radius:8px; border:1px solid var(--border); background:var(--card);
+  color:var(--ink); cursor:pointer; font-size:13px; }
+.btn:hover { border-color:var(--accent); color:var(--accent); }
+.btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+.btn.primary:hover { opacity:.9; color:#fff; }
+.chip { padding:4px 10px; border-radius:999px; border:1px solid var(--border); background:var(--card);
+  cursor:pointer; font-size:12px; color:var(--muted); }
+.chip.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+
+.card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px;
+  margin-bottom:12px; }
+.card.done { opacity:.55; }
+.card-head { display:flex; flex-wrap:wrap; gap:8px; align-items:baseline; margin-bottom:10px; }
+.idx { color:var(--muted); font-size:12px; min-width:34px; }
+.addr { font-family:ui-monospace,Menlo,monospace; font-size:12.5px; word-break:break-all; flex:1; min-width:200px; }
+.oname { font-weight:600; color:var(--accent); }
+.tag { font-size:11px; padding:2px 7px; border-radius:5px; background:var(--bg); border:1px solid var(--border);
+  color:var(--muted); white-space:nowrap; }
+.pairnote { font-size:12px; color:var(--warn); margin:-4px 0 8px; }
+.pairnote code { font-family:ui-monospace,Menlo,monospace; font-size:11px; }
+
+.shots { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+.shots img { width:190px; height:107px; object-fit:cover; border-radius:8px; border:1px solid var(--border);
+  cursor:zoom-in; background:var(--bg); }
+.noshot { font-size:12px; color:var(--muted); padding:8px 0; }
+
+.acts { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.acts input[type=text] { padding:6px 9px; border:1px solid var(--border); border-radius:7px;
+  background:var(--bg); color:var(--ink); min-width:190px; }
+.state { font-size:12px; padding:3px 9px; border-radius:6px; margin-left:auto; white-space:nowrap; }
+.state.assign,.state.new { background:rgba(23,178,106,.14); color:var(--ok); }
+.state.junk { background:rgba(240,68,56,.14); color:var(--bad); }
+.state.unknown { background:rgba(247,144,9,.16); color:var(--warn); }
+.state.skip { background:var(--bg); color:var(--muted); }
+.newbox { display:none; gap:8px; margin-top:8px; flex-wrap:wrap; }
+.newbox.show { display:flex; }
+
+.foot { position:fixed; left:0; right:0; bottom:0; padding:10px 16px; background:var(--card);
+  border-top:1px solid var(--border); display:flex; gap:10px; align-items:center; flex-wrap:wrap; z-index:40; }
+.foot .n { font-size:13px; color:var(--muted); }
+dialog { border:1px solid var(--border); border-radius:12px; background:var(--card); color:var(--ink);
+  max-width:680px; width:92%; padding:18px; }
+dialog::backdrop { background:rgba(0,0,0,.5); }
+dialog h3 { margin:0 0 10px; font-size:16px; }
+dialog pre { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:10px;
+  font-size:12px; overflow-x:auto; white-space:pre-wrap; word-break:break-all; }
+.lb { position:fixed; inset:0; background:rgba(0,0,0,.86); display:none; align-items:center;
+  justify-content:center; z-index:99; cursor:zoom-out; }
+.lb.show { display:flex; }
+.lb img { max-width:96vw; max-height:96vh; }
+datalist { color:var(--ink); }
+</style></head>
+<body>
+<button class="theme-btn" onclick="toggleTheme()"><span id="themeIcon">🌙</span> <span id="themeTxt">深色</span></button>
+<div class="wrap">
+  <h1>孤儿源识别</h1>
+  <div class="sub">生成于 2026-07-25 22:42:31 · 待识别 26 个源(组播 17 / 单播 9)
+    · 其中 13 个官方台账已给出名字</div>
+
+  <div class="bar">
+    <label style="font-size:13px;color:var(--muted);white-space:nowrap">组播前缀</label>
+    <input type="text" id="mcPrefix" placeholder="http://你的msd_lite地址:4088/rtp/" spellcheck="false">
+    <button class="btn" onclick="savePrefix()">保存</button>
+    <span style="font-size:12px;color:var(--muted)">组播源的 IINA 播放用。仅存本地浏览器，与检测面板共用同一设置。</span>
+  </div>
+
+  <div class="bar">
+    <input type="text" id="q" placeholder="🔍 过滤地址 / 官方名..." oninput="render()">
+    <span class="chip" id="f-all" onclick="setFilter('all')">全部</span>
+    <span class="chip" id="f-todo" onclick="setFilter('todo')">未决定</span>
+    <span class="chip" id="f-named" onclick="setFilter('named')">有官方名</span>
+    <span class="chip" id="f-unnamed" onclick="setFilter('unnamed')">无官方名</span>
+    <span class="chip" id="f-mc" onclick="setFilter('mc')">组播</span>
+    <span class="chip" id="f-uc" onclick="setFilter('uc')">单播</span>
+    <button class="btn" onclick="bulkJunk()" title="把当前筛选出的、尚未决定的源全部标 junk">
+      批量标 junk(当前筛选)</button>
+  </div>
+
+  <div id="list"></div>
+</div>
+
+<div class="foot">
+  <span class="n" id="cnt"></span>
+  <button class="btn" onclick="clearDraft()">清空草稿</button>
+  <button class="btn primary" onclick="doExport()">导出 resolved.json</button>
+</div>
+
+<dialog id="dlg">
+  <h3>已下载 <span id="dlname"></span></h3>
+  <p style="font-size:13px;color:var(--muted);margin:0 0 10px">
+    把它放进 NAS 的 <code>data/orphan_inbox/</code>,下次 pipeline 运行时自动落库。任选一种:</p>
+  <div style="font-size:12px;color:var(--muted);margin-bottom:4px">① 已挂载 SMB(<code>/Volumes/docker</code>)时最简单:</div>
+  <pre id="cmd-cp"></pre>
+  <div style="font-size:12px;color:var(--muted);margin:8px 0 4px">② 或用 scp:</div>
+  <pre id="cmd-scp"></pre>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+    <button class="btn" onclick="copyCmd('cmd-cp')">复制①</button>
+    <button class="btn" onclick="copyCmd('cmd-scp')">复制②</button>
+    <button class="btn primary" onclick="document.getElementById('dlg').close()">好</button>
+  </div>
+</dialog>
+
+<div class="lb" id="lb" onclick="this.classList.remove('show')"><img id="lbimg" alt=""></div>
+
+<datalist id="dl-ch"><option value="CCTV1综合">央视</option><option value="CCTV2财经">央视</option><option value="CCTV3综艺">央视</option><option value="CCTV4中文国际">央视</option><option value="CCTV5体育">央视</option><option value="CCTV5+体育赛事">央视</option><option value="CCTV6电影">央视</option><option value="CCTV7国防军事">央视</option><option value="CCTV8电视剧">央视</option><option value="CCTV9纪录">央视</option><option value="CCTV10科教">央视</option><option value="CCTV11戏曲">央视</option><option value="CCTV12社会与法">央视</option><option value="CCTV13新闻">央视</option><option value="CCTV14少儿">央视</option><option value="CCTV15音乐">央视</option><option value="CCTV16奥林匹克">央视</option><option value="CCTV17农业农村">央视</option><option value="BesTV少儿4K">4K超高清</option><option value="BesTV纪实4K">4K超高清</option><option value="BesTV视界4K">4K超高清</option><option value="东方卫视4K">4K超高清</option><option value="北京卫视4K">4K超高清</option><option value="四川卫视4K">4K超高清</option><option value="多彩文体4K">4K超高清</option><option value="山东卫视4K">4K超高清</option><option value="广东卫视4K">4K超高清</option><option value="江苏卫视4K">4K超高清</option><option value="浙江卫视4K">4K超高清</option><option value="深圳卫视4K">4K超高清</option><option value="湖南卫视4K">4K超高清</option><option value="CCTV16奥林匹克4K">4K超高清</option><option value="北京卫视">卫视</option><option value="东方卫视">卫视</option><option value="浙江卫视">卫视</option><option value="湖南卫视">卫视</option><option value="江苏卫视">卫视</option><option value="深圳卫视">卫视</option><option value="山东卫视">卫视</option><option value="广东卫视">卫视</option><option value="天津卫视">卫视</option><option value="安徽卫视">卫视</option><option value="湖北卫视">卫视</option><option value="重庆卫视">卫视</option><option value="河南卫视">卫视</option><option value="四川卫视">卫视</option><option value="辽宁卫视">卫视</option><option value="江西卫视">卫视</option><option value="黑龙江卫视">卫视</option><option value="贵州卫视">卫视</option><option value="河北卫视">卫视</option><option value="东南卫视">卫视</option><option value="广西卫视">卫视</option><option value="海南卫视">卫视</option><option value="新疆卫视">卫视</option><option value="云南卫视">卫视</option><option value="吉林卫视">卫视</option><option value="甘肃卫视">卫视</option><option value="山西卫视">卫视</option><option value="陕西卫视">卫视</option><option value="内蒙古卫视">卫视</option><option value="宁夏卫视">卫视</option><option value="西藏卫视">卫视</option><option value="青海卫视">卫视</option><option value="兵团卫视">卫视</option><option value="三沙卫视">卫视</option><option value="延边卫视">卫视</option><option value="杭州综合">浙江</option><option value="杭州西湖明珠">浙江</option><option value="杭州生活">浙江</option><option value="杭州影视">浙江</option><option value="杭州青少体育">浙江</option><option value="杭州导视">浙江</option><option value="浙江钱江都市">浙江</option><option value="浙江经视">浙江</option><option value="浙江教科影视">浙江</option><option value="浙江新闻">浙江</option><option value="浙江民生休闲">浙江</option><option value="浙江少儿">浙江</option><option value="之江纪录">浙江</option><option value="余杭新闻频道">浙江</option><option value="中国蓝直播">浙江</option><option value="嘉兴 新闻综合">浙江</option><option value="宁波新闻综合">浙江</option><option value="宁波经济生活">浙江</option><option value="宁波都市文体">浙江</option><option value="宁波影视剧">浙江</option><option value="绍兴新闻综合">浙江</option><option value="湖州 新闻综合">浙江</option><option value="桐乡 新闻综合">浙江</option><option value="台州 新闻综合">浙江</option><option value="金华 新闻综合">浙江</option><option value="丽水 新闻综合">浙江</option><option value="衢州">浙江</option><option value="温州 新闻综合">浙江</option><option value="北京纪实科教">北京</option><option value="北京卡酷少儿">北京</option><option value="第一财经_上海">上海</option><option value="东方财经_上海">上海</option><option value="都市剧场_上海">上海</option><option value="动漫秀场_上海">上海</option><option value="乐游_上海">上海</option><option value="金色学堂_上海">上海</option><option value="生活时尚_上海">上海</option><option value="法治天地_上海">上海</option><option value="游戏风云_上海">上海</option><option value="魅力足球_上海">上海</option><option value="七彩戏剧_上海">上海</option><option value="纪实人文_上海">上海</option><option value="哈哈炫动_上海">上海</option><option value="快乐垂钓">湖南</option><option value="湖南茶频道">湖南</option><option value="金鹰卡通_湖南">湖南</option><option value="凤凰中文">港澳台</option><option value="凤凰资讯">港澳台</option><option value="中国教育1台">央视教育</option><option value="中国教育4台">央视教育</option><option value="CGTN">央视国际</option><option value="CGTN俄罗斯语">央视国际</option><option value="CGTN法语">央视国际</option><option value="CGTN西班牙语">央视国际</option><option value="CGTN阿拉伯语">央视国际</option><option value="BesTV 新威体育">BesTV</option><option value="睛彩竞技">睛彩</option><option value="睛彩篮球">睛彩</option><option value="睛彩青少">睛彩</option><option value="珠峰直播2">其他</option><option value="华数娱乐">其他</option><option value="历史">其他</option><option value="大熊猫的一天">其他</option><option value="央广购物">其他</option><option value="导视频道">其他</option><option value="熊猫宝宝幼儿园">其他</option><option value="爱看熊猫">其他</option><option value="浙江之声广播">广播</option><option value="浙江交通之声">广播</option><option value="浙江城市之声">广播</option><option value="浙江新闻广播">广播</option><option value="浙江旅游之声_女主播">广播</option><option value="浙江民生资讯广播">广播</option><option value="浙江经济广播">广播</option><option value="浙江音乐调频">广播</option><option value="浙江政务">其他</option></datalist>
+<datalist id="dl-grp"><option value="4K超高清"></option><option value="BesTV"></option><option value="上海"></option><option value="其他"></option><option value="北京"></option><option value="卫视"></option><option value="央视"></option><option value="央视国际"></option><option value="央视教育"></option><option value="广播"></option><option value="浙江"></option><option value="港澳台"></option><option value="湖南"></option><option value="睛彩"></option></datalist>
+
+<script id="data" type="application/json">__ORPHAN_DATA__{"orphans": [{"address": "233.50.200.233:5140", "source_type": "multicast", "res_label": "1080P", "video_codec": "h264", "fps": 25.0, "hdr": "SDR", "audio_codec": "mp2", "shots": ["orphan-shots/233_50_200_233_1.jpg", "orphan-shots/233_50_200_233_2.jpg", "orphan-shots/233_50_200_233_3.jpg"], "official_name": "", "paired_with": []}, {"address": "233.50.200.234:5140", "source_type": "multicast", "res_label": "1080P", "video_codec": "h264", "fps": 25.0, "hdr": "SDR", "audio_codec": "mp2", "shots": ["orphan-shots/233_50_200_234_1.jpg", "orphan-shots/233_50_200_234_2.jpg", "orphan-shots/233_50_200_234_3.jpg"], "official_name": "", "paired_with": []}, {"address": "233.50.200.235:5140", "source_type": "multicast", "res_label": "1080P", "video_codec": "h264", "fps": 25.0, "hdr": "SDR", "audio_codec": "mp2", "shots": ["orphan-shots/233_50_200_235_1.jpg", "orphan-shots/233_50_200_235_2.jpg", "orphan-shots/233_50_200_235_3.jpg"], "official_name": "", "paired_with": []}, {"address": "233.50.200.236:5140", "source_type": "multicast", "res_label": "1080P", "video_codec": "h264", "fps": 25.0, "hdr": "SDR", "audio_codec": "mp2", "shots": ["orphan-shots/233_50_200_236_1.jpg", "orphan-shots/233_50_200_236_2.jpg", "orphan-shots/233_50_200_236_3.jpg"], "official_name": "", "paired_with": []}, {"address": "233.50.200.237:5140", "source_type": "multicast", "res_label": "1080P", "video_codec": "h264", "fps": 25.0, "hdr": "SDR", "audio_codec": "mp2", "shots": ["orphan-shots/233_50_200_237_1.jpg", "orphan-shots/233_50_200_237_2.jpg", "orphan-shots/233_50_200_237_3.jpg"], "official_name": "", "paired_with": []}, {"address": "233.50.200.244:5140", "source_type": "multicast", "res_label": "1080P", "video_codec": "h264", "fps": 25.0, "hdr": "SDR", "audio_codec": "mp2", "shots": ["orphan-shots/233_50_200_244_1.jpg", "orphan-shots/233_50_200_244_2.jpg", "orphan-shots/233_50_200_244_3.jpg"], "official_name": "", "paired_with": []}, {"address": "233.50.200.246:5140", "source_type": "multicast", "res_label": "1080P", "video_codec": "h264", "fps": 25.0, "hdr": "SDR", "audio_codec": "mp2", "shots": ["orphan-shots/233_50_200_246_1.jpg", "orphan-shots/233_50_200_246_2.jpg", "orphan-shots/233_50_200_246_3.jpg"], "official_name": "", "paired_with": []}, {"address": "233.50.200.247:5140", "source_type": "multicast", "res_label": "1080P", "video_codec": "h264", "fps": 25.0, "hdr": "SDR", "audio_codec": "mp2", "shots": ["orphan-shots/233_50_200_247_1.jpg", "orphan-shots/233_50_200_247_2.jpg", "orphan-shots/233_50_200_247_3.jpg"], "official_name": "", "paired_with": []}, {"address": "233.50.200.31:5140", "source_type": "multicast", "res_label": "1080P", "video_codec": "h264", "fps": 25.0, "hdr": "SDR", "audio_codec": "mp2", "shots": ["orphan-shots/233_50_200_31_1.jpg", "orphan-shots/233_50_200_31_2.jpg", "orphan-shots/233_50_200_31_3.jpg"], "official_name": "", "paired_with": []}, {"address": "233.50.200.32:5140", "source_type": "multicast", "res_label": "1080P", "video_codec": "h264", "fps": 25.0, "hdr": "SDR", "audio_codec": "mp2", "shots": ["orphan-shots/233_50_200_32_1.jpg", "orphan-shots/233_50_200_32_2.jpg", "orphan-shots/233_50_200_32_3.jpg"], "official_name": "", "paired_with": []}, {"address": "233.50.200.34:5140", "source_type": "multicast", "res_label": "SD", "video_codec": "h264", "fps": 50.0, "hdr": "SDR", "audio_codec": "mp2", "shots": ["orphan-shots/233_50_200_34_1.jpg", "orphan-shots/233_50_200_34_2.jpg", "orphan-shots/233_50_200_34_3.jpg"], "official_name": "", "paired_with": []}, {"address": "233.50.200.53:5140", "source_type": "multicast", "res_label": "SD", "video_codec": "h264", "fps": 25.0, "hdr": "SDR", "audio_codec": "mp2", "shots": ["orphan-shots/233_50_200_53_1.jpg", "orphan-shots/233_50_200_53_2.jpg", "orphan-shots/233_50_200_53_3.jpg"], "official_name": "", "paired_with": []}, {"address": "233.50.201.204:5140", "source_type": "multicast", "res_label": "1080P", "video_codec": "h264", "fps": 25.0, "hdr": "SDR", "audio_codec": "mp2", "shots": ["orphan-shots/233_50_201_204_1.jpg", "orphan-shots/233_50_201_204_2.jpg", "orphan-shots/233_50_201_204_3.jpg"], "official_name": "直播室4", "paired_with": ["rtsp://115.233.40.137/PLTV/88888913/224/3221229007/10000100000000060000000004308260_0.smil"]}, {"address": "233.50.201.205:5140", "source_type": "multicast", "res_label": "1080P", "video_codec": "h264", "fps": 25.0, "hdr": "SDR", "audio_codec": "mp2", "shots": ["orphan-shots/233_50_201_205_1.jpg", "orphan-shots/233_50_201_205_2.jpg", "orphan-shots/233_50_201_205_3.jpg"], "official_name": "直播室5", "paired_with": ["rtsp://115.233.40.137/PLTV/88888913/224/3221229011/10000100000000060000000004308262_0.smil"]}, {"address": "233.50.201.206:5140", "source_type": "multicast", "res_label": "1080P", "video_codec": "h264", "fps": 25.0, "hdr": "SDR", "audio_codec": "mp2", "shots": ["orphan-shots/233_50_201_206_1.jpg", "orphan-shots/233_50_201_206_2.jpg", "orphan-shots/233_50_201_206_3.jpg"], "official_name": "直播室6", "paired_with": ["rtsp://115.233.40.137/PLTV/88888913/224/3221229015/10000100000000060000000004308263_0.smil"]}, {"address": "233.50.201.248:5140", "source_type": "multicast", "res_label": "1080P", "video_codec": "h264", "fps": 25.0, "hdr": "SDR", "audio_codec": "mp2", "shots": ["orphan-shots/233_50_201_248_1.jpg", "orphan-shots/233_50_201_248_2.jpg", "orphan-shots/233_50_201_248_3.jpg"], "official_name": "好易购1高清", "paired_with": ["rtsp://115.233.40.137/PLTV/88888913/224/3221229213/53485722.smil"]}, {"address": "233.50.201.91:5140", "source_type": "multicast", "res_label": "1080P", "video_codec": "h264", "fps": 50.0, "hdr": "SDR", "audio_codec": "mp2", "shots": ["orphan-shots/233_50_201_91_1.jpg", "orphan-shots/233_50_201_91_2.jpg", "orphan-shots/233_50_201_91_3.jpg"], "official_name": "", "paired_with": []}, {"address": "rtsp://115.233.40.137/PLTV/88888913/224/3221229007/10000100000000060000000004308260_0.smil", "source_type": "rtsp", "res_label": "1080P", "video_codec": "h264", "fps": 25.0, "hdr": "SDR", "audio_codec": "mp2", "shots": [], "official_name": "直播室4", "paired_with": ["233.50.201.204:5140"]}, {"address": "rtsp://115.233.40.137/PLTV/88888913/224/3221229011/10000100000000060000000004308262_0.smil", "source_type": "rtsp", "res_label": "1080P", "video_codec": "h264", "fps": 25.0, "hdr": "SDR", "audio_codec": "mp2", "shots": [], "official_name": "直播室5", "paired_with": ["233.50.201.205:5140"]}, {"address": "rtsp://115.233.40.137/PLTV/88888913/224/3221229015/10000100000000060000000004308263_0.smil", "source_type": "rtsp", "res_label": "1080P", "video_codec": "h264", "fps": 25.0, "hdr": "SDR", "audio_codec": "mp2", "shots": [], "official_name": "直播室6", "paired_with": ["233.50.201.206:5140"]}, {"address": "rtsp://115.233.40.137/PLTV/88888913/224/3221229213/53485722.smil", "source_type": "rtsp", "res_label": "1080P", "video_codec": "h264", "fps": 25.0, "hdr": "SDR", "audio_codec": "mp2", "shots": [], "official_name": "好易购1高清", "paired_with": ["233.50.201.248:5140"]}, {"address": "rtsp://115.233.40.137/PLTV/88888913/224/3221229466/148085530.smil", "source_type": "rtsp", "res_label": "1080P", "video_codec": "h264", "fps": 25.0, "hdr": "SDR", "audio_codec": "mp2", "shots": [], "official_name": "直播室1", "paired_with": []}, {"address": "rtsp://115.233.40.137/PLTV/88888913/224/3221229469/148085439.smil", "source_type": "rtsp", "res_label": "1080P", "video_codec": "h264", "fps": 25.0, "hdr": "SDR", "audio_codec": "mp2", "shots": [], "official_name": "直播室3", "paired_with": []}, {"address": "rtsp://115.233.40.137/PLTV/88888913/224/3221229472/148085491.smil", "source_type": "rtsp", "res_label": "1080P", "video_codec": "h264", "fps": 25.0, "hdr": "SDR", "audio_codec": "mp2", "shots": [], "official_name": "直播室7", "paired_with": []}, {"address": "rtsp://115.233.40.137/PLTV/88888913/224/3221229475/148775850.smil", "source_type": "rtsp", "res_label": "1080P", "video_codec": "h264", "fps": 25.0, "hdr": "SDR", "audio_codec": "mp2", "shots": [], "official_name": "好享购", "paired_with": []}, {"address": "rtsp://115.233.40.137/PLTV/88888913/224/3221229488/148085486.smil", "source_type": "rtsp", "res_label": "1080P", "video_codec": "h264", "fps": 25.0, "hdr": "SDR", "audio_codec": "mp2", "shots": [], "official_name": "直播室2", "paired_with": []}], "channels": [{"channel_key": "CCTV1综合", "name": "CCTV1综合", "group": "央视"}, {"channel_key": "CCTV2财经", "name": "CCTV2财经", "group": "央视"}, {"channel_key": "CCTV3综艺", "name": "CCTV3综艺", "group": "央视"}, {"channel_key": "CCTV4中文国际", "name": "CCTV4中文国际", "group": "央视"}, {"channel_key": "CCTV5体育", "name": "CCTV5体育", "group": "央视"}, {"channel_key": "CCTV5+体育赛事", "name": "CCTV5+体育赛事", "group": "央视"}, {"channel_key": "CCTV6电影", "name": "CCTV6电影", "group": "央视"}, {"channel_key": "CCTV7国防军事", "name": "CCTV7国防军事", "group": "央视"}, {"channel_key": "CCTV8电视剧", "name": "CCTV8电视剧", "group": "央视"}, {"channel_key": "CCTV9纪录", "name": "CCTV9纪录", "group": "央视"}, {"channel_key": "CCTV10科教", "name": "CCTV10科教", "group": "央视"}, {"channel_key": "CCTV11戏曲", "name": "CCTV11戏曲", "group": "央视"}, {"channel_key": "CCTV12社会与法", "name": "CCTV12社会与法", "group": "央视"}, {"channel_key": "CCTV13新闻", "name": "CCTV13新闻", "group": "央视"}, {"channel_key": "CCTV14少儿", "name": "CCTV14少儿", "group": "央视"}, {"channel_key": "CCTV15音乐", "name": "CCTV15音乐", "group": "央视"}, {"channel_key": "CCTV16奥林匹克", "name": "CCTV16奥林匹克", "group": "央视"}, {"channel_key": "CCTV17农业农村", "name": "CCTV17农业农村", "group": "央视"}, {"channel_key": "BesTV少儿4K", "name": "BesTV少儿4K", "group": "4K超高清"}, {"channel_key": "BesTV纪实4K", "name": "BesTV纪实4K", "group": "4K超高清"}, {"channel_key": "BesTV视界4K", "name": "BesTV视界4K", "group": "4K超高清"}, {"channel_key": "东方卫视4K", "name": "东方卫视4K", "group": "4K超高清"}, {"channel_key": "北京卫视4K", "name": "北京卫视4K", "group": "4K超高清"}, {"channel_key": "四川卫视4K", "name": "四川卫视4K", "group": "4K超高清"}, {"channel_key": "多彩文体4K", "name": "多彩文体4K", "group": "4K超高清"}, {"channel_key": "山东卫视4K", "name": "山东卫视4K", "group": "4K超高清"}, {"channel_key": "广东卫视4K", "name": "广东卫视4K", "group": "4K超高清"}, {"channel_key": "江苏卫视4K", "name": "江苏卫视4K", "group": "4K超高清"}, {"channel_key": "浙江卫视4K", "name": "浙江卫视4K", "group": "4K超高清"}, {"channel_key": "深圳卫视4K", "name": "深圳卫视4K", "group": "4K超高清"}, {"channel_key": "湖南卫视4K", "name": "湖南卫视4K", "group": "4K超高清"}, {"channel_key": "CCTV16奥林匹克4K", "name": "CCTV16奥林匹克4K", "group": "4K超高清"}, {"channel_key": "北京卫视", "name": "北京卫视", "group": "卫视"}, {"channel_key": "东方卫视", "name": "东方卫视", "group": "卫视"}, {"channel_key": "浙江卫视", "name": "浙江卫视", "group": "卫视"}, {"channel_key": "湖南卫视", "name": "湖南卫视", "group": "卫视"}, {"channel_key": "江苏卫视", "name": "江苏卫视", "group": "卫视"}, {"channel_key": "深圳卫视", "name": "深圳卫视", "group": "卫视"}, {"channel_key": "山东卫视", "name": "山东卫视", "group": "卫视"}, {"channel_key": "广东卫视", "name": "广东卫视", "group": "卫视"}, {"channel_key": "天津卫视", "name": "天津卫视", "group": "卫视"}, {"channel_key": "安徽卫视", "name": "安徽卫视", "group": "卫视"}, {"channel_key": "湖北卫视", "name": "湖北卫视", "group": "卫视"}, {"channel_key": "重庆卫视", "name": "重庆卫视", "group": "卫视"}, {"channel_key": "河南卫视", "name": "河南卫视", "group": "卫视"}, {"channel_key": "四川卫视", "name": "四川卫视", "group": "卫视"}, {"channel_key": "辽宁卫视", "name": "辽宁卫视", "group": "卫视"}, {"channel_key": "江西卫视", "name": "江西卫视", "group": "卫视"}, {"channel_key": "黑龙江卫视", "name": "黑龙江卫视", "group": "卫视"}, {"channel_key": "贵州卫视", "name": "贵州卫视", "group": "卫视"}, {"channel_key": "河北卫视", "name": "河北卫视", "group": "卫视"}, {"channel_key": "东南卫视", "name": "东南卫视", "group": "卫视"}, {"channel_key": "广西卫视", "name": "广西卫视", "group": "卫视"}, {"channel_key": "海南卫视", "name": "海南卫视", "group": "卫视"}, {"channel_key": "新疆卫视", "name": "新疆卫视", "group": "卫视"}, {"channel_key": "云南卫视", "name": "云南卫视", "group": "卫视"}, {"channel_key": "吉林卫视", "name": "吉林卫视", "group": "卫视"}, {"channel_key": "甘肃卫视", "name": "甘肃卫视", "group": "卫视"}, {"channel_key": "山西卫视", "name": "山西卫视", "group": "卫视"}, {"channel_key": "陕西卫视", "name": "陕西卫视", "group": "卫视"}, {"channel_key": "内蒙古卫视", "name": "内蒙古卫视", "group": "卫视"}, {"channel_key": "宁夏卫视", "name": "宁夏卫视", "group": "卫视"}, {"channel_key": "西藏卫视", "name": "西藏卫视", "group": "卫视"}, {"channel_key": "青海卫视", "name": "青海卫视", "group": "卫视"}, {"channel_key": "兵团卫视", "name": "兵团卫视", "group": "卫视"}, {"channel_key": "三沙卫视", "name": "三沙卫视", "group": "卫视"}, {"channel_key": "延边卫视", "name": "延边卫视", "group": "卫视"}, {"channel_key": "杭州综合", "name": "杭州综合", "group": "浙江"}, {"channel_key": "杭州西湖明珠", "name": "杭州西湖明珠", "group": "浙江"}, {"channel_key": "杭州生活", "name": "杭州生活", "group": "浙江"}, {"channel_key": "杭州影视", "name": "杭州影视", "group": "浙江"}, {"channel_key": "杭州青少体育", "name": "杭州青少体育", "group": "浙江"}, {"channel_key": "杭州导视", "name": "杭州导视", "group": "浙江"}, {"channel_key": "浙江钱江都市", "name": "浙江钱江都市", "group": "浙江"}, {"channel_key": "浙江经视", "name": "浙江经视", "group": "浙江"}, {"channel_key": "浙江教科影视", "name": "浙江教科影视", "group": "浙江"}, {"channel_key": "浙江新闻", "name": "浙江新闻", "group": "浙江"}, {"channel_key": "浙江民生休闲", "name": "浙江民生休闲", "group": "浙江"}, {"channel_key": "浙江少儿", "name": "浙江少儿", "group": "浙江"}, {"channel_key": "之江纪录", "name": "之江纪录", "group": "浙江"}, {"channel_key": "余杭新闻频道", "name": "余杭新闻频道", "group": "浙江"}, {"channel_key": "中国蓝直播", "name": "中国蓝直播", "group": "浙江"}, {"channel_key": "嘉兴 新闻综合", "name": "嘉兴 新闻综合", "group": "浙江"}, {"channel_key": "宁波新闻综合", "name": "宁波新闻综合", "group": "浙江"}, {"channel_key": "宁波经济生活", "name": "宁波经济生活", "group": "浙江"}, {"channel_key": "宁波都市文体", "name": "宁波都市文体", "group": "浙江"}, {"channel_key": "宁波影视剧", "name": "宁波影视剧", "group": "浙江"}, {"channel_key": "绍兴新闻综合", "name": "绍兴新闻综合", "group": "浙江"}, {"channel_key": "湖州 新闻综合", "name": "湖州 新闻综合", "group": "浙江"}, {"channel_key": "桐乡 新闻综合", "name": "桐乡 新闻综合", "group": "浙江"}, {"channel_key": "台州 新闻综合", "name": "台州 新闻综合", "group": "浙江"}, {"channel_key": "金华 新闻综合", "name": "金华 新闻综合", "group": "浙江"}, {"channel_key": "丽水 新闻综合", "name": "丽水 新闻综合", "group": "浙江"}, {"channel_key": "衢州", "name": "衢州", "group": "浙江"}, {"channel_key": "温州 新闻综合", "name": "温州 新闻综合", "group": "浙江"}, {"channel_key": "北京纪实科教", "name": "北京纪实科教", "group": "北京"}, {"channel_key": "北京卡酷少儿", "name": "北京卡酷少儿", "group": "北京"}, {"channel_key": "第一财经_上海", "name": "第一财经_上海", "group": "上海"}, {"channel_key": "东方财经_上海", "name": "东方财经_上海", "group": "上海"}, {"channel_key": "都市剧场_上海", "name": "都市剧场_上海", "group": "上海"}, {"channel_key": "动漫秀场_上海", "name": "动漫秀场_上海", "group": "上海"}, {"channel_key": "乐游_上海", "name": "乐游_上海", "group": "上海"}, {"channel_key": "金色学堂_上海", "name": "金色学堂_上海", "group": "上海"}, {"channel_key": "生活时尚_上海", "name": "生活时尚_上海", "group": "上海"}, {"channel_key": "法治天地_上海", "name": "法治天地_上海", "group": "上海"}, {"channel_key": "游戏风云_上海", "name": "游戏风云_上海", "group": "上海"}, {"channel_key": "魅力足球_上海", "name": "魅力足球_上海", "group": "上海"}, {"channel_key": "七彩戏剧_上海", "name": "七彩戏剧_上海", "group": "上海"}, {"channel_key": "纪实人文_上海", "name": "纪实人文_上海", "group": "上海"}, {"channel_key": "哈哈炫动_上海", "name": "哈哈炫动_上海", "group": "上海"}, {"channel_key": "快乐垂钓", "name": "快乐垂钓", "group": "湖南"}, {"channel_key": "湖南茶频道", "name": "湖南茶频道", "group": "湖南"}, {"channel_key": "金鹰卡通_湖南", "name": "金鹰卡通_湖南", "group": "湖南"}, {"channel_key": "凤凰中文", "name": "凤凰中文", "group": "港澳台"}, {"channel_key": "凤凰资讯", "name": "凤凰资讯", "group": "港澳台"}, {"channel_key": "中国教育1台", "name": "中国教育1台", "group": "央视教育"}, {"channel_key": "中国教育4台", "name": "中国教育4台", "group": "央视教育"}, {"channel_key": "CGTN", "name": "CGTN", "group": "央视国际"}, {"channel_key": "CGTN俄罗斯语", "name": "CGTN俄罗斯语", "group": "央视国际"}, {"channel_key": "CGTN法语", "name": "CGTN法语", "group": "央视国际"}, {"channel_key": "CGTN西班牙语", "name": "CGTN西班牙语", "group": "央视国际"}, {"channel_key": "CGTN阿拉伯语", "name": "CGTN阿拉伯语", "group": "央视国际"}, {"channel_key": "BesTV 新威体育", "name": "BesTV 新威体育", "group": "BesTV"}, {"channel_key": "睛彩竞技", "name": "睛彩竞技", "group": "睛彩"}, {"channel_key": "睛彩篮球", "name": "睛彩篮球", "group": "睛彩"}, {"channel_key": "睛彩青少", "name": "睛彩青少", "group": "睛彩"}, {"channel_key": "珠峰直播2", "name": "珠峰直播2", "group": "其他"}, {"channel_key": "华数娱乐", "name": "华数娱乐", "group": "其他"}, {"channel_key": "历史", "name": "历史", "group": "其他"}, {"channel_key": "大熊猫的一天", "name": "大熊猫的一天", "group": "其他"}, {"channel_key": "央广购物", "name": "央广购物", "group": "其他"}, {"channel_key": "导视频道", "name": "导视频道", "group": "其他"}, {"channel_key": "熊猫宝宝幼儿园", "name": "熊猫宝宝幼儿园", "group": "其他"}, {"channel_key": "爱看熊猫", "name": "爱看熊猫", "group": "其他"}, {"channel_key": "浙江之声广播", "name": "浙江之声广播", "group": "广播"}, {"channel_key": "浙江交通之声", "name": "浙江交通之声", "group": "广播"}, {"channel_key": "浙江城市之声", "name": "浙江城市之声", "group": "广播"}, {"channel_key": "浙江新闻广播", "name": "浙江新闻广播", "group": "广播"}, {"channel_key": "浙江旅游之声_女主播", "name": "浙江旅游之声_女主播", "group": "广播"}, {"channel_key": "浙江民生资讯广播", "name": "浙江民生资讯广播", "group": "广播"}, {"channel_key": "浙江经济广播", "name": "浙江经济广播", "group": "广播"}, {"channel_key": "浙江音乐调频", "name": "浙江音乐调频", "group": "广播"}, {"channel_key": "浙江政务", "name": "浙江政务", "group": "其他"}], "msd_prefix": "http://127.0.0.1:4088/rtp/", "paths": {"cp_hint": "cp ~/Downloads/{f} /Volumes/docker/iptv-radar/data/orphan_inbox/", "scp_hint": "scp -O ~/Downloads/{f} <user>@<nas>:/volume1/docker/iptv-radar/data/orphan_inbox/"}}</script>
+<script>
+const RAW = JSON.parse(document.getElementById('data').textContent.replace('__ORPHAN_DATA__',''));
+const ORPHANS = RAW.orphans, CHANNELS = RAW.channels, PATHS = RAW.paths;
+const DEFAULT_PFX = RAW.msd_prefix || '';
+const CHKEYS = new Set(CHANNELS.map(c => c.channel_key));
+const KEY = 'iptv-radar-orphan-draft';
+let D = {};      // address → {action, channel_key, group}
+let filter = 'todo';
+
+try { D = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { D = {}; }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(D)); } catch (e) {} }
+
+function toggleTheme() {
+  const h = document.documentElement, dark = h.dataset.theme === 'dark';
+  h.dataset.theme = dark ? 'light' : 'dark';
+  document.getElementById('themeIcon').textContent = dark ? '🌙' : '☀️';
+  document.getElementById('themeTxt').textContent = dark ? '深色' : '浅色';
+  try { localStorage.setItem('iptv-radar-theme', h.dataset.theme); } catch (e) {}
+}
+if (localStorage.getItem('iptv-radar-theme') === 'dark') toggleTheme();
+
+// ===== 组播前缀: localStorage 键 'mcPrefix',与 dashboard.html 共用(只需设一次) =====
+function getPrefix() {
+  const v = localStorage.getItem('mcPrefix');
+  return (v === null ? DEFAULT_PFX : v);      // 没设过用导出时的默认;设成空串则尊重空串
+}
+function savePrefix() {
+  let v = document.getElementById('mcPrefix').value.trim();
+  if (v && !v.endsWith('/')) v += '/';        // 容错: 自动补尾斜杠
+  localStorage.setItem('mcPrefix', v);
+  document.getElementById('mcPrefix').value = v;
+  render();                                   // 重算所有播放链接
+  alert(v ? '已保存组播前缀:\n' + v : '已清空组播前缀');
+}
+(function () { document.getElementById('mcPrefix').value = getPrefix(); })();
+
+// 播放URL: 组播 = 前缀 + 地址(前缀可改); 单播 = 裸 rtsp 地址(直播不需要 token,已实测)
+function playUrl(o) {
+  if (o.source_type !== 'multicast') return o.address;
+  const p = getPrefix();
+  return p ? p + o.address : '';
+}
+function iinaUrl(o) {
+  const u = playUrl(o);
+  return u ? 'iina://weblink?url=' + encodeURIComponent(u) : '';
+}
+function openIina(addr) {
+  const o = ORPHANS.find(x => x.address === addr);
+  const u = iinaUrl(o);
+  if (!u) { alert('请先在顶部填写"组播前缀"(msd_lite 地址)并保存'); return; }
+  location.href = u;
+}
+
+function setFilter(f) { filter = f; render(); }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g,
+  m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+function visible() {
+  const q = document.getElementById('q').value.trim().toLowerCase();
+  return ORPHANS.filter(o => {
+    if (q && !(o.address.toLowerCase().includes(q) ||
+               (o.official_name || '').toLowerCase().includes(q))) return false;
+    const d = D[o.address];
+    if (filter === 'todo' && d && d.action) return false;
+    if (filter === 'named' && !o.official_name) return false;
+    if (filter === 'unnamed' && o.official_name) return false;
+    if (filter === 'mc' && o.source_type !== 'multicast') return false;
+    if (filter === 'uc' && o.source_type !== 'rtsp') return false;
+    return true;
+  });
+}
+
+function stateHtml(d) {
+  if (!d || !d.action) return '';
+  const label = { assign: '归并 → ' + (d.channel_key || ''), new: '新建 → ' + (d.channel_key || '') + (d.group ? ' @' + d.group : ''),
+                  junk: '垃圾流', unknown: '未知', skip: '跳过' }[d.action] || d.action;
+  return `<span class="state ${d.action}">${esc(label)}</span>`;
+}
+
+function render() {
+  ['all','todo','named','unnamed','mc','uc'].forEach(f =>
+    document.getElementById('f-' + f).classList.toggle('on', filter === f));
+  const rows = visible();
+  document.getElementById('list').innerHTML = rows.map((o, i) => {
+    const d = D[o.address] || {};
+    const shots = (o.shots || []).length
+      ? `<div class="shots">${o.shots.map(s =>
+          `<img loading="lazy" src="${esc(s)}" alt="" onclick="zoom(this.src)">`).join('')}</div>`
+      : `<div class="noshot">（无截图，用 IINA 播放确认）</div>`;
+    const pair = (o.paired_with || []).length
+      ? `<div class="pairnote">⚠️ 与另 ${o.paired_with.length} 个孤儿源属同一官方频道，
+           这里的决定会连带它们：${o.paired_with.map(p => `<code>${esc(p)}</code>`).join('、')}</div>`
+      : '';
+    return `<div class="card ${d.action ? 'done' : ''}">
+      <div class="card-head">
+        <span class="idx">#${i + 1}</span>
+        ${o.official_name ? `<span class="oname">${esc(o.official_name)}</span>` : ''}
+        <span class="addr">${esc(o.address)}</span>
+        <span class="tag">${esc(o.source_type === 'multicast' ? '组播' : '单播')}</span>
+        ${o.res_label ? `<span class="tag">${esc(o.res_label)}</span>` : ''}
+        ${o.video_codec ? `<span class="tag">${esc(o.video_codec)}</span>` : ''}
+        ${stateHtml(d)}
+      </div>
+      ${pair}
+      ${shots}
+      <div class="acts">
+        <button class="btn" onclick="openIina('${esc(o.address)}')">▶ IINA</button>
+        <button class="btn" onclick="copyPlay('${esc(o.address)}')" title="复制播放地址">⧉ 地址</button>
+        <input type="text" list="dl-ch" placeholder="归到已有频道…"
+               value="${esc(d.action === 'assign' ? (d.channel_key || '') : '')}"
+               oninput="onAssign('${esc(o.address)}', this)">
+        <button class="btn" onclick="toggleNew(this)">＋ 新建频道</button>
+        <button class="btn" onclick="setAct('${esc(o.address)}','junk')">垃圾流</button>
+        <button class="btn" onclick="setAct('${esc(o.address)}','unknown')">未知</button>
+        <button class="btn" onclick="setAct('${esc(o.address)}','skip')">跳过</button>
+        <button class="btn" onclick="setAct('${esc(o.address)}','')">清除</button>
+      </div>
+      <div class="newbox ${d.action === 'new' ? 'show' : ''}">
+        <input type="text" placeholder="新频道名(channel_key)"
+               value="${esc(d.action === 'new' ? (d.channel_key || '') : '')}"
+               oninput="onNewKey('${esc(o.address)}', this)">
+        <input type="text" list="dl-grp" placeholder="分组(可新建)"
+               value="${esc(d.action === 'new' ? (d.group || '') : '')}"
+               oninput="onNewGrp('${esc(o.address)}', this)">
+      </div>
+    </div>`;
+  }).join('') || `<div class="card" style="color:var(--muted)">没有符合条件的源。</div>`;
+
+  const decided = ORPHANS.filter(o => (D[o.address] || {}).action).length;
+  document.getElementById('cnt').textContent =
+    `已决定 ${decided} / ${ORPHANS.length} · 当前显示 ${rows.length}`;
+}
+
+function onAssign(addr, el) {
+  const v = el.value.trim();
+  if (!v) { delete D[addr]; save(); return; }
+  // 必须是清单里的频道: 打错字会在落库端被静默跳过(⚠️频道不存在)
+  if (CHKEYS.has(v)) { D[addr] = { action: 'assign', channel_key: v }; el.style.borderColor = 'var(--ok)'; }
+  else { el.style.borderColor = 'var(--warn)'; return; }
+  save(); document.getElementById('cnt').textContent = '';
+  render();
+}
+function onNewKey(addr, el) {
+  const d = D[addr] = D[addr] || { action: 'new' };
+  d.action = 'new'; d.channel_key = el.value.trim(); save();
+}
+function onNewGrp(addr, el) {
+  const d = D[addr] = D[addr] || { action: 'new' };
+  d.action = 'new'; d.group = el.value.trim(); save();
+}
+function toggleNew(btn) { btn.closest('.card').querySelector('.newbox').classList.toggle('show'); }
+function setAct(addr, act) {
+  if (!act) delete D[addr]; else D[addr] = { action: act };
+  save(); render();
+}
+function bulkJunk() {
+  const rows = visible().filter(o => !(D[o.address] || {}).action);
+  if (!rows.length) { alert('当前筛选里没有"尚未决定"的源。'); return; }
+  if (!confirm(`把当前筛选出的 ${rows.length} 个尚未决定的源全部标为垃圾流?\n\n` +
+               rows.slice(0, 12).map(o => (o.official_name ? o.official_name + '  ' : '') + o.address).join('\n') +
+               (rows.length > 12 ? `\n…另 ${rows.length - 12} 个` : ''))) return;
+  rows.forEach(o => D[o.address] = { action: 'junk' });
+  save(); render();
+}
+function clearDraft() {
+  if (!confirm('清空所有已做的决定?')) return;
+  D = {}; save(); render();
+}
+function zoom(src) {
+  document.getElementById('lbimg').src = src;
+  document.getElementById('lb').classList.add('show');
+}
+
+function doExport() {
+  const decisions = [];
+  for (const o of ORPHANS) {
+    const d = D[o.address];
+    if (!d || !d.action) continue;
+    if (d.action === 'assign') {
+      if (!CHKEYS.has(d.channel_key)) continue;
+      decisions.push({ address: o.address, action: 'assign', channel_key: d.channel_key });
+    } else if (d.action === 'new') {
+      if (!d.channel_key) continue;               // 没填名字的不导出(落库端会报错跳过)
+      decisions.push({ address: o.address, action: 'new', channel_key: d.channel_key,
+                       group: d.group || '其他' });
+    } else {
+      decisions.push({ address: o.address, action: d.action });
+    }
+  }
+  if (!decisions.length) { alert('还没有可导出的决定。'); return; }
+  const now = new Date(), p = n => String(n).padStart(2, '0');
+  const stamp = `${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}_${p(now.getHours())}${p(now.getMinutes())}${p(now.getSeconds())}`;
+  const fname = `resolved_${stamp}.json`;
+  const blob = new Blob([JSON.stringify({ resolved_at: now.toISOString().slice(0, 19), decisions }, null, 1)],
+                        { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = fname; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+
+  document.getElementById('dlname').textContent = fname + ` (${decisions.length} 条决定)`;
+  document.getElementById('cmd-cp').textContent = PATHS.cp_hint.replace('{f}', fname);
+  document.getElementById('cmd-scp').textContent = PATHS.scp_hint.replace('{f}', fname);
+  document.getElementById('dlg').showModal();
+}
+function copyPlay(addr) {
+  const o = ORPHANS.find(x => x.address === addr), u = playUrl(o);
+  if (!u) { alert('请先在顶部填写"组播前缀"并保存'); return; }
+  navigator.clipboard.writeText(u).then(() => alert('已复制:\n' + u))
+    .catch(() => prompt('手动复制:', u));
+}
+function copyCmd(id) {
+  navigator.clipboard.writeText(document.getElementById(id).textContent)
+    .then(() => alert('已复制')).catch(() => alert('复制失败,请手动选择'));
+}
+
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.key === 'Escape') { document.getElementById('lb').classList.remove('show'); }
+});
+render();
+</script>
+</body></html>

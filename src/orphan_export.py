@@ -25,6 +25,7 @@ import hashlib
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import probe
 import address_util
+from template_util import render_template
 
 RADAR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 DEFAULT_DB = os.path.join(RADAR, 'data', 'iptv.db')
@@ -104,6 +105,12 @@ def main():
     ap.add_argument('--reshoot', action='store_true',
                     help='强制重拍已有截图的源(默认: 已有截图的跳过,只拍新出现的孤儿源)')
     ap.add_argument('--limit', type=int, default=0, help='只导出前N个(测试用)')
+    # 识别完把 resolved.json 放回 NAS 的提示命令(页面上一键复制)。
+    # 真实主机/端口不写死在代码里(AGENTS.md 规则2),由 pipeline 从 .env 传入。
+    ap.add_argument('--cp-hint', default='cp ~/Downloads/{f} /Volumes/docker/iptv-radar/data/orphan_inbox/',
+                    help='页面提示: SMB 已挂载时的拷贝命令({f}=文件名占位)')
+    ap.add_argument('--scp-hint', default='scp -O ~/Downloads/{f} <user>@<nas>:/volume1/docker/iptv-radar/data/orphan_inbox/',
+                    help='页面提示: scp 命令({f}=文件名占位)')
     args = ap.parse_args()
 
     print("=" * 55)
@@ -206,12 +213,40 @@ def main():
     out_json = os.path.join(REVIEW_DIR, 'orphans.json')
     json.dump(pkg, open(out_json, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
 
+    # 识别页面: 纯静态、数据内联(不 fetch —— 页面可能被下载到本地用 file:// 打开,
+    # 那时 fetch 会被 CORS 拦死且只在控制台报错,表现为"页面空白"极难查)。
+    out_html = os.path.join(REVIEW_DIR, 'orphan-review.html')
+    groups = sorted({c['group'] for c in channels if c['group']})
+    # 页面数据不带 play_url/iina_url: 那是导出时按 --msd 拼的,而 pipeline 在 NAS 上
+    # 传的是容器/内网视角地址(如 127.0.0.1:4088),看页面的却是 Mac —— 烧死就播不了。
+    # 页面按用户自填的"组播前缀"(localStorage 键 mcPrefix,与 dashboard.html 共用)现算。
+    page_orphans = [{k: v for k, v in o.items() if k not in ('play_url', 'iina_url')}
+                    for o in orphans]
+    page_data = {
+        'orphans': page_orphans, 'channels': channels,
+        'msd_prefix': pkg['msd_prefix'],     # 仅作输入框的默认值/占位提示
+        'paths': {'cp_hint': args.cp_hint, 'scp_hint': args.scp_hint},
+    }
+    # 内联进 <script type="application/json">: 只需断开 '</' 即可,
+    # 否则数据里出现 '</script>' 会截断脚本、整页白屏。
+    data_json = json.dumps(page_data, ensure_ascii=False).replace('</', '<\\/')
+    html_txt = render_template(
+        'orphan_review.html',
+        gen_time=pkg['generated_at'].replace('T', ' '),
+        total=len(orphans),
+        n_mc=sum(1 for o in orphans if o['source_type'] == 'multicast'),
+        n_uc=sum(1 for o in orphans if o['source_type'] == 'rtsp'),
+        n_named=sum(1 for o in orphans if o['official_name']),
+        channels=channels, groups=groups, data_json=data_json)
+    open(out_html, 'w', encoding='utf-8').write(html_txt)
+
     print(f"\n  待识别孤儿源: {len(orphans)} 个 (组播{sum(1 for o in orphans if o['source_type']=='multicast')} "
           f"/ 单播{sum(1 for o in orphans if o['source_type']=='rtsp')})")
     print(f"  可归属频道: {len(channels)}  占位: {len(placeholders)}")
     print(f"  截图: 新拍 {len(shot_writes)} 个源, 复用已有 {reused} 个"
           + ("  (--no-shots: 本次未截图)" if args.no_shots else ""))
     print(f"  产出: {out_json}")
+    print(f"        {out_html}")
     print("完成")
 
 

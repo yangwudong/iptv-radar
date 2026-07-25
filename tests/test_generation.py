@@ -215,3 +215,32 @@ def test_p5_channels表不该再有分组列(db, conn):
     cols = {r[1] for r in conn.execute("PRAGMA table_info(channels)")}
     assert 'group_primary' not in cols, "group_primary 仍在,分组仍是双真相"
     assert 'group_extra' not in cols, "group_extra 仍在,分组仍是双真相"
+
+
+# ============================================================
+# 购物分组: 排在 其他 之后、广播 之前
+#   缘由: 购物台不想混在"其他"里,但也不该排到广播后面(广播固定收尾)。
+#   V2 没有旧 legacy 的 BLACKLIST_NAMES 名字黑名单(那只在 SPEC.md 里描述 legacy 行为),
+#   购物台照常输出,只是单独成组便于播放器里整组跳过。
+# ============================================================
+
+def test_购物分组排在其他之后广播之前():
+    sys.path.insert(0, SRC)
+    from gen_m3u import GROUP_ORDER
+    for g in ('其他', '购物', '广播'):
+        assert g in GROUP_ORDER, f"GROUP_ORDER 里没有 {g}"
+    assert GROUP_ORDER.index('其他') < GROUP_ORDER.index('购物') < GROUP_ORDER.index('广播'), \
+        f"购物组位置不对: {GROUP_ORDER}"
+
+
+def test_购物分组在m3u里的实际位置(db, conn, tmp_path):
+    """光改常量不够 —— 要在真实产出的 m3u 里验证组的先后。"""
+    for i, (key, grp) in enumerate((('某其他台', '其他'), ('某购物台', '购物'), ('某广播', '广播'))):
+        cid = add_channel(conn, key, group=grp, order=1)
+        sid = add_source(conn, f'233.8.8.{i + 1}:5140', channel_id=cid, channel_key=key)
+        set_preferred(conn, cid, sid)
+    out = str(tmp_path / 'g.m3u')
+    run_script('gen_m3u.py', '--db', db, '--out', out, '--msd', 'H:4088')
+    text = open(out, encoding='utf-8').read()
+    pos = {g: text.index(f'group-title="{g}"') for g in ('其他', '购物', '广播')}
+    assert pos['其他'] < pos['购物'] < pos['广播'], f"m3u 里分组顺序不对: {pos}"

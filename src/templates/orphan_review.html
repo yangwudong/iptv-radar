@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>孤儿源识别 · iptv-radar</title>
+<style>
+:root {
+  --bg:#f5f5f7; --card:#ffffff; --ink:#1d1d1f; --muted:#86868b;
+  --border:#e4e7ec; --accent:#2563eb; --ok:#17b26a; --warn:#f79009; --bad:#f04438;
+}
+html[data-theme="dark"] {
+  --bg:#000000; --card:#1c1c1e; --ink:#f5f5f7; --muted:#98989d;
+  --border:#2c2c2e; --accent:#4d8bf5;
+}
+* { box-sizing:border-box; }
+body { margin:0; font:14px/1.5 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--bg); color:var(--ink); transition:background .3s,color .3s; }
+.wrap { max-width:1200px; margin:0 auto; padding:20px 16px 80px; }
+h1 { font-size:22px; margin:0 0 4px; }
+.sub { color:var(--muted); font-size:13px; margin-bottom:16px; }
+.theme-btn { position:fixed; top:14px; right:14px; z-index:50; padding:6px 12px; border-radius:8px;
+  border:1px solid var(--border); background:var(--card); color:var(--ink); cursor:pointer; font-size:13px; }
+
+.bar { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:12px; background:var(--card);
+  border:1px solid var(--border); border-radius:10px; margin-bottom:14px; }
+.bar input[type=text] { flex:1; min-width:180px; padding:7px 10px; border:1px solid var(--border);
+  border-radius:8px; background:var(--bg); color:var(--ink); }
+.btn { padding:7px 12px; border-radius:8px; border:1px solid var(--border); background:var(--card);
+  color:var(--ink); cursor:pointer; font-size:13px; }
+.btn:hover { border-color:var(--accent); color:var(--accent); }
+.btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+.btn.primary:hover { opacity:.9; color:#fff; }
+.chip { padding:4px 10px; border-radius:999px; border:1px solid var(--border); background:var(--card);
+  cursor:pointer; font-size:12px; color:var(--muted); }
+.chip.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+
+.card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:14px;
+  margin-bottom:12px; }
+.card.done { opacity:.55; }
+.card-head { display:flex; flex-wrap:wrap; gap:8px; align-items:baseline; margin-bottom:10px; }
+.idx { color:var(--muted); font-size:12px; min-width:34px; }
+.addr { font-family:ui-monospace,Menlo,monospace; font-size:12.5px; word-break:break-all; flex:1; min-width:200px; }
+.oname { font-weight:600; color:var(--accent); }
+.tag { font-size:11px; padding:2px 7px; border-radius:5px; background:var(--bg); border:1px solid var(--border);
+  color:var(--muted); white-space:nowrap; }
+.pairnote { font-size:12px; color:var(--warn); margin:-4px 0 8px; }
+.pairnote code { font-family:ui-monospace,Menlo,monospace; font-size:11px; }
+
+.shots { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+.shots img { width:190px; height:107px; object-fit:cover; border-radius:8px; border:1px solid var(--border);
+  cursor:zoom-in; background:var(--bg); }
+.noshot { font-size:12px; color:var(--muted); padding:8px 0; }
+
+.acts { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.acts input[type=text] { padding:6px 9px; border:1px solid var(--border); border-radius:7px;
+  background:var(--bg); color:var(--ink); min-width:190px; }
+.state { font-size:12px; padding:3px 9px; border-radius:6px; margin-left:auto; white-space:nowrap; }
+.state.assign,.state.new { background:rgba(23,178,106,.14); color:var(--ok); }
+.state.junk { background:rgba(240,68,56,.14); color:var(--bad); }
+.state.unknown { background:rgba(247,144,9,.16); color:var(--warn); }
+.state.skip { background:var(--bg); color:var(--muted); }
+.newbox { display:none; gap:8px; margin-top:8px; flex-wrap:wrap; }
+.newbox.show { display:flex; }
+
+.foot { position:fixed; left:0; right:0; bottom:0; padding:10px 16px; background:var(--card);
+  border-top:1px solid var(--border); display:flex; gap:10px; align-items:center; flex-wrap:wrap; z-index:40; }
+.foot .n { font-size:13px; color:var(--muted); }
+dialog { border:1px solid var(--border); border-radius:12px; background:var(--card); color:var(--ink);
+  max-width:680px; width:92%; padding:18px; }
+dialog::backdrop { background:rgba(0,0,0,.5); }
+dialog h3 { margin:0 0 10px; font-size:16px; }
+dialog pre { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:10px;
+  font-size:12px; overflow-x:auto; white-space:pre-wrap; word-break:break-all; }
+.lb { position:fixed; inset:0; background:rgba(0,0,0,.86); display:none; align-items:center;
+  justify-content:center; z-index:99; cursor:zoom-out; }
+.lb.show { display:flex; }
+.lb img { max-width:96vw; max-height:96vh; }
+datalist { color:var(--ink); }
+</style></head>
+<body>
+<button class="theme-btn" onclick="toggleTheme()"><span id="themeIcon">🌙</span> <span id="themeTxt">深色</span></button>
+<div class="wrap">
+  <h1>孤儿源识别</h1>
+  <div class="sub">生成于 {{ gen_time }} · 待识别 {{ total }} 个源(组播 {{ n_mc }} / 单播 {{ n_uc }})
+    · 其中 {{ n_named }} 个官方台账已给出名字</div>
+
+  <div class="bar">
+    <label style="font-size:13px;color:var(--muted);white-space:nowrap">组播前缀</label>
+    <input type="text" id="mcPrefix" placeholder="http://你的msd_lite地址:4088/rtp/" spellcheck="false">
+    <button class="btn" onclick="savePrefix()">保存</button>
+    <span style="font-size:12px;color:var(--muted)">组播源的 IINA 播放用。仅存本地浏览器，与检测面板共用同一设置。</span>
+  </div>
+
+  <div class="bar">
+    <input type="text" id="q" placeholder="🔍 过滤地址 / 官方名..." oninput="render()">
+    <span class="chip" id="f-all" onclick="setFilter('all')">全部</span>
+    <span class="chip" id="f-todo" onclick="setFilter('todo')">未决定</span>
+    <span class="chip" id="f-named" onclick="setFilter('named')">有官方名</span>
+    <span class="chip" id="f-unnamed" onclick="setFilter('unnamed')">无官方名</span>
+    <span class="chip" id="f-mc" onclick="setFilter('mc')">组播</span>
+    <span class="chip" id="f-uc" onclick="setFilter('uc')">单播</span>
+    <button class="btn" onclick="bulkJunk()" title="把当前筛选出的、尚未决定的源全部标 junk">
+      批量标 junk(当前筛选)</button>
+  </div>
+
+  <div id="list"></div>
+</div>
+
+<div class="foot">
+  <span class="n" id="cnt"></span>
+  <button class="btn" onclick="clearDraft()">清空草稿</button>
+  <button class="btn primary" onclick="doExport()">导出 resolved.json</button>
+</div>
+
+<dialog id="dlg">
+  <h3>已下载 <span id="dlname"></span></h3>
+  <p style="font-size:13px;color:var(--muted);margin:0 0 10px">
+    把它放进 NAS 的 <code>data/orphan_inbox/</code>,下次 pipeline 运行时自动落库。任选一种:</p>
+  <div style="font-size:12px;color:var(--muted);margin-bottom:4px">① 已挂载 SMB(<code>/Volumes/docker</code>)时最简单:</div>
+  <pre id="cmd-cp"></pre>
+  <div style="font-size:12px;color:var(--muted);margin:8px 0 4px">② 或用 scp:</div>
+  <pre id="cmd-scp"></pre>
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+    <button class="btn" onclick="copyCmd('cmd-cp')">复制①</button>
+    <button class="btn" onclick="copyCmd('cmd-scp')">复制②</button>
+    <button class="btn primary" onclick="document.getElementById('dlg').close()">好</button>
+  </div>
+</dialog>
+
+<div class="lb" id="lb" onclick="this.classList.remove('show')"><img id="lbimg" alt=""></div>
+
+<datalist id="dl-ch">{% for c in channels %}<option value="{{ c.channel_key }}">{{ c.group }}</option>{% endfor %}</datalist>
+<datalist id="dl-grp">{% for g in groups %}<option value="{{ g }}"></option>{% endfor %}</datalist>
+
+<script id="data" type="application/json">__ORPHAN_DATA__{{ data_json | safe }}</script>
+<script>
+const RAW = JSON.parse(document.getElementById('data').textContent.replace('__ORPHAN_DATA__',''));
+const ORPHANS = RAW.orphans, CHANNELS = RAW.channels, PATHS = RAW.paths;
+const DEFAULT_PFX = RAW.msd_prefix || '';
+const CHKEYS = new Set(CHANNELS.map(c => c.channel_key));
+const KEY = 'iptv-radar-orphan-draft';
+let D = {};      // address → {action, channel_key, group}
+let filter = 'todo';
+
+try { D = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { D = {}; }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(D)); } catch (e) {} }
+
+function toggleTheme() {
+  const h = document.documentElement, dark = h.dataset.theme === 'dark';
+  h.dataset.theme = dark ? 'light' : 'dark';
+  document.getElementById('themeIcon').textContent = dark ? '🌙' : '☀️';
+  document.getElementById('themeTxt').textContent = dark ? '深色' : '浅色';
+  try { localStorage.setItem('iptv-radar-theme', h.dataset.theme); } catch (e) {}
+}
+if (localStorage.getItem('iptv-radar-theme') === 'dark') toggleTheme();
+
+// ===== 组播前缀: localStorage 键 'mcPrefix',与 dashboard.html 共用(只需设一次) =====
+function getPrefix() {
+  const v = localStorage.getItem('mcPrefix');
+  return (v === null ? DEFAULT_PFX : v);      // 没设过用导出时的默认;设成空串则尊重空串
+}
+function savePrefix() {
+  let v = document.getElementById('mcPrefix').value.trim();
+  if (v && !v.endsWith('/')) v += '/';        // 容错: 自动补尾斜杠
+  localStorage.setItem('mcPrefix', v);
+  document.getElementById('mcPrefix').value = v;
+  render();                                   // 重算所有播放链接
+  alert(v ? '已保存组播前缀:\n' + v : '已清空组播前缀');
+}
+(function () { document.getElementById('mcPrefix').value = getPrefix(); })();
+
+// 播放URL: 组播 = 前缀 + 地址(前缀可改); 单播 = 裸 rtsp 地址(直播不需要 token,已实测)
+function playUrl(o) {
+  if (o.source_type !== 'multicast') return o.address;
+  const p = getPrefix();
+  return p ? p + o.address : '';
+}
+function iinaUrl(o) {
+  const u = playUrl(o);
+  return u ? 'iina://weblink?url=' + encodeURIComponent(u) : '';
+}
+function openIina(addr) {
+  const o = ORPHANS.find(x => x.address === addr);
+  const u = iinaUrl(o);
+  if (!u) { alert('请先在顶部填写"组播前缀"(msd_lite 地址)并保存'); return; }
+  location.href = u;
+}
+
+function setFilter(f) { filter = f; render(); }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g,
+  m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+function visible() {
+  const q = document.getElementById('q').value.trim().toLowerCase();
+  return ORPHANS.filter(o => {
+    if (q && !(o.address.toLowerCase().includes(q) ||
+               (o.official_name || '').toLowerCase().includes(q))) return false;
+    const d = D[o.address];
+    if (filter === 'todo' && d && d.action) return false;
+    if (filter === 'named' && !o.official_name) return false;
+    if (filter === 'unnamed' && o.official_name) return false;
+    if (filter === 'mc' && o.source_type !== 'multicast') return false;
+    if (filter === 'uc' && o.source_type !== 'rtsp') return false;
+    return true;
+  });
+}
+
+function stateHtml(d) {
+  if (!d || !d.action) return '';
+  const label = { assign: '归并 → ' + (d.channel_key || ''), new: '新建 → ' + (d.channel_key || '') + (d.group ? ' @' + d.group : ''),
+                  junk: '垃圾流', unknown: '未知', skip: '跳过' }[d.action] || d.action;
+  return `<span class="state ${d.action}">${esc(label)}</span>`;
+}
+
+function render() {
+  ['all','todo','named','unnamed','mc','uc'].forEach(f =>
+    document.getElementById('f-' + f).classList.toggle('on', filter === f));
+  const rows = visible();
+  document.getElementById('list').innerHTML = rows.map((o, i) => {
+    const d = D[o.address] || {};
+    const shots = (o.shots || []).length
+      ? `<div class="shots">${o.shots.map(s =>
+          `<img loading="lazy" src="${esc(s)}" alt="" onclick="zoom(this.src)">`).join('')}</div>`
+      : `<div class="noshot">（无截图，用 IINA 播放确认）</div>`;
+    const pair = (o.paired_with || []).length
+      ? `<div class="pairnote">⚠️ 与另 ${o.paired_with.length} 个孤儿源属同一官方频道，
+           这里的决定会连带它们：${o.paired_with.map(p => `<code>${esc(p)}</code>`).join('、')}</div>`
+      : '';
+    return `<div class="card ${d.action ? 'done' : ''}">
+      <div class="card-head">
+        <span class="idx">#${i + 1}</span>
+        ${o.official_name ? `<span class="oname">${esc(o.official_name)}</span>` : ''}
+        <span class="addr">${esc(o.address)}</span>
+        <span class="tag">${esc(o.source_type === 'multicast' ? '组播' : '单播')}</span>
+        ${o.res_label ? `<span class="tag">${esc(o.res_label)}</span>` : ''}
+        ${o.video_codec ? `<span class="tag">${esc(o.video_codec)}</span>` : ''}
+        ${stateHtml(d)}
+      </div>
+      ${pair}
+      ${shots}
+      <div class="acts">
+        <button class="btn" onclick="openIina('${esc(o.address)}')">▶ IINA</button>
+        <button class="btn" onclick="copyPlay('${esc(o.address)}')" title="复制播放地址">⧉ 地址</button>
+        <input type="text" list="dl-ch" placeholder="归到已有频道…"
+               value="${esc(d.action === 'assign' ? (d.channel_key || '') : '')}"
+               oninput="onAssign('${esc(o.address)}', this)">
+        <button class="btn" onclick="toggleNew(this)">＋ 新建频道</button>
+        <button class="btn" onclick="setAct('${esc(o.address)}','junk')">垃圾流</button>
+        <button class="btn" onclick="setAct('${esc(o.address)}','unknown')">未知</button>
+        <button class="btn" onclick="setAct('${esc(o.address)}','skip')">跳过</button>
+        <button class="btn" onclick="setAct('${esc(o.address)}','')">清除</button>
+      </div>
+      <div class="newbox ${d.action === 'new' ? 'show' : ''}">
+        <input type="text" placeholder="新频道名(channel_key)"
+               value="${esc(d.action === 'new' ? (d.channel_key || '') : '')}"
+               oninput="onNewKey('${esc(o.address)}', this)">
+        <input type="text" list="dl-grp" placeholder="分组(可新建)"
+               value="${esc(d.action === 'new' ? (d.group || '') : '')}"
+               oninput="onNewGrp('${esc(o.address)}', this)">
+      </div>
+    </div>`;
+  }).join('') || `<div class="card" style="color:var(--muted)">没有符合条件的源。</div>`;
+
+  const decided = ORPHANS.filter(o => (D[o.address] || {}).action).length;
+  document.getElementById('cnt').textContent =
+    `已决定 ${decided} / ${ORPHANS.length} · 当前显示 ${rows.length}`;
+}
+
+function onAssign(addr, el) {
+  const v = el.value.trim();
+  if (!v) { delete D[addr]; save(); return; }
+  // 必须是清单里的频道: 打错字会在落库端被静默跳过(⚠️频道不存在)
+  if (CHKEYS.has(v)) { D[addr] = { action: 'assign', channel_key: v }; el.style.borderColor = 'var(--ok)'; }
+  else { el.style.borderColor = 'var(--warn)'; return; }
+  save(); document.getElementById('cnt').textContent = '';
+  render();
+}
+function onNewKey(addr, el) {
+  const d = D[addr] = D[addr] || { action: 'new' };
+  d.action = 'new'; d.channel_key = el.value.trim(); save();
+}
+function onNewGrp(addr, el) {
+  const d = D[addr] = D[addr] || { action: 'new' };
+  d.action = 'new'; d.group = el.value.trim(); save();
+}
+function toggleNew(btn) { btn.closest('.card').querySelector('.newbox').classList.toggle('show'); }
+function setAct(addr, act) {
+  if (!act) delete D[addr]; else D[addr] = { action: act };
+  save(); render();
+}
+function bulkJunk() {
+  const rows = visible().filter(o => !(D[o.address] || {}).action);
+  if (!rows.length) { alert('当前筛选里没有"尚未决定"的源。'); return; }
+  if (!confirm(`把当前筛选出的 ${rows.length} 个尚未决定的源全部标为垃圾流?\n\n` +
+               rows.slice(0, 12).map(o => (o.official_name ? o.official_name + '  ' : '') + o.address).join('\n') +
+               (rows.length > 12 ? `\n…另 ${rows.length - 12} 个` : ''))) return;
+  rows.forEach(o => D[o.address] = { action: 'junk' });
+  save(); render();
+}
+function clearDraft() {
+  if (!confirm('清空所有已做的决定?')) return;
+  D = {}; save(); render();
+}
+function zoom(src) {
+  document.getElementById('lbimg').src = src;
+  document.getElementById('lb').classList.add('show');
+}
+
+function doExport() {
+  const decisions = [];
+  for (const o of ORPHANS) {
+    const d = D[o.address];
+    if (!d || !d.action) continue;
+    if (d.action === 'assign') {
+      if (!CHKEYS.has(d.channel_key)) continue;
+      decisions.push({ address: o.address, action: 'assign', channel_key: d.channel_key });
+    } else if (d.action === 'new') {
+      if (!d.channel_key) continue;               // 没填名字的不导出(落库端会报错跳过)
+      decisions.push({ address: o.address, action: 'new', channel_key: d.channel_key,
+                       group: d.group || '其他' });
+    } else {
+      decisions.push({ address: o.address, action: d.action });
+    }
+  }
+  if (!decisions.length) { alert('还没有可导出的决定。'); return; }
+  const now = new Date(), p = n => String(n).padStart(2, '0');
+  const stamp = `${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}_${p(now.getHours())}${p(now.getMinutes())}${p(now.getSeconds())}`;
+  const fname = `resolved_${stamp}.json`;
+  const blob = new Blob([JSON.stringify({ resolved_at: now.toISOString().slice(0, 19), decisions }, null, 1)],
+                        { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = fname; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+
+  document.getElementById('dlname').textContent = fname + ` (${decisions.length} 条决定)`;
+  document.getElementById('cmd-cp').textContent = PATHS.cp_hint.replace('{f}', fname);
+  document.getElementById('cmd-scp').textContent = PATHS.scp_hint.replace('{f}', fname);
+  document.getElementById('dlg').showModal();
+}
+function copyPlay(addr) {
+  const o = ORPHANS.find(x => x.address === addr), u = playUrl(o);
+  if (!u) { alert('请先在顶部填写"组播前缀"并保存'); return; }
+  navigator.clipboard.writeText(u).then(() => alert('已复制:\n' + u))
+    .catch(() => prompt('手动复制:', u));
+}
+function copyCmd(id) {
+  navigator.clipboard.writeText(document.getElementById(id).textContent)
+    .then(() => alert('已复制')).catch(() => alert('复制失败,请手动选择'));
+}
+
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.key === 'Escape') { document.getElementById('lb').classList.remove('show'); }
+});
+render();
+</script>
+</body></html>

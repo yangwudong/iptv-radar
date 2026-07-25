@@ -873,3 +873,99 @@ def test_orphan_export_官方列表里没有的不得编造名字(db, conn, tmp_
     o = pkg['orphans'][0]
     assert not o.get('official_name'), f"给查不到的源编了名字: {o.get('official_name')!r}"
     assert not o.get('paired_with'), f"编了配对关系: {o.get('paired_with')!r}"
+
+
+# ============================================================
+# orphan-review.html: 识别页面(纯静态,浏览器直接打开)
+#   必须自包含 —— 数据内联,不 fetch orphans.json:
+#   页面既可能从 nginx 打开,也可能被下载到本地用 file:// 打开,
+#   后者 fetch 会被 CORS 拦死(且报错只在控制台,表现为"页面空白"很难查)。
+# ============================================================
+
+def _export_with_page(db, tmp_path, monkeypatch, extra=()):
+    calls = []
+    _run_export(db, tmp_path, monkeypatch, calls, extra=('--no-shots', *extra))
+    return (tmp_path / 'orphan-review.html').read_text(encoding='utf-8')
+
+
+def test_orphan_review页面必须产出到dashboard目录(db, conn, tmp_path, monkeypatch):
+    add_source(conn, '233.9.8.1:5140', channel_id=None, source_type='multicast', available=1)
+    html_txt = _export_with_page(db, tmp_path, monkeypatch)
+    assert html_txt.lstrip().lower().startswith('<!doctype html'), "产出的不是HTML"
+    assert '233.9.8.1:5140' in html_txt, "孤儿地址没进页面"
+
+
+def test_orphan_review页面必须自包含不fetch(db, conn, tmp_path, monkeypatch):
+    """file:// 打开时 fetch 会被 CORS 拦死,且只在控制台报错 → 表现为页面空白。"""
+    add_source(conn, '233.9.8.2:5140', channel_id=None, source_type='multicast', available=1)
+    html_txt = _export_with_page(db, tmp_path, monkeypatch)
+    assert 'orphans.json' not in html_txt or 'fetch(' not in html_txt, \
+        "页面在运行时抓取 orphans.json → file:// 下会空白"
+    assert 'XMLHttpRequest' not in html_txt
+
+
+def test_orphan_review页面要带可归属频道清单(db, conn, tmp_path, monkeypatch):
+    """没有频道清单就没法做 assign(用户只能 junk/skip),等于工具废掉一半。"""
+    add_channel(conn, 'CCTV1综合', group='央视')
+    add_channel(conn, '浙江钱江都市', group='浙江')
+    add_source(conn, '233.9.8.3:5140', channel_id=None, source_type='multicast', available=1)
+    html_txt = _export_with_page(db, tmp_path, monkeypatch)
+    for k in ('CCTV1综合', '浙江钱江都市'):
+        assert k in html_txt, f"频道 {k} 没进页面(无法 assign)"
+    assert '央视' in html_txt and '浙江' in html_txt, "分组没带上(新建频道时要选组)"
+
+
+def test_orphan_review页面展示官方名与配对提示(db, conn, tmp_path, monkeypatch):
+    add_source(conn, MC_OFFICIAL, channel_id=None, source_type='multicast', available=1)
+    add_source(conn, RTSP_OFFICIAL, channel_id=None, source_type='rtsp', available=1)
+    epg = _write_epg(tmp_path, [
+        {'id': '1', 'name': '直播室4', 'url': f'igmp://{MC_OFFICIAL}|{RTSP_OFFICIAL}'}])
+    html_txt = _export_with_page(db, tmp_path, monkeypatch, extra=('--epg', epg))
+    assert '直播室4' in html_txt, "官方名没显示 —— 这是最有价值的识别线索"
+    assert RTSP_OFFICIAL in html_txt and MC_OFFICIAL in html_txt, "配对地址没进页面"
+
+
+def test_orphan_review页面内联数据要转义(db, conn, tmp_path, monkeypatch):
+    """频道名里若出现 '</script>' 会直接截断内联脚本、整页失效(静默白屏)。"""
+    add_channel(conn, '恶意</script><b>x', group='测试组')
+    add_source(conn, '233.9.8.4:5140', channel_id=None, source_type='multicast', available=1)
+    html_txt = _export_with_page(db, tmp_path, monkeypatch)
+    head = html_txt.split('__ORPHAN_DATA__', 1)[-1]
+    assert '</script><b>x' not in head, "内联数据未转义 </script> → 页面会被截断白屏"
+
+
+# ============================================================
+# 组播播放前缀必须能在页面上改(存 localStorage),不能烧死在生成时
+#   坑: iina_url 是导出时用 --msd 拼好的。NAS 上 pipeline 传的是容器/内网视角的
+#   地址(如 127.0.0.1:4088),而看页面的是 Mac —— 拼出来的链接根本播不了,
+#   且页面上没有任何地方能改。dashboard.html 早就有"组播前缀"输入框,键 mcPrefix。
+# ============================================================
+
+def test_orphan_review页面可改组播前缀且与dashboard共用键(db, conn, tmp_path, monkeypatch):
+    add_source(conn, '233.9.9.5:5140', channel_id=None, source_type='multicast', available=1)
+    html_txt = _export_with_page(db, tmp_path, monkeypatch, extra=('--msd', '127.0.0.1:4088'))
+    assert 'id="mcPrefix"' in html_txt, "页面没有组播前缀输入框 → 组播链接改不了"
+    assert "'mcPrefix'" in html_txt or '"mcPrefix"' in html_txt, \
+        "没用 localStorage 键 mcPrefix(与 dashboard.html 共用,用户只需设一次)"
+
+
+def test_orphan_review页面不得烧死组播播放地址(db, conn, tmp_path, monkeypatch):
+    """内联数据里若已含拼好的 iina://...127.0.0.1... 链接,改前缀就没用了。"""
+    add_source(conn, '233.9.9.6:5140', channel_id=None, source_type='multicast', available=1)
+    html_txt = _export_with_page(db, tmp_path, monkeypatch, extra=('--msd', '127.0.0.1:4088'))
+    data = json.loads(html_txt.split('__ORPHAN_DATA__', 1)[1].split('</script>', 1)[0])
+    o = data['orphans'][0]
+    # 每条源都不能带按导出时 msd 拼好的链接 —— 那样改前缀就没用了
+    assert 'iina_url' not in o and 'play_url' not in o, \
+        f"每条源里仍带着拼死的播放链接(改前缀无效): {sorted(o)}"
+    # msd_prefix 只作输入框默认值保留(pipeline 传的是 .env 里的真实网关,对局域网有效)
+    assert data.get('msd_prefix'), "没给出默认前缀(用户第一次打开无从下手)"
+
+
+def test_orphan_export_json仍保留play_url与iina_url(db, conn, tmp_path, monkeypatch):
+    """契约(ORPHAN_REVIEW §3.1)里有这两个字段,别为了页面把 json 契约破了。"""
+    add_source(conn, '233.9.9.7:5140', channel_id=None, source_type='multicast', available=1)
+    _export_with_page(db, tmp_path, monkeypatch, extra=('--msd', 'H:4088'))
+    o = json.load(open(tmp_path / 'orphans.json', encoding='utf-8'))['orphans'][0]
+    assert o['play_url'] == 'http://H:4088/rtp/233.9.9.7:5140'
+    assert o['iina_url'].startswith('iina://weblink?url=')
