@@ -23,6 +23,9 @@ fi
 
 # msd_lite/udpxy 组播转码地址(.env 里 UDPXY= 或 MSD=,兼容)
 MSD="${MSD:-${UDPXY:-127.0.0.1:4088}}"
+# rtp2httpd FCC快速换台服务器(.env 里 FCC_SERVER=IP:端口);空则不加FCC。加--fcc参数给msd组播URL。
+FCC_ARG=""
+[ -n "$FCC_SERVER" ] && FCC_ARG="--fcc $FCC_SERVER"
 NGINX_M3U_DIR="${NGINX_M3U_DIR:-/volume1/docker/nginx/m3u}"
 # EPG源: 优先用 fetch_channels 刷新的 channels.json(含新token,单播回看可持续),
 #   没有(未刷成功)则回退历史快照 channels.sample.json(token可能过期,回看不保证)。
@@ -47,9 +50,9 @@ if [[ "$*" == *"--gen-only"* ]]; then
     echo "# 模式: 仅重新生成(--gen-only, 不扫描/不刷token, 用现有库数据)"
     echo "############################################"
     echo ""; echo ">>> 生成 m3u(msd版 + 直通版)"
-    python3 gen_m3u.py --msd "$MSD" --multicast-mode msd --out ../output/iptv.m3u
+    python3 gen_m3u.py --msd "$MSD" $FCC_ARG --multicast-mode msd --out ../output/iptv.m3u
     python3 gen_m3u.py --msd "$MSD" --multicast-mode direct --out ../output/iptv_direct.m3u
-    python3 gen_m3u.py --msd "$MSD" --multicast-mode msd --prefer-multicast --out ../output/iptv_compat.m3u
+    python3 gen_m3u.py --msd "$MSD" $FCC_ARG --multicast-mode msd --prefer-multicast --out ../output/iptv_compat.m3u
     echo ""; echo ">>> 抓EPG + 生成Dashboard + 频道页"
     python3 fetch_epg.py || echo "  EPG抓取失败(继续,Dashboard将无节目单)"
     python3 gen_dashboard.py
@@ -133,9 +136,9 @@ python3 orphan_export.py --msd "$MSD" || echo "  无孤儿源或导出出错(继
 
 # 6. 生成 m3u(两套): msd版(组播转HTTP,远程/Tailscale可用) + direct版(组播直通rtp,LAN内省中转)
 echo ""; echo ">>> [6/7] 生成m3u(msd版 + 组播直通版)"
-python3 gen_m3u.py --msd "$MSD" --multicast-mode msd --out ../output/iptv.m3u
+python3 gen_m3u.py --msd "$MSD" $FCC_ARG --multicast-mode msd --out ../output/iptv.m3u
 python3 gen_m3u.py --msd "$MSD" --multicast-mode direct --out ../output/iptv_direct.m3u
-python3 gen_m3u.py --msd "$MSD" --multicast-mode msd --prefer-multicast --out ../output/iptv_compat.m3u
+python3 gen_m3u.py --msd "$MSD" $FCC_ARG --multicast-mode msd --prefer-multicast --out ../output/iptv_compat.m3u
 
 # 7. 生成 Dashboard + EPG
 echo ""; echo ">>> [7/7] 抓EPG + 生成Dashboard"

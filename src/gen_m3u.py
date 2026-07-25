@@ -29,17 +29,22 @@ GROUP_ORDER = ['央视', '4K超高清', '卫视', '浙江', '北京', '上海', 
                '其他', '广播', '未识别']
 
 
-def addr_to_url(source_type, address, msd, timeshift_query=None, multicast_mode='msd'):
+def addr_to_url(source_type, address, msd, timeshift_query=None, multicast_mode='msd', fcc=None):
     """源地址 → 播放URL。
     multicast_mode: 组播源的输出方式
-      'msd'    → http://<msd>/rtp/<addr>  经msd_lite转HTTP单播(远程/Tailscale可用,最兼容)
-      'direct' → rtp://@<addr>            LAN直收组播(需软路由igmpproxy+防火墙放行组播转发,省msd中转)"""
+      'msd'    → http://<msd>/rtp/<addr>  经msd_lite/rtp2httpd转HTTP单播(远程/Tailscale可用,最兼容)
+      'direct' → rtp://@<addr>            LAN直收组播(需软路由igmpproxy+防火墙放行组播转发,省msd中转)
+    fcc: rtp2httpd的FCC服务器 IP:端口(仅msd模式生效,给组播URL加?fcc=快速换台);None则不加"""
     if source_type == 'multicast':
         # address = "233.50.201.118:5140"
         if multicast_mode == 'direct':
             # LAN组播直通: 电信IPTV是RTP over UDP,用 rtp://@ 让播放器正确解RTP头
             return f"rtp://@{address}"
-        return f"http://{msd}/rtp/{address}"
+        url = f"http://{msd}/rtp/{address}"
+        if fcc:
+            # rtp2httpd FCC快速换台: 加?fcc=服务器,不支持FCC的后端(msd_lite)会忽略此参数(无害)
+            url += f"?fcc={fcc}"
+        return url
     elif source_type == 'rtsp':
         # 单播: 库存的是去token简化地址,完整地址 = address + "?" + timeshift_query(含token)
         # timeshift_query 由 link_sources 从 channels.json 写入,每周随fetch刷新
@@ -49,7 +54,7 @@ def addr_to_url(source_type, address, msd, timeshift_query=None, multicast_mode=
     return address
 
 
-def generate(db_path, out_path, msd, multicast_mode='msd', prefer_multicast=False):
+def generate(db_path, out_path, msd, multicast_mode='msd', prefer_multicast=False, fcc=None):
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
@@ -100,7 +105,7 @@ def generate(db_path, out_path, msd, multicast_mode='msd', prefer_multicast=Fals
         members = sorted(group_members[g], key=lambda x: x[0])
         for _, cid in members:
             r = ch_by_id[cid]
-            url = addr_to_url(r['source_type'], r['address'], msd, r['timeshift_query'], multicast_mode) if r['address'] else ''
+            url = addr_to_url(r['source_type'], r['address'], msd, r['timeshift_query'], multicast_mode, fcc) if r['address'] else ''
             if not url:
                 continue
             logo_attr = f' tvg-logo="{r["tvg_logo"]}"' if r['tvg_logo'] else ''
@@ -133,11 +138,13 @@ if __name__ == '__main__':
     ap.add_argument('--prefer-multicast', action='store_true',
                     help="兼容模式: 主源是单播但有组播源的频道改用组播(适配只支持组播/不支持rtsp的播放器,如飞牛影音);"
                          "无组播源的纯单播频道(如4K)保留单播地址")
+    ap.add_argument('--fcc', default=None,
+                    help="rtp2httpd FCC快速换台服务器 IP:端口(给msd模式组播URL加?fcc=);不支持FCC的后端会忽略(无害)")
     args = ap.parse_args()
     print("=" * 50)
     print("  iptv-radar 生成m3u (gen_m3u.py)")
     print("=" * 50)
-    n, ng = generate(args.db, args.out, args.msd, args.multicast_mode, args.prefer_multicast)
-    print(f"  输出: {args.out}  (组播模式: {args.multicast_mode}, 组播优先: {args.prefer_multicast})")
+    n, ng = generate(args.db, args.out, args.msd, args.multicast_mode, args.prefer_multicast, args.fcc)
+    print(f"  输出: {args.out}  (组播模式: {args.multicast_mode}, 组播优先: {args.prefer_multicast}, FCC: {args.fcc or '无'})")
     print(f"  频道条目: {n}, 分组: {ng}")
     print("完成")
