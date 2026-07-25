@@ -16,6 +16,7 @@ data/backup_*/
 # 公开门面见 README.md;AGENTS.md 是本地私密工作笔记
 AGENTS.md
 reference/orphan_todo.md
+reference/router/rtp2httpd-deploy.md
 
 # ==== 大文件/中间产物 ====
 output/iptv.m3u
