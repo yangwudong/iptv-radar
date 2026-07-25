@@ -56,11 +56,23 @@
   - 可手动做: 播放这9个地址看画面认频道 → 手写 resolved.json → 跑 orphan_import
   - 注意: 单播地址需带 token 才能播(完整地址 = `sources.address` + "?" + `sources.timeshift_query`), 且需在能到 IPTV 专网的环境(NAS/软路由)
 - [ ] Electron App(独立项目): 孤儿源识别客户端(看截图 + 播放 + 选 tag), 契约见 design/ORPHAN_REVIEW.md §3
-- [ ] **RTSP 回看转 HTTP 验证**(让只支持 HTTP 的网页播放器也能回看)
-  - 动机: 兼容版 m3u(网页播放器用)现在是组播优先、**无回看**; rtp2httpd 支持 RTSP→HTTP, 理论上能把 rtsp 回看转成 HTTP
-  - 要验证: ①rtp2httpd 转 RTSP 的确切 URL 格式 ②带 token 的回看地址(含 `&playseek=`)能否透传 ③网页播放器实测能否回看 ④可行则 gen_m3u 兼容版加 catchup
-  - rtp2httpd 侧已就绪: `upstream_interface_rtsp` 已配; 参考其 docs/en/guide/url-formats.md
-  - 验证环境: 能到 IPTV 专网的主机(NAS)用 ffprobe 测转换后的 HTTP 地址
+- [x] ~~**RTSP 回看转 HTTP 验证**~~ → **已验证:技术可行,但对飞牛影音不可行**(2026-07-25 实测结论)
+  - **rtp2httpd 的 RTSP→HTTP 能力完全可用**(已实测,可用于未来其他播放器):
+    - URL: `http://<网关>:4088/rtsp/<RTSP服务器>:554/<path>?<原query>&playseek=<起>-<止>`
+    - token(`accountinfo`/`it=`)原样透传,无需处理;`:554` 带与不带都行
+    - 回看返回**真历史内容**(4个不同时刻画面 md5 全异)
+    - **时区无需 offset**: 请求 19:00 → 画面茅台报时钟显示 18:59:57(早约3秒是GOP对齐),
+      与电信 playseek 用北京时间的语义一致,不需要 `r2h-seek-offset`
+  - **但飞牛影音用不了,两个硬阻碍**:
+    - ① 飞牛网页播放器**不支持 m3u 的 catchup 标签** —— 界面里没有回看/时移入口,
+      给它再完美的回看地址也没 UI 让用户选时间点
+    - ② 纯单播 4K 频道是 **HEVC(h265) Main 10 + 3840x2160** —— 浏览器/mpegts.js
+      根本解不了 H.265,除非服务端转码(另一个量级的工程)
+  - **结论**: 不再投入。兼容版保持"组播优先 + 无回看"现状即可。
+    需要回看就用标准版 `iptv.m3u` + APTV(原生 rtsp 回看已工作)。
+  - 遗留可选小改进(价值低,未做): 兼容版里那9个纯单播4K频道对飞牛是永远播不了的噪音,
+    可考虑加开关剔除。
+
 - [ ] 内网IP暴露公网DNS(claw/tv子域名直解析到内网IP) — 另开 session, 非本项目范畴
 
 ## 🔮 未来可选(不紧急)

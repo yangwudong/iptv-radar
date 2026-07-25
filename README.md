@@ -154,6 +154,36 @@ Gateways that don't understand `?fcc=` simply ignore the parameter, so the same 
 compatible. In this project the FCC server is configured via `FCC_SERVER` in `.env` and applied
 by `gen_m3u.py --fcc`.
 
+### RTSP catchup over HTTP with rtp2httpd (verified, with caveats)
+
+rtp2httpd can also proxy the carrier's RTSP unicast/catchup streams as plain HTTP:
+
+```
+http://<gateway>:<port>/rtsp/<rtsp_host>:554/<path>?<original_query>&playseek=<start>-<end>
+```
+
+Verified behaviour on Zhejiang Telecom:
+
+- The auth query (`accountinfo=`, `it=`) is passed through **verbatim** — nothing to rewrite.
+- `:554` is optional.
+- Catchup returns genuine historical content (frames captured for four different timestamps
+  were all different).
+- **No timezone offset needed here.** `playseek` is interpreted as carrier-local time
+  (Beijing). Requesting 19:00 yielded a frame whose on-screen broadcast clock read 18:59:57 —
+  about 3 seconds early, which is just GOP alignment, not the 8-hour skew the rtp2httpd docs
+  warn about. If your carrier does skew, use `r2h-seek-offset`.
+  *Tip:* CCTV1 airs a sponsor clock right before the 19:00 news that displays the actual
+  broadcast time on screen — an excellent ground truth for validating catchup.
+
+Caveats found while testing against a NAS web player (fnOS):
+
+- Browser-based players generally **do not implement the m3u `catchup` attribute**, so there is
+  no UI to pick a timestamp no matter how correct the URL is.
+- 4K channels here are **HEVC Main 10**, which browsers / mpegts.js cannot decode.
+
+So this path is useful for HTTP players that *do* support catchup (e.g. Kodi's IPTV Simple
+Client), not for plain browser players.
+
 ## Advanced: native multicast to LAN clients on OpenWRT
 
 By default multicast is transcoded to HTTP unicast by the gateway, which means the router does
