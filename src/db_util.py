@@ -75,6 +75,13 @@ def ensure_schema(conn, verbose=True):
     """
     changed = []
     cols_of = lambda t: [r[1] for r in conn.execute(f"PRAGMA table_info({t})")]
+    has_table = lambda t: bool(conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (t,)).fetchone())
+
+    # 库还没建表(首次部署 / CI 里没有 data/iptv.db) → 无可迁移,直接返回。
+    # 建表是 db_schema.py 的职责,这里只负责把**已存在**的旧库升级到当前 schema。
+    if not has_table('channels'):
+        return changed
 
     scols = cols_of('sources')
     for col, decl in (('timeshift_query', 'TEXT'), ('playback_days', 'INTEGER')):
@@ -106,8 +113,9 @@ def ensure_schema(conn, verbose=True):
             changed.append(f'-channels.{col}')
             ccols = cols_of('channels')
 
-    conn.execute("""CREATE UNIQUE INDEX IF NOT EXISTS idx_pref_rank1_source
-                    ON channel_preferred_sources(source_id) WHERE rank = 1""")
+    if has_table('channel_preferred_sources'):
+        conn.execute("""CREATE UNIQUE INDEX IF NOT EXISTS idx_pref_rank1_source
+                        ON channel_preferred_sources(source_id) WHERE rank = 1""")
     if changed:
         conn.commit()
         if verbose:

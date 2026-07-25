@@ -166,3 +166,59 @@ def test_schema自愈_占位频道无分组不阻塞迁移(tmp_path):
     ccols = {r[1] for r in conn.execute("PRAGMA table_info(channels)")}
     assert 'group_primary' not in ccols
     conn.close()
+
+
+def test_schema自愈_空库或缺表时不得崩(tmp_path):
+    """首次部署(库还没建)和 CI 环境(没有 data/iptv.db)都会遇到 —— 本地有库测不出来,
+    是 CI 抓到的: ensure_schema 直接对不存在的表建索引 → OperationalError →
+    pipeline 开头就 FATAL exit 9,连 --gen-only 都跑不了。"""
+    import sqlite3
+    sys.path.insert(0, SRC)
+    import db_util
+
+    # 1) 库文件根本不存在
+    p1 = str(tmp_path / 'nonexist.db')
+    conn = db_util.connect(p1)
+    assert db_util.ensure_schema(conn, verbose=False) == []
+    conn.close()
+
+    # 2) 有文件但没有表
+    p2 = str(tmp_path / 'empty.db')
+    sqlite3.connect(p2).close()
+    conn = db_util.connect(p2)
+    assert db_util.ensure_schema(conn, verbose=False) == []
+    conn.close()
+
+    # 3) 只有部分表(缺 channel_preferred_sources)
+    p3 = str(tmp_path / 'partial.db')
+    c = sqlite3.connect(p3)
+    c.executescript("""
+      CREATE TABLE channels(channel_id INTEGER PRIMARY KEY, channel_key TEXT, name TEXT,
+                            group_primary TEXT);
+      CREATE TABLE sources(source_id INTEGER PRIMARY KEY, address TEXT);
+      CREATE TABLE channel_groups(channel_id INTEGER, group_name TEXT,
+                                  is_primary INTEGER, order_in_group INTEGER);
+    """)
+    c.commit(); c.close()
+    conn = db_util.connect(p3)
+    db_util.ensure_schema(conn, verbose=False)      # 不该抛
+    conn.close()
+
+
+def test_pipeline在无库时不该被schema自愈挡死(tmp_path):
+    """回归: pipeline 开头的 ensure_schema 不能因为库不存在就 exit 9。"""
+    import shutil
+    import subprocess
+    radar = tmp_path / 'radar'
+    (radar / 'src').mkdir(parents=True)
+    (radar / 'data').mkdir()
+    (radar / 'output').mkdir()
+    for f in os.listdir(SRC):
+        if f.endswith('.py') or f == 'run_pipeline.sh':
+            shutil.copy(os.path.join(SRC, f), radar / 'src' / f)
+    (radar / 'src' / 'run_pipeline.sh').chmod(0o755)
+    # 没有 data/iptv.db
+    r = subprocess.run(['bash', 'run_pipeline.sh', '--gen-only'],
+                       cwd=radar / 'src', capture_output=True, text=True, timeout=120)
+    assert 'schema 自愈失败' not in r.stdout + r.stderr, \
+        f"无库时被 schema 自愈挡死:\n{r.stdout}{r.stderr}"
