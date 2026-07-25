@@ -2,12 +2,13 @@
 # iptv-radar 一键流水线: 采集 → 数据清洗 → ETL → 生成 → 发布
 # 三层解耦,任一步失败可单独重跑。
 #
-# 用法: ./run_pipeline.sh [--full] [--bitrate] [--publish] [--timeshift-only]
+# 用法: ./run_pipeline.sh [--full] [--bitrate] [--publish] [--timeshift-only] [--gen-only]
 #   (默认)          known增量扫描(只扫库里已知源,快~11分钟) — 适合每周cron
 #   --full          full全量扫描(全768段+回看探测,慢~20分钟) — 适合每月/初始化
 #   --bitrate       组播实测码率(慢)
 #   --publish       发布m3u到nginx目录(需配置 NGINX_M3U_DIR)
 #   --timeshift-only 只跑回看天数探测+重新生成页面(补回看数据,不重扫,~5分钟)
+#   --gen-only      只从现有库重新生成 m3u+Dashboard+页面(改模板/样式后用,几秒,不扫描/不刷token)
 #
 # cron示例:
 #   每周一 3:00 增量:  0 3 * * 1  cd /path/iptv-radar/src && ./run_pipeline.sh --publish
@@ -39,6 +40,32 @@ MC_ARGS="--mode $SCAN_MODE --msd $MSD"
 echo "############################################"
 echo "# iptv-radar pipeline  $STAMP"
 echo "############################################"
+
+# ===== 特殊模式: --gen-only 只从现有库重新生成 m3u+Dashboard+页面(不扫描/不探测/不刷token) =====
+# 用途: 改了模板/样式/gen脚本后,几秒内重出静态页,无需重跑扫描。
+if [[ "$*" == *"--gen-only"* ]]; then
+    echo "# 模式: 仅重新生成(--gen-only, 不扫描/不刷token, 用现有库数据)"
+    echo "############################################"
+    echo ""; echo ">>> 生成 m3u(msd版 + 直通版)"
+    python3 gen_m3u.py --msd "$MSD" --multicast-mode msd --out ../output/iptv.m3u
+    python3 gen_m3u.py --msd "$MSD" --multicast-mode direct --out ../output/iptv_direct.m3u
+    echo ""; echo ">>> 抓EPG + 生成Dashboard + 频道页"
+    python3 fetch_epg.py || echo "  EPG抓取失败(继续,Dashboard将无节目单)"
+    python3 gen_dashboard.py
+    python3 gen_channels_page.py
+    if [[ "$*" == *"--publish"* ]]; then
+        echo ""; echo ">>> 发布 m3u → $NGINX_M3U_DIR"
+        if [ -d "$NGINX_M3U_DIR" ]; then
+            cp ../output/iptv.m3u "$NGINX_M3U_DIR/iptv.m3u"
+            cp ../output/iptv_direct.m3u "$NGINX_M3U_DIR/iptv_direct.m3u"
+            echo "  已发布 iptv.m3u + iptv_direct.m3u"
+        else
+            echo "  ⚠️ Nginx目录不存在,跳过: $NGINX_M3U_DIR"
+        fi
+    fi
+    echo ""; echo "# 完成(仅重新生成) $STAMP"
+    exit 0
+fi
 
 # ===== 特殊模式: --timeshift-only 只跑回看探测+重新生成页面(补数据用,不重扫) =====
 # 用途: 补回看天数时,不必重跑整个full。手工触发一次即可。
