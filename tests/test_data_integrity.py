@@ -494,3 +494,134 @@ def test_p3_快照写出的是新格式(db, conn, tmp_path):
     v = snap.get('233.5.3.3:5140')
     assert isinstance(v, dict), f"快照仍是旧格式(改名后会丢): {v!r}"
     assert v['channel_id'] == cid and v['channel_key'] == 'CCTV1综合', v
+
+
+# ============================================================
+# orphan_import: 5种 action 的落库正确性
+#   这是"孤儿源识别"的落库端,从未在真实数据上跑过。而删除 channels.group_primary 列时
+#   改漏了 new 分支的 INSERT(7个值塞6个列 → 直接 OperationalError)。
+# ============================================================
+
+def _write_inbox(tmp_path, decisions):
+    inbox = tmp_path / 'inbox'
+    inbox.mkdir(exist_ok=True)
+    p = inbox / 'resolved_test.json'
+    json.dump({'resolved_at': '2026-07-25T00:00:00', 'decisions': decisions},
+              open(p, 'w', encoding='utf-8'), ensure_ascii=False)
+    return str(inbox)
+
+
+def _run_import(db, inbox, radar, extra=()):
+    return subprocess.run(
+        [sys.executable, str(radar / 'src' / 'orphan_import.py'),
+         '--db', db, '--inbox', inbox, *extra],
+        capture_output=True, text=True)
+
+
+def test_orphan_new_建新频道并归到分组末尾(db, conn, tmp_path):
+    """action=new: 建频道 + 写 channel_groups(组内末尾) + 归并源。
+    回归: 删 group_primary 列时改漏了这条 INSERT,new 直接报错。"""
+    add_channel(conn, '已有频道', group='其他', order=7)
+    add_source(conn, '233.7.0.1:5140', channel_id=None)
+    radar = _isolated_radar(tmp_path, db)
+    inbox = _write_inbox(tmp_path, [
+        {'address': '233.7.0.1:5140', 'action': 'new',
+         'channel_key': '浙江政务', 'group': '其他'}])
+    r = _run_import(db, inbox, radar)
+    assert r.returncode == 0, f"new 落库失败:\n{r.stdout}{r.stderr}"
+
+    row = conn.execute("""SELECT ch.channel_id, ch.enabled, ch.status
+                          FROM channels ch WHERE ch.channel_key='浙江政务'""").fetchone()
+    assert row is not None, f"新频道没建出来:\n{r.stdout}"
+    assert row['enabled'] == 1, f"enabled 应为1,实际 {row['enabled']!r}(列错位?)"
+    assert row['status'] == 'active', f"status 应为 active,实际 {row['status']!r}"
+
+    g = conn.execute("""SELECT group_name, is_primary, order_in_group FROM channel_groups
+                        WHERE channel_id=?""", (row['channel_id'],)).fetchone()
+    assert g['group_name'] == '其他' and g['is_primary'] == 1
+    assert g['order_in_group'] == 8, f"应归到组内末尾(7+1=8),实际 {g['order_in_group']}"
+
+    src = conn.execute("SELECT channel_id, channel_key FROM sources WHERE address='233.7.0.1:5140'").fetchone()
+    assert src['channel_id'] == row['channel_id'] and src['channel_key'] == '浙江政务'
+
+
+def test_orphan_new_可以创建全新分组(db, conn, tmp_path):
+    """用户要能新建分组(填一个库里还没有的组名)。"""
+    add_source(conn, '233.7.0.2:5140', channel_id=None)
+    radar = _isolated_radar(tmp_path, db)
+    inbox = _write_inbox(tmp_path, [
+        {'address': '233.7.0.2:5140', 'action': 'new',
+         'channel_key': '某新频道', 'group': '全新分组'}])
+    r = _run_import(db, inbox, radar)
+    assert r.returncode == 0, r.stdout + r.stderr
+    g = conn.execute("""SELECT g.group_name, g.order_in_group FROM channel_groups g
+                        JOIN channels ch USING(channel_id)
+                        WHERE ch.channel_key='某新频道'""").fetchone()
+    assert g['group_name'] == '全新分组'
+    assert g['order_in_group'] == 1, f"新分组第一个成员应为1,实际 {g['order_in_group']}"
+
+
+def test_orphan_assign_归并到已有频道(db, conn, tmp_path):
+    cid = add_channel(conn, 'CCTV1综合')
+    add_source(conn, '233.7.0.3:5140', channel_id=None)
+    radar = _isolated_radar(tmp_path, db)
+    inbox = _write_inbox(tmp_path, [
+        {'address': '233.7.0.3:5140', 'action': 'assign', 'channel_key': 'CCTV1综合'}])
+    r = _run_import(db, inbox, radar)
+    assert r.returncode == 0, r.stdout + r.stderr
+    src = conn.execute("SELECT channel_id FROM sources WHERE address='233.7.0.3:5140'").fetchone()
+    assert src['channel_id'] == cid
+
+
+def test_orphan_junk与unknown挂占位频道且不进m3u(db, conn, tmp_path):
+    for k in ('__JUNK__', '__UNKNOWN__'):
+        conn.execute("""INSERT INTO channels(channel_key,name,enabled,status)
+                        VALUES(?,?,0,'placeholder')""", (k, k))
+    conn.commit()
+    add_source(conn, '233.7.0.4:5140', channel_id=None)
+    add_source(conn, '233.7.0.5:5140', channel_id=None)
+    radar = _isolated_radar(tmp_path, db)
+    inbox = _write_inbox(tmp_path, [
+        {'address': '233.7.0.4:5140', 'action': 'junk'},
+        {'address': '233.7.0.5:5140', 'action': 'unknown'}])
+    r = _run_import(db, inbox, radar)
+    assert r.returncode == 0, r.stdout + r.stderr
+    for addr, key in (('233.7.0.4:5140', '__JUNK__'), ('233.7.0.5:5140', '__UNKNOWN__')):
+        got = conn.execute("""SELECT ch.channel_key FROM sources s
+                              JOIN channels ch ON ch.channel_id=s.channel_id
+                              WHERE s.address=?""", (addr,)).fetchone()
+        assert got and got['channel_key'] == key, f"{addr} 未挂到 {key}"
+    out = str(tmp_path / 'j.m3u')
+    run_script('gen_m3u.py', '--db', db, '--out', out, '--msd', 'H:4088')
+    text = open(out, encoding='utf-8').read()
+    assert '233.7.0.4' not in text and '233.7.0.5' not in text, "垃圾流进了m3u"
+
+
+def test_orphan_skip不动库(db, conn, tmp_path):
+    add_source(conn, '233.7.0.6:5140', channel_id=None)
+    radar = _isolated_radar(tmp_path, db)
+    inbox = _write_inbox(tmp_path, [{'address': '233.7.0.6:5140', 'action': 'skip'}])
+    r = _run_import(db, inbox, radar)
+    assert r.returncode == 0, r.stdout + r.stderr
+    src = conn.execute("SELECT channel_id FROM sources WHERE address='233.7.0.6:5140'").fetchone()
+    assert src['channel_id'] is None, "skip 却写了库"
+
+
+def test_orphan_快照写新格式(db, conn, tmp_path):
+    """快照必须是 {address:{channel_id,channel_key}} —— 否则改名后归并会丢(项目3)。
+
+    注: orphan_import 的快照路径跟着 --db 走(snapshot_path_for),不是 RADAR/data/。
+    """
+    cid = add_channel(conn, 'CCTV1综合')
+    add_source(conn, '233.7.0.7:5140', channel_id=None)
+    radar = _isolated_radar(tmp_path, db)
+    snap_file = os.path.join(os.path.dirname(os.path.abspath(db)), 'source_links.json')
+    json.dump({}, open(snap_file, 'w', encoding='utf-8'))
+    inbox = _write_inbox(tmp_path, [
+        {'address': '233.7.0.7:5140', 'action': 'assign', 'channel_key': 'CCTV1综合'}])
+    r = _run_import(db, inbox, radar)
+    assert r.returncode == 0, r.stdout + r.stderr
+    snap = json.load(open(snap_file, encoding='utf-8'))
+    v = snap.get('233.7.0.7:5140')
+    assert isinstance(v, dict), f"快照写成旧格式了: {v!r}"
+    assert v['channel_id'] == cid and v['channel_key'] == 'CCTV1综合'

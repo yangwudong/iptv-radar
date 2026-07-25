@@ -65,7 +65,8 @@ def apply_decision(c, d, snapshot):
             return f"⚠️ 频道{key}不存在,跳过: {addr}", False
         c.execute("UPDATE sources SET channel_id=?, channel_key=? WHERE address=?",
                   (ch['channel_id'], key, addr))
-        snapshot[addr] = key
+        # 快照按 channel_id 存(频道改名不断关联),channel_key 只是可读注释
+        snapshot[addr] = {'channel_id': ch['channel_id'], 'channel_key': key}
         return f"assign: {addr} → {key}", True
 
     if action == 'new':
@@ -81,14 +82,14 @@ def apply_decision(c, d, snapshot):
             # 建新频道: 归所属分组末尾(order=组内max+1)
             # 分组只写 channel_groups(下面几行),channels 表不再有分组列
             c.execute("""INSERT INTO channels(channel_key,name,enabled,status,first_seen,last_seen)
-                         VALUES(?,?,?,1,'active',?,?)""", (key, key, group, NOW(), NOW()))
+                         VALUES(?,?,1,'active',?,?)""", (key, key, NOW(), NOW()))
             cid = c.lastrowid
             maxord = c.execute("SELECT COALESCE(MAX(order_in_group),0) FROM channel_groups WHERE group_name=?",
                                (group,)).fetchone()[0]
             c.execute("""INSERT INTO channel_groups(channel_id,group_name,is_primary,order_in_group)
                          VALUES(?,?,1,?)""", (cid, group, maxord + 1))
         c.execute("UPDATE sources SET channel_id=?, channel_key=? WHERE address=?", (cid, key, addr))
-        snapshot[addr] = key
+        snapshot[addr] = {'channel_id': cid, 'channel_key': key}
         return f"new: {addr} → 新频道[{key}]({group})", True
 
     return f"⚠️ 未知action '{action}': {addr}", False
