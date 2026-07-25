@@ -79,7 +79,8 @@ def apply_decision(c, d, snapshot):
             cid = ch['channel_id']
         else:
             # 建新频道: 归所属分组末尾(order=组内max+1)
-            c.execute("""INSERT INTO channels(channel_key,name,group_primary,enabled,status,first_seen,last_seen)
+            # 分组只写 channel_groups(下面几行),channels 表不再有分组列
+            c.execute("""INSERT INTO channels(channel_key,name,enabled,status,first_seen,last_seen)
                          VALUES(?,?,?,1,'active',?,?)""", (key, key, group, NOW(), NOW()))
             cid = c.lastrowid
             maxord = c.execute("SELECT COALESCE(MAX(order_in_group),0) FROM channel_groups WHERE group_name=?",

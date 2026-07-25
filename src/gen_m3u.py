@@ -7,7 +7,7 @@ iptv-radar 阶段2 生成层: gen_m3u.py
   - 只输出 enabled=1 的频道
   - 频道按 GROUP_ORDER(分组固定优先级) + channel_groups.order_in_group(组内位置)输出
     (注: 不用 channels.sort_hint —— 那是迁移期遗留字段,新频道不写它,会导致顺序漂移)
-  - 附加分组(group_extra): 一个频道额外输出到每个附加组(复制法)
+  - 附加分组: 一个频道在 channel_groups 里有多行 → 额外输出到每个附加组(复制法)
   - 每频道用主源(channel_preferred_sources rank=1)的地址
   - EXTINF格式: #EXTINF:-1 tvg-id="" tvg-logo="" group-title="",name
 

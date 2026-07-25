@@ -156,3 +156,62 @@ def test_dashboard与m3u排序一致(db, conn, tmp_path):
 
     assert m3u_order == dash_order, (
         f"顺序不一致:\n  m3u  ={m3u_order}\n  dash ={dash_order}")
+
+
+# ============================================================
+# 项目5: 分组只有一份真相(channel_groups 表)
+#   原来 channels.group_primary/group_extra 又存了一遍,而 m3u 读表、Dashboard 显示读列
+#   → 只改一处就会两边不一致(已实证: 往表里加"少儿"后 m3u 出现在少儿组,
+#     Dashboard 标签却仍只显示"卫视+浙江")
+# ============================================================
+
+def test_p5_加分组后m3u与dashboard必须同时生效(db, conn, tmp_path):
+    """只往 channel_groups 加一行(不碰 channels 的列),两边都要体现。"""
+    sys.path.insert(0, SRC)
+    import importlib
+    import gen_dashboard
+    importlib.reload(gen_dashboard)
+
+    cid = add_channel(conn, '浙江卫视', group='卫视', order=1)
+    set_preferred(conn, cid, add_source(conn, '233.4.1.1:5140',
+                                        channel_id=cid, channel_key='浙江卫视'))
+    # 追加一个附加组(AGENTS.md 说的"有意的重复分组")
+    conn.execute("""INSERT INTO channel_groups(channel_id,group_name,is_primary,order_in_group)
+                    VALUES(?,'少儿',0,9)""", (cid,))
+    conn.commit()
+
+    out = str(tmp_path / 'g.m3u')
+    run_script('gen_m3u.py', '--db', db, '--out', out, '--msd', 'H:4088')
+    text = open(out, encoding='utf-8').read()
+    assert 'group-title="卫视",浙江卫视' in text
+    assert 'group-title="少儿",浙江卫视' in text, "m3u 未按 channel_groups 输出到少儿组"
+
+    d = [x for x in gen_dashboard.load_data(db) if x['name'] == '浙江卫视'][0]
+    groups = {d['group']} | {g for g in d['group_extra'].split(';') if g}
+    assert groups == {'卫视', '少儿'}, (
+        f"Dashboard 分组与 channel_groups 不一致(m3u有少儿,页面没有): {groups}")
+
+
+def test_p5_主组由is_primary决定(db, conn):
+    sys.path.insert(0, SRC)
+    import importlib
+    import gen_dashboard
+    importlib.reload(gen_dashboard)
+    cid = add_channel(conn, 'BesTV少儿4K', group='4K超高清', order=0)   # is_primary=1
+    set_preferred(conn, cid, add_source(conn, '233.4.2.2:5140',
+                                        channel_id=cid, channel_key='BesTV少儿4K'))
+    for g, o in (('少儿', 0), ('BesTV', 2)):
+        conn.execute("""INSERT INTO channel_groups(channel_id,group_name,is_primary,order_in_group)
+                        VALUES(?,?,0,?)""", (cid, g, o))
+    conn.commit()
+    d = [x for x in gen_dashboard.load_data(db) if x['name'] == 'BesTV少儿4K'][0]
+    assert d['group'] == '4K超高清', f"主组应取 is_primary=1 的那行,实际 {d['group']}"
+    assert [x for x in d['group_extra'].split(';') if x] == ['少儿', 'BesTV'], \
+        f"附加组应按 order_in_group 排序,实际 {d['group_extra']}"
+
+
+def test_p5_channels表不该再有分组列(db, conn):
+    """删列后 schema 里不能残留(否则又会有人去写它,双真相回归)。"""
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(channels)")}
+    assert 'group_primary' not in cols, "group_primary 仍在,分组仍是双真相"
+    assert 'group_extra' not in cols, "group_extra 仍在,分组仍是双真相"

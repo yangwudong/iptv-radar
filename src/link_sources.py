@@ -171,11 +171,6 @@ def main():
                     official_added += 1
 
     # === 4. 回填 sources: channel_id(关联键,为主) + channel_key(可读冗余) ===
-    # 自愈: 确保 timeshift_query 字段存在(旧库可能没有)
-    cols = [r[1] for r in c.execute("PRAGMA table_info(sources)").fetchall()]
-    if 'timeshift_query' not in cols:
-        c.execute("ALTER TABLE sources ADD COLUMN timeshift_query TEXT")
-        print("  + sources.timeshift_query 字段(自愈)")
     # 先取完再更新,避免cursor冲突
     src_rows = c.execute("SELECT source_id, address, source_type FROM sources").fetchall()
     linked, orphan = 0, 0

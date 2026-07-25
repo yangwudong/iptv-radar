@@ -70,7 +70,7 @@ def load_data(db_path):
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     rows = c.execute("""
-        SELECT ch.channel_id, ch.name, ch.group_primary, ch.group_extra, ch.tvg_logo, ch.status,
+        SELECT ch.channel_id, ch.name, ch.tvg_logo, ch.status,
                ch.epg_channel_id, ch.tvg_id, ch.timeshift, ch.sort_hint,
                s.source_type, s.address, s.resolution, s.res_label, s.video_codec,
                s.fps, s.vbitrate, s.hdr, s.audio_codec, s.audio_channels, s.available,
@@ -84,21 +84,33 @@ def load_data(db_path):
     # 不能用 channels.sort_hint: 那是迁移期遗留字段,orphan_import 新建频道只写 order_in_group、
     # 不写 sort_hint(默认兜成9999),会被甩到列表最末 → Dashboard 与 m3u 顺序不一致
     # (已实证: 浙江政务 在m3u里排"其他"组末尾,在Dashboard里却排到广播组之后)。
+    # 分组信息**只从 channel_groups 表取**。曾经 channels 表还有 group_primary/group_extra
+    # 两列存同样的信息,而 m3u 读表、这里显示读列 → 只改一处就两边不一致
+    # (实测: 往表里加"少儿"后 m3u 出现在少儿组,页面标签却仍只显示"卫视+浙江")。
     order_key = {}
+    grp_primary = {}     # channel_id → 主组(is_primary=1)
+    grp_extra = {}       # channel_id → [附加组...] 按 order_in_group
     for r in c.execute("""SELECT channel_id, group_name, order_in_group, is_primary
-                          FROM channel_groups"""):
+                          FROM channel_groups
+                          ORDER BY channel_id, order_in_group"""):
         gi = GROUP_ORDER.index(r['group_name']) if r['group_name'] in GROUP_ORDER else len(GROUP_ORDER)
         key = (gi, r['order_in_group'] if r['order_in_group'] is not None else 9999)
         cid = r['channel_id']
         # 一频道可属多组(主组+附加组),Dashboard每频道只一行 → 取最靠前的位置
         if cid not in order_key or key < order_key[cid]:
             order_key[cid] = key
+        if r['is_primary']:
+            grp_primary[cid] = r['group_name']
+        else:
+            grp_extra.setdefault(cid, []).append(r['group_name'])
     conn.close()
     data = []
     for r in rows:
-        cat = res_category(r['res_label'], r['group_primary'])
+        _gp = grp_primary.get(r['channel_id'], '')
+        cat = res_category(r['res_label'], _gp)
         data.append({
-            'name': r['name'], 'group': r['group_primary'], 'group_extra': r['group_extra'] or '',
+            'name': r['name'], 'group': _gp,
+            'group_extra': ';'.join(grp_extra.get(r['channel_id'], [])),
             'logo': r['tvg_logo'] or '', 'status': r['status'] or 'active',
             'epg_id': r['epg_channel_id'] or '', 'tvg_id': r['tvg_id'] or '', 'timeshift': r['timeshift'],
             'sort_hint': r['sort_hint'] if r['sort_hint'] is not None else 9999,

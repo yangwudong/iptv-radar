@@ -136,6 +136,15 @@ echo "############################################"
 echo "# iptv-radar pipeline  $STAMP"
 echo "############################################"
 
+# schema 自愈(幂等): 旧库补缺列/删已废弃列/补索引。集中在一处做,
+# 避免各脚本自己散落 ALTER —— schema 兼容逻辑不该跑到清洗层和生成层里。
+python3 -c "
+import sys; sys.path.insert(0,'.')
+import db_util
+conn = db_util.connect('../data/iptv.db')
+db_util.ensure_schema(conn)
+conn.close()" || { echo "❌ FATAL: schema 自愈失败" >&2; exit 9; }
+
 # ===== 特殊模式: --gen-only 只从现有库重新生成 m3u+Dashboard+页面(不扫描/不探测/不刷token) =====
 # 用途: 改了模板/样式/gen脚本后,几秒内重出静态页,无需重跑扫描。
 if [ "$OPT_GEN_ONLY" = 1 ]; then

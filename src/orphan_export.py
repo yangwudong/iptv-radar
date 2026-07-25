@@ -70,8 +70,11 @@ def main():
         return
 
     # 可归属频道清单(供App下拉/tag匹配)
-    channels = [{'channel_key': r['channel_key'], 'name': r['name'], 'group': r['group_primary']}
-                for r in c.execute("""SELECT channel_key, name, group_primary FROM channels
+    channels = [{'channel_key': r['channel_key'], 'name': r['name'], 'group': r['grp'] or ''}
+                for r in c.execute("""SELECT channel_key, name,
+                        (SELECT group_name FROM channel_groups g
+                         WHERE g.channel_id=channels.channel_id AND g.is_primary=1) AS grp
+                    FROM channels
                                       WHERE status!='placeholder' AND channel_key IS NOT NULL
                                       ORDER BY sort_hint""")]
     placeholders = [{'channel_key': r['channel_key'], 'name': r['name']}

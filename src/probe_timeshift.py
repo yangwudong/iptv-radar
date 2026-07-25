@@ -113,11 +113,6 @@ def main():
     import sqlite3
     conn = db_util.connect(args.db)
     c = conn.cursor()
-    # 自愈: 确保 playback_days 字段存在(已有旧库可能没有,新库db_schema已含)
-    cols = [r[1] for r in c.execute("PRAGMA table_info(sources)").fetchall()]
-    if 'playback_days' not in cols:
-        c.execute("ALTER TABLE sources ADD COLUMN playback_days INTEGER")
-        print("  + sources.playback_days 字段(自愈)")
     updated = 0
     for smil, days in results.items():
         c.execute("UPDATE sources SET playback_days=? WHERE address=? AND source_type='rtsp'",

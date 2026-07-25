@@ -30,7 +30,7 @@ SEED_PATH = os.path.join(RADAR, 'data', 'channels_seed.json')
 
 # 导出的频道字段(知识资产;跳过 first_seen/last_seen 等运行时时间戳)
 CH_FIELDS = ['channel_id', 'channel_key', 'name', 'tvg_id', 'tvg_logo',
-             'group_primary', 'group_extra', 'enabled', 'timeshift',
+             'enabled', 'timeshift',
              'sort_hint', 'status', 'epg_channel_id']
 GRP_FIELDS = ['channel_id', 'group_name', 'is_primary', 'order_in_group']
 

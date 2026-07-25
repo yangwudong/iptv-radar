@@ -22,8 +22,9 @@ CREATE TABLE IF NOT EXISTS channels (
     name              TEXT NOT NULL,       -- 展示名(如 CCTV1综合)
     tvg_id            TEXT,                -- EPG匹配id(如 CCTV1)
     tvg_logo          TEXT,                -- 台标URL
-    group_primary     TEXT,               -- 主分组(如 央视)
-    group_extra       TEXT,               -- 附加分组,分号分隔(如 北京;少儿)
+    -- 注: 分组**不存在这里**。分组关系一律在 channel_groups 表(一频道多行,支持多分组)。
+    -- 曾经这里还有 group_primary/group_extra 两列存同样信息,而 m3u 读表、Dashboard 显示读列
+    -- → 只改一处就两边不一致(实测: 往表里加"少儿"后 m3u 出现在少儿组,页面标签却没有)。
     enabled           INTEGER DEFAULT 1,   -- 是否输出到m3u(0=黑名单/禁用/占位)
     timeshift         INTEGER DEFAULT 0,   -- 是否支持时移
     sort_hint         INTEGER,             -- 组内排序提示(可选)
@@ -118,7 +119,6 @@ CREATE INDEX IF NOT EXISTS idx_sources_channel ON sources(channel_id);
 CREATE INDEX IF NOT EXISTS idx_sources_type ON sources(source_type);
 CREATE INDEX IF NOT EXISTS idx_sources_avail ON sources(available);
 CREATE INDEX IF NOT EXISTS idx_history_run ON scan_history(scan_run);
-CREATE INDEX IF NOT EXISTS idx_channels_group ON channels(group_primary);
 CREATE INDEX IF NOT EXISTS idx_channels_key ON channels(channel_key);
 """
 

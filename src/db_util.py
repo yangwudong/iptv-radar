@@ -65,3 +65,51 @@ def load_env(radar_root=None):
             v = v[:cut].strip()
         env[k.strip()] = v
     return env
+
+
+def ensure_schema(conn, verbose=True):
+    """自愈式 schema 迁移(旧库升级到当前 schema)。幂等,可反复调用。
+
+    为什么放在这里而不是各脚本自己 ALTER: 原来 link_sources / probe_timeshift / etl_process
+    各自散落着"缺列就 ALTER"的自愈代码,schema 兼容逻辑跑到了清洗层和生成层里。
+    """
+    changed = []
+    cols_of = lambda t: [r[1] for r in conn.execute(f"PRAGMA table_info({t})")]
+
+    scols = cols_of('sources')
+    for col, decl in (('timeshift_query', 'TEXT'), ('playback_days', 'INTEGER')):
+        if scols and col not in scols:
+            conn.execute(f"ALTER TABLE sources ADD COLUMN {col} {decl}")
+            changed.append(f'+sources.{col}')
+            scols = cols_of('sources')
+
+    # 分组双真相清理: channels.group_primary/group_extra 与 channel_groups 表重复,
+    # 而 m3u 读表、Dashboard 曾读列 → 只改一处就两边不一致。表是唯一真相,删列。
+    # 必须先删索引: idx_channels_group 建在 group_primary 上,
+    # 不先删的话 ALTER TABLE ... DROP COLUMN 会报 "error in index ... no such column"
+    conn.execute("DROP INDEX IF EXISTS idx_channels_group")
+
+    ccols = cols_of('channels')
+    for col in ('group_primary', 'group_extra'):
+        if ccols and col in ccols:
+            # 删列前先确保信息不丢: 凡是列里写了分组、但 channel_groups 里没有对应行的,
+            # 删列就会丢分组。占位频道(__UNKNOWN__/__JUNK__)本就无分组也不进m3u,不算。
+            missing = conn.execute(f"""SELECT COUNT(*) FROM channels ch
+                                      WHERE COALESCE(ch.{col},'') != ''
+                                        AND NOT EXISTS(SELECT 1 FROM channel_groups g
+                                                       WHERE g.channel_id=ch.channel_id)""").fetchone()[0]
+            if missing:
+                raise RuntimeError(
+                    f"有 {missing} 个频道 channels.{col} 有值但 channel_groups 里没有分组行,"
+                    f"删列会丢失分组信息。请先补齐 channel_groups 再升级。")
+            conn.execute(f"ALTER TABLE channels DROP COLUMN {col}")
+            changed.append(f'-channels.{col}')
+            ccols = cols_of('channels')
+
+    conn.execute("""CREATE UNIQUE INDEX IF NOT EXISTS idx_pref_rank1_source
+                    ON channel_preferred_sources(source_id) WHERE rank = 1""")
+    if changed:
+        conn.commit()
+        if verbose:
+            print(f"  schema自愈: {', '.join(changed)}")
+    return changed
