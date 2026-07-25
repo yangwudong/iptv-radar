@@ -51,12 +51,19 @@ def shot_prefix(source_type, address):
 
     组播沿用 IP 形式(233_50_201_204),不改 —— 变了会让已有截图全部失效重拍。
     单播不能用 addr.split(':')[0]: 'rtsp://...' 恒得字面 'rtsp',所有单播源互相覆盖。
-    单播用 尾部路径(可读,便于对照源) + 地址md5前6位(保证唯一,不依赖路径规律)。
+    单播用 频道标识段(倒数第二段) + 尾段截断 + 地址md5前6位:
+      .../3221229007/10000100000000060000000004308260_0.smil → u3221229007_100001000000_xxxxxx
+    只截尾段的话,几个直播室频道前24字符完全相同、只有哈希不同,翻目录分不出谁是谁
+    (实拍后发现)。md5 保证唯一,不依赖路径规律。
     """
     if source_type == 'multicast':
         return address.split(':')[0].replace('.', '_')
-    tail = re.sub(r'[^0-9A-Za-z]+', '_', address.rsplit('/', 2)[-1]).strip('_')[:24]
-    return f"u{tail}_{hashlib.md5(address.encode()).hexdigest()[:6]}" if tail \
+    parts = [re.sub(r'[^0-9A-Za-z]+', '_', x).strip('_')
+             for x in address.rsplit('/', 3)[1:]]          # 取末尾若干段
+    ident = parts[-2][:14] if len(parts) >= 2 else ''      # 频道标识段(如 3221229007)
+    tail = parts[-1][:12] if parts else ''                 # 尾段(截断即可,唯一性靠md5)
+    human = '_'.join(x for x in (ident, tail) if x)
+    return f"u{human}_{hashlib.md5(address.encode()).hexdigest()[:6]}" if human \
         else 'u' + hashlib.md5(address.encode()).hexdigest()[:10]
 
 

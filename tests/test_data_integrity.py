@@ -969,3 +969,18 @@ def test_orphan_export_json仍保留play_url与iina_url(db, conn, tmp_path, monk
     o = json.load(open(tmp_path / 'orphans.json', encoding='utf-8'))['orphans'][0]
     assert o['play_url'] == 'http://H:4088/rtp/233.9.9.7:5140'
     assert o['iina_url'].startswith('iina://weblink?url=')
+
+
+def test_shot_prefix_单播前缀要能肉眼区分():
+    """实拍后发现: 3 个直播室的文件名前 24 字符完全相同(只有 md5 尾不同),
+    翻目录时根本分不出谁是谁。频道标识段(倒数第二段,如 3221229007)必须进文件名。"""
+    sys.path.insert(0, SRC)
+    from orphan_export import shot_prefix
+    a = 'rtsp://h/PLTV/88888913/224/3221229007/10000100000000060000000004308260_0.smil'
+    b = 'rtsp://h/PLTV/88888913/224/3221229011/10000100000000060000000004308262_0.smil'
+    pa, pb = shot_prefix('rtsp', a), shot_prefix('rtsp', b)
+    assert '3221229007' in pa, f"频道标识段没进前缀: {pa}"
+    assert '3221229011' in pb, f"频道标识段没进前缀: {pb}"
+    # 去掉各自的 md5 尾后仍必须不同(即可读部分本身就能区分)
+    assert pa.rsplit('_', 1)[0] != pb.rsplit('_', 1)[0], \
+        f"可读部分相同,只靠哈希区分: {pa} vs {pb}"

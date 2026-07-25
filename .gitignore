@@ -21,13 +21,14 @@ reference/orphan_todo.md
 reference/router/rtp2httpd-deploy.md
 
 # ==== 大文件/中间产物 ====
-output/iptv.m3u
-output/iptv_direct.m3u
-output/iptv_compat.m3u
-output/epg_today.json
-output/dashboard/screenshots/*.jpg
-output/dashboard/index.html
-output/dashboard/channels.html
+# output/ 全是生成物,整目录忽略。
+# 原来是逐个文件列举(iptv.m3u / dashboard/index.html / ...),每加一种产出就漏一次:
+# 待识别包从 output/orphan_review/(已忽略)挪到 output/dashboard/ 后,
+# 54个生成物(51张截图+html+json)被静默提交进公开仓库(2026-07-25)。
+# 只放行目录占位文件。
+output/**
+!output/**/
+!output/**/.gitkeep
 *.log
 
 # ==== 静态资源: icons 源在 reference/icons/(进镜像,上传);output/dashboard/icons是生成物(忽略) ====
@@ -47,12 +48,8 @@ Thumbs.db
 # ==== 保留的样本(可上传,已脱敏) ====
 !reference/channels.sample.json
 !reference/logo_index.json
-!output/dashboard/screenshots/.gitkeep
 reference/orphan_shots/
 
 # ==== 孤儿源识别运行时数据(不上git) ====
-output/orphan_review/
 data/orphan_inbox/
-output/*.m3u.bak
-output/iptv_catchup_test.m3u
 .venv-test/
