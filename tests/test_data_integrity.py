@@ -213,8 +213,10 @@ def test_h4_禁用频道不得销毁人工归并快照(db, conn, tmp_path):
     assert r.returncode == 0, r.stderr
 
     after = json.load(open(snap, encoding='utf-8'))
-    assert after.get('rtsp://x/1.smil') == '被禁频道', (
-        f"禁用频道后人工归并快照被销毁(不可逆): {after}")
+    entry = after.get('rtsp://x/1.smil')
+    # 快照值现在是 {"channel_id":N,"channel_key":"名"};旧格式是纯字符串,两种都接受
+    got_key = entry.get('channel_key') if isinstance(entry, dict) else entry
+    assert got_key == '被禁频道', f"禁用频道后人工归并快照被销毁(不可逆): {after}" 
 
 
 # ============================================================
@@ -421,3 +423,68 @@ def test_orphan_export_截图文件丢了要重拍(db, conn, tmp_path, monkeypat
     monkeypatch.setattr(sys, 'argv', ['x', '--db', db, '--msd', 'H:4088'])
     orphan_export.main()
     assert len(calls) == 1, "磁盘截图丢失却没重拍"
+
+
+# ============================================================
+# 项目3: 归并快照必须用不变的 channel_id 做键
+#   原来用 channel_key(频道名)做键。改名/合并频道 → 快照条目被当"频道已不存在"
+#   静默丢弃,而缩水告警(>10%)抓不住(447条丢5条=1.1%)。
+#   而快照存在的意义就是"库丢了也能恢复人工归并" —— 改名后这层保险就失效了。
+# ============================================================
+
+def test_p3_频道改名后快照仍能恢复归并(db, conn, tmp_path):
+    cid = add_channel(conn, '浙江钱江都市')
+    add_source(conn, '233.5.1.1:5140', channel_id=None, channel_key=None)   # 未关联,只能靠快照
+    radar = _isolated_radar(tmp_path, db)
+
+    # 快照按新格式记录(带 channel_id)
+    snap = radar / 'data' / 'source_links.json'
+    json.dump({'233.5.1.1:5140': {'channel_id': cid, 'channel_key': '浙江钱江都市'}},
+              open(snap, 'w', encoding='utf-8'), ensure_ascii=False)
+
+    # 人工改名(AGENTS.md 记录过的真实操作: 合并更正/改规范名)
+    raw = sqlite3.connect(radar / 'data' / 'iptv.db')
+    raw.execute("UPDATE channels SET channel_key='钱江都市', name='钱江都市' WHERE channel_id=?", (cid,))
+    raw.commit(); raw.close()
+
+    epg = radar / 'data' / 'epg.json'
+    json.dump([], open(epg, 'w', encoding='utf-8'))
+    r = _run_link_sources(radar, epg)
+    assert r.returncode == 0, r.stderr
+
+    row = sqlite3.connect(radar / 'data' / 'iptv.db').execute(
+        "SELECT channel_id, channel_key FROM sources WHERE address='233.5.1.1:5140'").fetchone()
+    assert row[0] == cid, f"改名后快照失效,人工归并丢了(改名前 channel_id={cid}, 实际 {row[0]})"
+    assert row[1] == '钱江都市', f"channel_key 冗余列未跟着更新: {row[1]}"
+
+
+def test_p3_旧格式快照必须仍能读(db, conn, tmp_path):
+    """向后兼容: 现有 447 条是 {address: "频道名"} 旧格式,升级不能让它们失效。"""
+    cid = add_channel(conn, 'CCTV1综合')
+    add_source(conn, '233.5.2.2:5140', channel_id=None, channel_key=None)
+    radar = _isolated_radar(tmp_path, db)
+    json.dump({'233.5.2.2:5140': 'CCTV1综合'},          # 旧格式: 值是字符串
+              open(radar / 'data' / 'source_links.json', 'w', encoding='utf-8'),
+              ensure_ascii=False)
+    epg = radar / 'data' / 'epg.json'
+    json.dump([], open(epg, 'w', encoding='utf-8'))
+    r = _run_link_sources(radar, epg)
+    assert r.returncode == 0, r.stderr
+    row = sqlite3.connect(radar / 'data' / 'iptv.db').execute(
+        "SELECT channel_id FROM sources WHERE address='233.5.2.2:5140'").fetchone()
+    assert row[0] == cid, "旧格式快照读不了了(447条人工归并会全丢)"
+
+
+def test_p3_快照写出的是新格式(db, conn, tmp_path):
+    cid = add_channel(conn, 'CCTV1综合')
+    add_source(conn, '233.5.3.3:5140', channel_id=cid, channel_key='CCTV1综合')
+    radar = _isolated_radar(tmp_path, db)
+    json.dump({}, open(radar / 'data' / 'source_links.json', 'w', encoding='utf-8'))
+    epg = radar / 'data' / 'epg.json'
+    json.dump([], open(epg, 'w', encoding='utf-8'))
+    r = _run_link_sources(radar, epg)
+    assert r.returncode == 0, r.stderr
+    snap = json.load(open(radar / 'data' / 'source_links.json', encoding='utf-8'))
+    v = snap.get('233.5.3.3:5140')
+    assert isinstance(v, dict), f"快照仍是旧格式(改名后会丢): {v!r}"
+    assert v['channel_id'] == cid and v['channel_key'] == 'CCTV1综合', v

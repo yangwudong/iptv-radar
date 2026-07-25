@@ -107,27 +107,42 @@ def main():
         if r['enabled']:
             key2id[key] = r['channel_id']
             norm2key[norm(key)] = key
+    id2key = {v: k for k, v in key2id_all.items()}   # channel_id → channel_key(反查)
     canon = key2id  # 兼容下方报告(自动匹配目标数)
 
-    # === 2. 种子: 已关联的源 → 用其channel的规范名 ===
+    # === 2. 种子: 已关联的源 → 记其 channel_id ===
+    # 归并关系一律以 channel_id(不变的代理键)承载,不用会变的 channel_key,
+    # 否则频道改名/合并时归并关系会跟着断(AGENTS.md 铁律)。
     # 不按 enabled 过滤: 已建立的归并关系是事实,禁用/占位频道的关联同样要保留。
-    addr2key = {}    # address → channel_key
-    for r in c.execute("""SELECT s.address, ch.channel_key FROM sources s
-                          JOIN channels ch ON s.channel_id=ch.channel_id
-                          WHERE ch.channel_key IS NOT NULL""").fetchall():
-        addr2key[r['address']] = r['channel_key']
+    addr2cid = {}    # address → channel_id
+    for r in c.execute("""SELECT address, channel_id FROM sources
+                          WHERE channel_id IS NOT NULL""").fetchall():
+        if r['channel_id'] in id2key:
+            addr2cid[r['address']] = r['channel_id']
 
     # === 2.5 加载持久化归并快照(人工确认的归并结果,最高优先) ===
-    # data/source_links.json: {address: channel_key},保证人工归并/别名识别的结果重跑不丢
+    # data/source_links.json: {address: {"channel_id": N, "channel_key": "可读名"}}
+    #   以 channel_id 为准。曾经用 channel_key 做键(旧格式),频道一改名/合并,
+    #   快照条目就被当"频道已不存在"静默丢弃,而缩水告警(>10%)抓不住
+    #   (447条丢5条=1.1%)—— 快照本来是"库丢了也能恢复归并"的最后保险,那样就失效了。
+    # 兼容: 值是字符串 = 旧格式,按 channel_key 查(升级无缝,不丢现有447条)。
     snapshot_path = os.path.join(RADAR, 'data', 'source_links.json')
-    snap_loaded, snap_dropped, snap_prev_count = 0, 0, 0
+    snap_loaded, snap_dropped, snap_prev_count, snap_legacy = 0, 0, 0, 0
     if os.path.exists(snapshot_path):
         snap = json.load(open(snapshot_path, encoding='utf-8'))
         snap_prev_count = len(snap)
-        valid = set(key2id_all.keys())   # 全部频道(含禁用/占位),只挡"频道已不存在"
-        for a, k in snap.items():
-            if k in valid:
-                addr2key[a] = k
+        for a, v in snap.items():
+            cid = None
+            if isinstance(v, dict):
+                if v.get('channel_id') in id2key:
+                    cid = v['channel_id']                      # 按不变的 id 解析(首选)
+                elif v.get('channel_key') in key2id_all:
+                    cid = key2id_all[v['channel_key']]         # id 没了但名字还在
+            else:
+                snap_legacy += 1
+                cid = key2id_all.get(v)                        # 旧格式: 值就是 channel_key
+            if cid:
+                addr2cid[a] = cid
                 snap_loaded += 1
             else:
                 snap_dropped += 1        # 频道确实已被删除,才丢弃(会打印警告)
@@ -144,8 +159,8 @@ def main():
         key = None
         # a) 地址已知
         for a in addrs:
-            if a in addr2key:
-                key = addr2key[a]
+            if a in addr2cid:
+                key = id2key.get(addr2cid[a])
                 break
         # b) NAME_OVERRIDES映射官方名→规范名
         if not key:
@@ -155,10 +170,10 @@ def main():
         # c) 归一化名匹配
         if not key:
             key = norm2key.get(norm(ch['name']))
-        if key:
+        if key and key in key2id_all:
             for a in addrs:
-                if a not in addr2key:
-                    addr2key[a] = key
+                if a not in addr2cid:
+                    addr2cid[a] = key2id_all[key]
                     official_added += 1
 
     # === 4. 回填 sources: channel_id(关联键,为主) + channel_key(可读冗余) ===
@@ -175,9 +190,8 @@ def main():
     updates = []   # (channel_id, channel_key, source_id)
     ts_updates = []  # (timeshift_query, source_id) 仅单播
     for r in src_rows:
-        key = addr2key.get(r['address'])
-        # 用 key2id_all: 归到禁用/占位频道也算已归并(禁用≠解除归并)
-        cid = key2id_all.get(key) if key else None
+        cid = addr2cid.get(r['address'])
+        key = id2key.get(cid) if cid else None   # channel_key 是可读冗余,由 id 推出
         if cid:
             updates.append((cid, key, r['source_id']))
             linked += 1
@@ -203,9 +217,16 @@ def main():
         if ts_updates:
             c.executemany("UPDATE sources SET timeshift_query=? WHERE source_id=?", ts_updates)
         conn.commit()
-        # 回写归并快照(持久化: 新归并的下次也不丢)。快照存 address→channel_key(规范名,稳定可读)
-        links = {r['address']: r['channel_key'] for r in
-                 c.execute("SELECT address,channel_key FROM sources WHERE channel_key IS NOT NULL").fetchall()}
+        # 回写归并快照(持久化: 新归并的下次也不丢)。
+        # 格式: {address: {"channel_id": N, "channel_key": "可读名"}}
+        #   channel_id 是解析依据(频道改名也不断);channel_key 只是给人看的注释。
+        # 从 channels 表 JOIN 取名,而不是读 sources.channel_key 那个冗余列 ——
+        # 否则这份"最后保险"会依赖冗余列此刻是否新鲜。
+        links = {r['address']: {'channel_id': r['channel_id'], 'channel_key': r['ck']}
+                 for r in c.execute("""SELECT s.address, s.channel_id, ch.channel_key AS ck
+                                       FROM sources s JOIN channels ch
+                                         ON ch.channel_id = s.channel_id
+                                       WHERE s.channel_id IS NOT NULL""").fetchall()}
         # 缩水告警: 快照是全量重建覆盖写,一旦归并逻辑出错(如误把频道排除在匹配目标外),
         # 人工归并成果会被静默销毁且不可逆。降幅>10% 先备份旧快照再写,并打印警告。
         if snap_prev_count and len(links) < snap_prev_count * 0.9:
@@ -221,6 +242,8 @@ def main():
     # === 报告 ===
     print(f"\n  自动匹配目标(enabled频道): {len(canon)}")
     print(f"  持久化快照加载: {snap_loaded} 条(人工归并结果)")
+    if snap_legacy:
+        print(f"  快照旧格式条目: {snap_legacy} 条(按channel_key解析,本次写出已升级为channel_id)")
     if snap_dropped:
         print(f"  快照丢弃: {snap_dropped} 条(所指频道已不存在)")
     print(f"  官方台账新增地址映射: {official_added}")
@@ -230,9 +253,16 @@ def main():
         print(f"\n  ⚠️  拒绝写入 {ts_skipped} 个**脱敏样例**的假token(已保留库里原有token)!")
         print(f"      说明本次用的EPG是 reference/channels.sample.json,即 token 刷新失败。")
         print(f"      单播回看会随旧token过期而失效,请检查 fetch_channels 的认证。")
-    print(f"\n  验证: 钱江频道的所有源")
-    for r in c.execute("SELECT address, resolution, channel_key, source_type FROM sources WHERE channel_key LIKE '%钱江%'"):
-        print(f"    {r['address']:<26} {r['resolution']:<10} → {r['channel_key']}")
+    # 抽样打印几个多源频道,便于人眼核对归并结果(原来硬编码"钱江"频道名,
+    # 且 resolution 为 NULL 时会 TypeError 崩掉整个脚本 —— 一段调试代码不该有这种杀伤力)
+    sample = c.execute("""SELECT channel_key FROM sources WHERE channel_key IS NOT NULL
+                          GROUP BY channel_key HAVING COUNT(*) > 1
+                          ORDER BY COUNT(*) DESC LIMIT 1""").fetchone()
+    if sample:
+        print(f"\n  抽样核对: {sample['channel_key']} 的所有源")
+        for r in c.execute("""SELECT address, resolution, channel_key, source_type
+                              FROM sources WHERE channel_key=?""", (sample['channel_key'],)):
+            print(f"    {r['address']:<26} {(r['resolution'] or '-'):<10} → {r['channel_key']}")
     conn.close()
     print("\n完成" + (" (dry-run,未写库)" if args.dry_run else ""))
 
