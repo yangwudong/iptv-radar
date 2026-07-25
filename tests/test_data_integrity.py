@@ -625,3 +625,93 @@ def test_orphan_快照写新格式(db, conn, tmp_path):
     v = snap.get('233.7.0.7:5140')
     assert isinstance(v, dict), f"快照写成旧格式了: {v!r}"
     assert v['channel_id'] == cid and v['channel_key'] == 'CCTV1综合'
+
+
+# ============================================================
+# junk/unknown 的识别成果必须持久化(否则每周重新识别同一批垃圾流)
+#   arrange: 17 个组播孤儿是黑名单/无效流,人工标 junk 一次就该永久生效。
+#   若只写库不写快照,库一重建(或源行被重新插入)就全变回孤儿 —— 白干。
+# ============================================================
+
+def _junk_cid(conn):
+    for k in ('__JUNK__', '__UNKNOWN__'):
+        conn.execute("""INSERT INTO channels(channel_key,name,enabled,status)
+                        VALUES(?,?,0,'placeholder')""", (k, k))
+    conn.commit()
+    return conn.execute("SELECT channel_id FROM channels WHERE channel_key='__JUNK__'").fetchone()[0]
+
+
+def test_orphan_junk决定必须写入归并快照(db, conn, tmp_path):
+    """junk 是人工识别成果,和 assign 一样要进快照。"""
+    _junk_cid(conn)
+    add_source(conn, '233.7.9.1:5140', channel_id=None)
+    radar = _isolated_radar(tmp_path, db)
+    snap_file = os.path.join(os.path.dirname(os.path.abspath(db)), 'source_links.json')
+    json.dump({}, open(snap_file, 'w', encoding='utf-8'))
+    inbox = _write_inbox(tmp_path, [{'address': '233.7.9.1:5140', 'action': 'junk'}])
+    r = _run_import(db, inbox, radar)
+    assert r.returncode == 0, r.stdout + r.stderr
+    snap = json.load(open(snap_file, encoding='utf-8'))
+    v = snap.get('233.7.9.1:5140')
+    assert v is not None, "junk 决定没进快照 → 库一重建就要重新识别一遍"
+    assert v['channel_key'] == '__JUNK__', f"快照里的 channel_key 不对: {v!r}"
+
+
+def test_orphan_junk在库重建后仍不是孤儿(db, conn, tmp_path):
+    """端到端: 标 junk → 库里关联被清空(模拟重建) → link_sources 必须从快照恢复。
+    这条才是'持久化'的真实意义,只断言快照有条目不够。"""
+    _junk_cid(conn)
+    add_source(conn, '233.7.9.2:5140', channel_id=None)
+    radar = _isolated_radar(tmp_path, db)
+    rdb = str(radar / 'data' / 'iptv.db')
+    # 用 radar 里的库跑 import,让快照正好落在 link_sources 会读的位置
+    inbox = _write_inbox(tmp_path, [{'address': '233.7.9.2:5140', 'action': 'junk'}])
+    r = _run_import(rdb, inbox, radar)
+    assert r.returncode == 0, r.stdout + r.stderr
+
+    rconn = sqlite3.connect(rdb)
+    jcid = rconn.execute("SELECT channel_id FROM channels WHERE channel_key='__JUNK__'").fetchone()[0]
+    assert rconn.execute("SELECT channel_id FROM sources WHERE address='233.7.9.2:5140'").fetchone()[0] == jcid
+    # 模拟库重建/源行重插: 关联清空
+    rconn.execute("UPDATE sources SET channel_id=NULL, channel_key=NULL")
+    rconn.commit()
+    rconn.close()
+
+    epg = radar / 'reference' / 'e.json'
+    json.dump([], open(epg, 'w', encoding='utf-8'))
+    r2 = _run_link_sources(radar, epg)
+    assert r2.returncode == 0, r2.stderr
+
+    got = sqlite3.connect(rdb).execute(
+        "SELECT channel_id FROM sources WHERE address='233.7.9.2:5140'").fetchone()[0]
+    assert got == jcid, f"junk 源变回孤儿了(channel_id={got!r}) → 人工识别成果丢失"
+
+
+def test_orphan_junk会连带同一官方频道的配对地址(db, conn, tmp_path):
+    """表征测试(锁既有行为,非新功能): 官方 channels.json 里一个频道同时有组播+单播地址。
+    只把组播标 junk,link_sources 按官方列表会把配对的单播也归到 __JUNK__。
+
+    这是对的(本来就是同一频道,一个决定覆盖两个源),但很隐蔽 ——
+    识别页面必须展示配对关系,否则用户不知道自己一次动了两个源。
+    实测: 好易购1高清 = 233.50.201.248:5140 + .../53485722.smil
+    """
+    _junk_cid(conn)
+    mc, rt = '233.50.201.248:5140', 'rtsp://115.233.40.137/PLTV/x/1.smil'
+    add_source(conn, mc, channel_id=None)
+    add_source(conn, rt, channel_id=None, source_type='rtsp')
+    radar = _isolated_radar(tmp_path, db)
+    rdb = str(radar / 'data' / 'iptv.db')
+    inbox = _write_inbox(tmp_path, [{'address': mc, 'action': 'junk'}])   # 只标组播
+    assert _run_import(rdb, inbox, radar).returncode == 0
+
+    epg = radar / 'reference' / 'e.json'
+    json.dump([{'id': '1', 'name': '好易购1高清', 'url': f'igmp://{mc}|{rt}'}],
+              open(epg, 'w', encoding='utf-8'), ensure_ascii=False)
+    r = _run_link_sources(radar, epg)
+    assert r.returncode == 0, r.stderr
+
+    got = dict(sqlite3.connect(rdb).execute(
+        "SELECT address, channel_key FROM sources").fetchall())
+    assert got[mc] == '__JUNK__', f"被标的组播没归 junk: {got[mc]!r}"
+    assert got[rt] == '__JUNK__', (
+        f"配对单播未连带(得 {got[rt]!r}) —— 若此行为变了,识别页面的配对提示要同步改")

@@ -56,7 +56,11 @@ def apply_decision(c, d, snapshot):
             return f"⚠️ 占位频道{key}不存在,跳过: {addr}", False
         c.execute("UPDATE sources SET channel_id=?, channel_key=? WHERE address=?",
                   (ch['channel_id'], key, addr))
-        return f"{action}: {addr} → {key}", False   # 占位不写快照(不是真频道归并)
+        # 占位归并也写快照: 这同样是人工识别成果(17个垃圾流认一次就该永久生效)。
+        # 曾经这里返回 False 不写,靠 link_sources 事后从库全量重建快照才补上 ——
+        # 即"能不能持久化"取决于另一个脚本的副作用和执行顺序,而不是本脚本自己的保证。
+        snapshot[addr] = {'channel_id': ch['channel_id'], 'channel_key': key}
+        return f"{action}: {addr} → {key}", True
 
     if action == 'assign':
         key = d.get('channel_key')
