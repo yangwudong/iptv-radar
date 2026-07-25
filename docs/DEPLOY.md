@@ -22,7 +22,7 @@
 |----|----|
 | 宿主 | NAS1 (Intel N100, Synology, 内存可用~3G) |
 | 部署目录 | `/volume1/docker/iptv-radar/` |
-| 发布 | 复用现有 Nginx: `/volume1/docker/nginx/m3u/` → `https://<发布域名>:<PUBLISH_PORT>/{iptv,iptv_direct,iptv_compat}.m3u`(三套) |
+| 发布 | 复用现有 Nginx: `/volume1/docker/nginx/m3u/` → `https://<PUBLISH_HOST>:<PUBLISH_PORT>/{iptv,iptv_direct,iptv_compat}.m3u`(三套) |
 | 网络 | 同 LAN,经软路由可达组播网关(rtp2httpd/msd_lite)和电信CDN(RTSP单播/回看) |
 | 触发 | 群晖 控制面板→任务计划→计划的任务(定时) |
 
@@ -161,7 +161,7 @@ docker compose run --rm pipeline --full --publish
 
 # 7. 验证产出
 ls -la output/iptv.m3u output/dashboard/index.html
-curl -s https://<发布域名>:<PUBLISH_PORT>/iptv.m3u | head
+curl -s https://<PUBLISH_HOST>:<PUBLISH_PORT>/iptv.m3u | head
 
 # 8. 配置群晖任务计划(见 §五)
 ```
