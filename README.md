@@ -155,8 +155,16 @@ LAN 设备用播放器打开 `rtp://@<组播地址>` 即可直接观看。
 - `ip mroute show` 无 resolved 条目 → igmpproxy 上游/altnet/scope 配置(某些运营商组播是 organization-local,igmpproxy 默认只代理 global);
 - 有 resolved 但设备收不到、物理口抓不到包 → **十有八九是防火墙 forward 拦了(见第3步)**。
 
-本仓库的 `gen_m3u.py --multicast-mode direct` 会生成组播直通版 m3u(`rtp://@...`),
-`--multicast-mode msd`(默认)生成经转码的兼容版,两套并存分别用于 LAN 直连 / 远程。
+本仓库的 pipeline 生成三套 m3u,分别适配不同播放场景:
+
+| m3u | 组播源 | 单播/回看 | 适用 |
+|-----|--------|-----------|------|
+| `iptv.m3u` 标准版 | `http://msd/rtp/`(HTTP 转码) | 可回看频道用单播主源 + catchup | 远程 / Tailscale / 支持回看的原生播放器(如 APTV) |
+| `iptv_direct.m3u` 直通版 | `rtp://@`(组播直收) | 同标准版 | 仅 LAN 内、低延迟省转码 CPU(如 IINA) |
+| `iptv_compat.m3u` 兼容版 | `http://msd/rtp/` | 有组播源的一律回退组播(无回看),纯单播保留 rtsp | 只支持组播、不支持 rtsp 的播放器(如网页播放器) |
+
+对应 `gen_m3u.py` 参数: `--multicast-mode msd|direct` 控制组播源形式,`--prefer-multicast` 生成兼容版。
+组播直通(direct)只在 LAN 内可用;跨 VPN(WireGuard/Tailscale)不转发组播,远程请用标准版。
 
 ## License
 
