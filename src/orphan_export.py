@@ -27,8 +27,14 @@ import probe
 
 RADAR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 DEFAULT_DB = os.path.join(RADAR, 'data', 'iptv.db')
-REVIEW_DIR = os.path.join(RADAR, 'output', 'orphan_review')
-SHOTS_DIR = os.path.join(REVIEW_DIR, 'shots')
+# 产出到 output/dashboard/: 该目录已被宿主 nginx 挂载并服务(/dashboard/),
+# 放进来的文件直接可用浏览器打开,零 nginx 配置改动、零新增服务。
+# (实测 NAS 真实配置: compose 挂 output/dashboard → /usr/share/nginx/html/dashboard:ro,
+#  nginx `location /dashboard/ { alias ...; }` → 目录内任何文件都被服务)
+# 原来产出在 output/orphan_review/,nginx 访问不到,页面打不开。
+REVIEW_DIR = os.path.join(RADAR, 'output', 'dashboard')
+SHOTS_DIR = os.path.join(REVIEW_DIR, 'orphan-shots')
+SHOTS_REL = 'orphan-shots'      # json/HTML 里的相对路径(页面与图同目录)
 
 
 def play_url(source_type, address, msd):
@@ -134,7 +140,7 @@ def main():
             'res_label': r['res_label'] or '', 'video_codec': r['video_codec'] or '',
             'fps': r['fps'] or 0, 'hdr': r['hdr'] or '', 'audio_codec': r['audio_codec'] or '',
             'play_url': purl, 'iina_url': iina,
-            'shots': [f"shots/{s}" for s in shots],
+            'shots': [f"{SHOTS_REL}/{s}" for s in shots],
         })
 
     # 回写截图路径(让下次能复用,避免每周重拍同一批已知垃圾流)

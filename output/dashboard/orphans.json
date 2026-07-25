@@ -1,0 +1,1045 @@
+{
+ "generated_at": "2026-07-25T22:29:24",
+ "msd_prefix": "http://127.0.0.1:4088/rtp/",
+ "channels": [
+  {
+   "channel_key": "CCTV1综合",
+   "name": "CCTV1综合",
+   "group": "央视"
+  },
+  {
+   "channel_key": "CCTV2财经",
+   "name": "CCTV2财经",
+   "group": "央视"
+  },
+  {
+   "channel_key": "CCTV3综艺",
+   "name": "CCTV3综艺",
+   "group": "央视"
+  },
+  {
+   "channel_key": "CCTV4中文国际",
+   "name": "CCTV4中文国际",
+   "group": "央视"
+  },
+  {
+   "channel_key": "CCTV5体育",
+   "name": "CCTV5体育",
+   "group": "央视"
+  },
+  {
+   "channel_key": "CCTV5+体育赛事",
+   "name": "CCTV5+体育赛事",
+   "group": "央视"
+  },
+  {
+   "channel_key": "CCTV6电影",
+   "name": "CCTV6电影",
+   "group": "央视"
+  },
+  {
+   "channel_key": "CCTV7国防军事",
+   "name": "CCTV7国防军事",
+   "group": "央视"
+  },
+  {
+   "channel_key": "CCTV8电视剧",
+   "name": "CCTV8电视剧",
+   "group": "央视"
+  },
+  {
+   "channel_key": "CCTV9纪录",
+   "name": "CCTV9纪录",
+   "group": "央视"
+  },
+  {
+   "channel_key": "CCTV10科教",
+   "name": "CCTV10科教",
+   "group": "央视"
+  },
+  {
+   "channel_key": "CCTV11戏曲",
+   "name": "CCTV11戏曲",
+   "group": "央视"
+  },
+  {
+   "channel_key": "CCTV12社会与法",
+   "name": "CCTV12社会与法",
+   "group": "央视"
+  },
+  {
+   "channel_key": "CCTV13新闻",
+   "name": "CCTV13新闻",
+   "group": "央视"
+  },
+  {
+   "channel_key": "CCTV14少儿",
+   "name": "CCTV14少儿",
+   "group": "央视"
+  },
+  {
+   "channel_key": "CCTV15音乐",
+   "name": "CCTV15音乐",
+   "group": "央视"
+  },
+  {
+   "channel_key": "CCTV16奥林匹克",
+   "name": "CCTV16奥林匹克",
+   "group": "央视"
+  },
+  {
+   "channel_key": "CCTV17农业农村",
+   "name": "CCTV17农业农村",
+   "group": "央视"
+  },
+  {
+   "channel_key": "BesTV少儿4K",
+   "name": "BesTV少儿4K",
+   "group": "4K超高清"
+  },
+  {
+   "channel_key": "BesTV纪实4K",
+   "name": "BesTV纪实4K",
+   "group": "4K超高清"
+  },
+  {
+   "channel_key": "BesTV视界4K",
+   "name": "BesTV视界4K",
+   "group": "4K超高清"
+  },
+  {
+   "channel_key": "东方卫视4K",
+   "name": "东方卫视4K",
+   "group": "4K超高清"
+  },
+  {
+   "channel_key": "北京卫视4K",
+   "name": "北京卫视4K",
+   "group": "4K超高清"
+  },
+  {
+   "channel_key": "四川卫视4K",
+   "name": "四川卫视4K",
+   "group": "4K超高清"
+  },
+  {
+   "channel_key": "多彩文体4K",
+   "name": "多彩文体4K",
+   "group": "4K超高清"
+  },
+  {
+   "channel_key": "山东卫视4K",
+   "name": "山东卫视4K",
+   "group": "4K超高清"
+  },
+  {
+   "channel_key": "广东卫视4K",
+   "name": "广东卫视4K",
+   "group": "4K超高清"
+  },
+  {
+   "channel_key": "江苏卫视4K",
+   "name": "江苏卫视4K",
+   "group": "4K超高清"
+  },
+  {
+   "channel_key": "浙江卫视4K",
+   "name": "浙江卫视4K",
+   "group": "4K超高清"
+  },
+  {
+   "channel_key": "深圳卫视4K",
+   "name": "深圳卫视4K",
+   "group": "4K超高清"
+  },
+  {
+   "channel_key": "湖南卫视4K",
+   "name": "湖南卫视4K",
+   "group": "4K超高清"
+  },
+  {
+   "channel_key": "CCTV16奥林匹克4K",
+   "name": "CCTV16奥林匹克4K",
+   "group": "4K超高清"
+  },
+  {
+   "channel_key": "北京卫视",
+   "name": "北京卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "东方卫视",
+   "name": "东方卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "浙江卫视",
+   "name": "浙江卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "湖南卫视",
+   "name": "湖南卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "江苏卫视",
+   "name": "江苏卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "深圳卫视",
+   "name": "深圳卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "山东卫视",
+   "name": "山东卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "广东卫视",
+   "name": "广东卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "天津卫视",
+   "name": "天津卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "安徽卫视",
+   "name": "安徽卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "湖北卫视",
+   "name": "湖北卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "重庆卫视",
+   "name": "重庆卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "河南卫视",
+   "name": "河南卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "四川卫视",
+   "name": "四川卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "辽宁卫视",
+   "name": "辽宁卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "江西卫视",
+   "name": "江西卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "黑龙江卫视",
+   "name": "黑龙江卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "贵州卫视",
+   "name": "贵州卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "河北卫视",
+   "name": "河北卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "东南卫视",
+   "name": "东南卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "广西卫视",
+   "name": "广西卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "海南卫视",
+   "name": "海南卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "新疆卫视",
+   "name": "新疆卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "云南卫视",
+   "name": "云南卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "吉林卫视",
+   "name": "吉林卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "甘肃卫视",
+   "name": "甘肃卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "山西卫视",
+   "name": "山西卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "陕西卫视",
+   "name": "陕西卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "内蒙古卫视",
+   "name": "内蒙古卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "宁夏卫视",
+   "name": "宁夏卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "西藏卫视",
+   "name": "西藏卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "青海卫视",
+   "name": "青海卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "兵团卫视",
+   "name": "兵团卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "三沙卫视",
+   "name": "三沙卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "延边卫视",
+   "name": "延边卫视",
+   "group": "卫视"
+  },
+  {
+   "channel_key": "杭州综合",
+   "name": "杭州综合",
+   "group": "浙江"
+  },
+  {
+   "channel_key": "杭州西湖明珠",
+   "name": "杭州西湖明珠",
+   "group": "浙江"
+  },
+  {
+   "channel_key": "杭州生活",
+   "name": "杭州生活",
+   "group": "浙江"
+  },
+  {
+   "channel_key": "杭州影视",
+   "name": "杭州影视",
+   "group": "浙江"
+  },
+  {
+   "channel_key": "杭州青少体育",
+   "name": "杭州青少体育",
+   "group": "浙江"
+  },
+  {
+   "channel_key": "杭州导视",
+   "name": "杭州导视",
+   "group": "浙江"
+  },
+  {
+   "channel_key": "浙江钱江都市",
+   "name": "浙江钱江都市",
+   "group": "浙江"
+  },
+  {
+   "channel_key": "浙江经视",
+   "name": "浙江经视",
+   "group": "浙江"
+  },
+  {
+   "channel_key": "浙江教科影视",
+   "name": "浙江教科影视",
+   "group": "浙江"
+  },
+  {
+   "channel_key": "浙江新闻",
+   "name": "浙江新闻",
+   "group": "浙江"
+  },
+  {
+   "channel_key": "浙江民生休闲",
+   "name": "浙江民生休闲",
+   "group": "浙江"
+  },
+  {
+   "channel_key": "浙江少儿",
+   "name": "浙江少儿",
+   "group": "浙江"
+  },
+  {
+   "channel_key": "之江纪录",
+   "name": "之江纪录",
+   "group": "浙江"
+  },
+  {
+   "channel_key": "余杭新闻频道",
+   "name": "余杭新闻频道",
+   "group": "浙江"
+  },
+  {
+   "channel_key": "中国蓝直播",
+   "name": "中国蓝直播",
+   "group": "浙江"
+  },
+  {
+   "channel_key": "嘉兴 新闻综合",
+   "name": "嘉兴 新闻综合",
+   "group": "浙江"
+  },
+  {
+   "channel_key": "宁波新闻综合",
+   "name": "宁波新闻综合",
+   "group": "浙江"
+  },
+  {
+   "channel_key": "宁波经济生活",
+   "name": "宁波经济生活",
+   "group": "浙江"
+  },
+  {
+   "channel_key": "宁波都市文体",
+   "name": "宁波都市文体",
+   "group": "浙江"
+  },
+  {
+   "channel_key": "宁波影视剧",
+   "name": "宁波影视剧",
+   "group": "浙江"
+  },
+  {
+   "channel_key": "绍兴新闻综合",
+   "name": "绍兴新闻综合",
+   "group": "浙江"
+  },
+  {
+   "channel_key": "湖州 新闻综合",
+   "name": "湖州 新闻综合",
+   "group": "浙江"
+  },
+  {
+   "channel_key": "桐乡 新闻综合",
+   "name": "桐乡 新闻综合",
+   "group": "浙江"
+  },
+  {
+   "channel_key": "台州 新闻综合",
+   "name": "台州 新闻综合",
+   "group": "浙江"
+  },
+  {
+   "channel_key": "金华 新闻综合",
+   "name": "金华 新闻综合",
+   "group": "浙江"
+  },
+  {
+   "channel_key": "丽水 新闻综合",
+   "name": "丽水 新闻综合",
+   "group": "浙江"
+  },
+  {
+   "channel_key": "衢州",
+   "name": "衢州",
+   "group": "浙江"
+  },
+  {
+   "channel_key": "温州 新闻综合",
+   "name": "温州 新闻综合",
+   "group": "浙江"
+  },
+  {
+   "channel_key": "北京纪实科教",
+   "name": "北京纪实科教",
+   "group": "北京"
+  },
+  {
+   "channel_key": "北京卡酷少儿",
+   "name": "北京卡酷少儿",
+   "group": "北京"
+  },
+  {
+   "channel_key": "第一财经_上海",
+   "name": "第一财经_上海",
+   "group": "上海"
+  },
+  {
+   "channel_key": "东方财经_上海",
+   "name": "东方财经_上海",
+   "group": "上海"
+  },
+  {
+   "channel_key": "都市剧场_上海",
+   "name": "都市剧场_上海",
+   "group": "上海"
+  },
+  {
+   "channel_key": "动漫秀场_上海",
+   "name": "动漫秀场_上海",
+   "group": "上海"
+  },
+  {
+   "channel_key": "乐游_上海",
+   "name": "乐游_上海",
+   "group": "上海"
+  },
+  {
+   "channel_key": "金色学堂_上海",
+   "name": "金色学堂_上海",
+   "group": "上海"
+  },
+  {
+   "channel_key": "生活时尚_上海",
+   "name": "生活时尚_上海",
+   "group": "上海"
+  },
+  {
+   "channel_key": "法治天地_上海",
+   "name": "法治天地_上海",
+   "group": "上海"
+  },
+  {
+   "channel_key": "游戏风云_上海",
+   "name": "游戏风云_上海",
+   "group": "上海"
+  },
+  {
+   "channel_key": "魅力足球_上海",
+   "name": "魅力足球_上海",
+   "group": "上海"
+  },
+  {
+   "channel_key": "七彩戏剧_上海",
+   "name": "七彩戏剧_上海",
+   "group": "上海"
+  },
+  {
+   "channel_key": "纪实人文_上海",
+   "name": "纪实人文_上海",
+   "group": "上海"
+  },
+  {
+   "channel_key": "哈哈炫动_上海",
+   "name": "哈哈炫动_上海",
+   "group": "上海"
+  },
+  {
+   "channel_key": "快乐垂钓",
+   "name": "快乐垂钓",
+   "group": "湖南"
+  },
+  {
+   "channel_key": "湖南茶频道",
+   "name": "湖南茶频道",
+   "group": "湖南"
+  },
+  {
+   "channel_key": "金鹰卡通_湖南",
+   "name": "金鹰卡通_湖南",
+   "group": "湖南"
+  },
+  {
+   "channel_key": "凤凰中文",
+   "name": "凤凰中文",
+   "group": "港澳台"
+  },
+  {
+   "channel_key": "凤凰资讯",
+   "name": "凤凰资讯",
+   "group": "港澳台"
+  },
+  {
+   "channel_key": "中国教育1台",
+   "name": "中国教育1台",
+   "group": "央视教育"
+  },
+  {
+   "channel_key": "中国教育4台",
+   "name": "中国教育4台",
+   "group": "央视教育"
+  },
+  {
+   "channel_key": "CGTN",
+   "name": "CGTN",
+   "group": "央视国际"
+  },
+  {
+   "channel_key": "CGTN俄罗斯语",
+   "name": "CGTN俄罗斯语",
+   "group": "央视国际"
+  },
+  {
+   "channel_key": "CGTN法语",
+   "name": "CGTN法语",
+   "group": "央视国际"
+  },
+  {
+   "channel_key": "CGTN西班牙语",
+   "name": "CGTN西班牙语",
+   "group": "央视国际"
+  },
+  {
+   "channel_key": "CGTN阿拉伯语",
+   "name": "CGTN阿拉伯语",
+   "group": "央视国际"
+  },
+  {
+   "channel_key": "BesTV 新威体育",
+   "name": "BesTV 新威体育",
+   "group": "BesTV"
+  },
+  {
+   "channel_key": "睛彩竞技",
+   "name": "睛彩竞技",
+   "group": "睛彩"
+  },
+  {
+   "channel_key": "睛彩篮球",
+   "name": "睛彩篮球",
+   "group": "睛彩"
+  },
+  {
+   "channel_key": "睛彩青少",
+   "name": "睛彩青少",
+   "group": "睛彩"
+  },
+  {
+   "channel_key": "珠峰直播2",
+   "name": "珠峰直播2",
+   "group": "其他"
+  },
+  {
+   "channel_key": "华数娱乐",
+   "name": "华数娱乐",
+   "group": "其他"
+  },
+  {
+   "channel_key": "历史",
+   "name": "历史",
+   "group": "其他"
+  },
+  {
+   "channel_key": "大熊猫的一天",
+   "name": "大熊猫的一天",
+   "group": "其他"
+  },
+  {
+   "channel_key": "央广购物",
+   "name": "央广购物",
+   "group": "其他"
+  },
+  {
+   "channel_key": "导视频道",
+   "name": "导视频道",
+   "group": "其他"
+  },
+  {
+   "channel_key": "熊猫宝宝幼儿园",
+   "name": "熊猫宝宝幼儿园",
+   "group": "其他"
+  },
+  {
+   "channel_key": "爱看熊猫",
+   "name": "爱看熊猫",
+   "group": "其他"
+  },
+  {
+   "channel_key": "浙江之声广播",
+   "name": "浙江之声广播",
+   "group": "广播"
+  },
+  {
+   "channel_key": "浙江交通之声",
+   "name": "浙江交通之声",
+   "group": "广播"
+  },
+  {
+   "channel_key": "浙江城市之声",
+   "name": "浙江城市之声",
+   "group": "广播"
+  },
+  {
+   "channel_key": "浙江新闻广播",
+   "name": "浙江新闻广播",
+   "group": "广播"
+  },
+  {
+   "channel_key": "浙江旅游之声_女主播",
+   "name": "浙江旅游之声_女主播",
+   "group": "广播"
+  },
+  {
+   "channel_key": "浙江民生资讯广播",
+   "name": "浙江民生资讯广播",
+   "group": "广播"
+  },
+  {
+   "channel_key": "浙江经济广播",
+   "name": "浙江经济广播",
+   "group": "广播"
+  },
+  {
+   "channel_key": "浙江音乐调频",
+   "name": "浙江音乐调频",
+   "group": "广播"
+  },
+  {
+   "channel_key": "浙江政务",
+   "name": "浙江政务",
+   "group": "其他"
+  }
+ ],
+ "placeholders": [
+  {
+   "channel_key": "__UNKNOWN__",
+   "name": "未知待查"
+  },
+  {
+   "channel_key": "__JUNK__",
+   "name": "垃圾/测试流"
+  }
+ ],
+ "orphans": [
+  {
+   "address": "233.50.200.233:5140",
+   "source_type": "multicast",
+   "res_label": "1080P",
+   "video_codec": "h264",
+   "fps": 25.0,
+   "hdr": "SDR",
+   "audio_codec": "mp2",
+   "play_url": "http://127.0.0.1:4088/rtp/233.50.200.233:5140",
+   "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.200.233%3A5140",
+   "shots": []
+  },
+  {
+   "address": "233.50.200.234:5140",
+   "source_type": "multicast",
+   "res_label": "1080P",
+   "video_codec": "h264",
+   "fps": 25.0,
+   "hdr": "SDR",
+   "audio_codec": "mp2",
+   "play_url": "http://127.0.0.1:4088/rtp/233.50.200.234:5140",
+   "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.200.234%3A5140",
+   "shots": []
+  },
+  {
+   "address": "233.50.200.235:5140",
+   "source_type": "multicast",
+   "res_label": "1080P",
+   "video_codec": "h264",
+   "fps": 25.0,
+   "hdr": "SDR",
+   "audio_codec": "mp2",
+   "play_url": "http://127.0.0.1:4088/rtp/233.50.200.235:5140",
+   "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.200.235%3A5140",
+   "shots": []
+  },
+  {
+   "address": "233.50.200.236:5140",
+   "source_type": "multicast",
+   "res_label": "1080P",
+   "video_codec": "h264",
+   "fps": 25.0,
+   "hdr": "SDR",
+   "audio_codec": "mp2",
+   "play_url": "http://127.0.0.1:4088/rtp/233.50.200.236:5140",
+   "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.200.236%3A5140",
+   "shots": []
+  },
+  {
+   "address": "233.50.200.237:5140",
+   "source_type": "multicast",
+   "res_label": "1080P",
+   "video_codec": "h264",
+   "fps": 25.0,
+   "hdr": "SDR",
+   "audio_codec": "mp2",
+   "play_url": "http://127.0.0.1:4088/rtp/233.50.200.237:5140",
+   "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.200.237%3A5140",
+   "shots": []
+  },
+  {
+   "address": "233.50.200.244:5140",
+   "source_type": "multicast",
+   "res_label": "1080P",
+   "video_codec": "h264",
+   "fps": 25.0,
+   "hdr": "SDR",
+   "audio_codec": "mp2",
+   "play_url": "http://127.0.0.1:4088/rtp/233.50.200.244:5140",
+   "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.200.244%3A5140",
+   "shots": []
+  },
+  {
+   "address": "233.50.200.246:5140",
+   "source_type": "multicast",
+   "res_label": "1080P",
+   "video_codec": "h264",
+   "fps": 25.0,
+   "hdr": "SDR",
+   "audio_codec": "mp2",
+   "play_url": "http://127.0.0.1:4088/rtp/233.50.200.246:5140",
+   "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.200.246%3A5140",
+   "shots": []
+  },
+  {
+   "address": "233.50.200.247:5140",
+   "source_type": "multicast",
+   "res_label": "1080P",
+   "video_codec": "h264",
+   "fps": 25.0,
+   "hdr": "SDR",
+   "audio_codec": "mp2",
+   "play_url": "http://127.0.0.1:4088/rtp/233.50.200.247:5140",
+   "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.200.247%3A5140",
+   "shots": []
+  },
+  {
+   "address": "233.50.200.31:5140",
+   "source_type": "multicast",
+   "res_label": "1080P",
+   "video_codec": "h264",
+   "fps": 25.0,
+   "hdr": "SDR",
+   "audio_codec": "mp2",
+   "play_url": "http://127.0.0.1:4088/rtp/233.50.200.31:5140",
+   "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.200.31%3A5140",
+   "shots": []
+  },
+  {
+   "address": "233.50.200.32:5140",
+   "source_type": "multicast",
+   "res_label": "1080P",
+   "video_codec": "h264",
+   "fps": 25.0,
+   "hdr": "SDR",
+   "audio_codec": "mp2",
+   "play_url": "http://127.0.0.1:4088/rtp/233.50.200.32:5140",
+   "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.200.32%3A5140",
+   "shots": []
+  },
+  {
+   "address": "233.50.200.34:5140",
+   "source_type": "multicast",
+   "res_label": "SD",
+   "video_codec": "h264",
+   "fps": 50.0,
+   "hdr": "SDR",
+   "audio_codec": "mp2",
+   "play_url": "http://127.0.0.1:4088/rtp/233.50.200.34:5140",
+   "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.200.34%3A5140",
+   "shots": []
+  },
+  {
+   "address": "233.50.200.53:5140",
+   "source_type": "multicast",
+   "res_label": "SD",
+   "video_codec": "h264",
+   "fps": 25.0,
+   "hdr": "SDR",
+   "audio_codec": "mp2",
+   "play_url": "http://127.0.0.1:4088/rtp/233.50.200.53:5140",
+   "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.200.53%3A5140",
+   "shots": []
+  },
+  {
+   "address": "233.50.201.204:5140",
+   "source_type": "multicast",
+   "res_label": "1080P",
+   "video_codec": "h264",
+   "fps": 25.0,
+   "hdr": "SDR",
+   "audio_codec": "mp2",
+   "play_url": "http://127.0.0.1:4088/rtp/233.50.201.204:5140",
+   "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.201.204%3A5140",
+   "shots": []
+  },
+  {
+   "address": "233.50.201.205:5140",
+   "source_type": "multicast",
+   "res_label": "1080P",
+   "video_codec": "h264",
+   "fps": 25.0,
+   "hdr": "SDR",
+   "audio_codec": "mp2",
+   "play_url": "http://127.0.0.1:4088/rtp/233.50.201.205:5140",
+   "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.201.205%3A5140",
+   "shots": []
+  },
+  {
+   "address": "233.50.201.206:5140",
+   "source_type": "multicast",
+   "res_label": "1080P",
+   "video_codec": "h264",
+   "fps": 25.0,
+   "hdr": "SDR",
+   "audio_codec": "mp2",
+   "play_url": "http://127.0.0.1:4088/rtp/233.50.201.206:5140",
+   "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.201.206%3A5140",
+   "shots": []
+  },
+  {
+   "address": "233.50.201.248:5140",
+   "source_type": "multicast",
+   "res_label": "1080P",
+   "video_codec": "h264",
+   "fps": 25.0,
+   "hdr": "SDR",
+   "audio_codec": "mp2",
+   "play_url": "http://127.0.0.1:4088/rtp/233.50.201.248:5140",
+   "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.201.248%3A5140",
+   "shots": []
+  },
+  {
+   "address": "233.50.201.91:5140",
+   "source_type": "multicast",
+   "res_label": "1080P",
+   "video_codec": "h264",
+   "fps": 50.0,
+   "hdr": "SDR",
+   "audio_codec": "mp2",
+   "play_url": "http://127.0.0.1:4088/rtp/233.50.201.91:5140",
+   "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.201.91%3A5140",
+   "shots": []
+  },
+  {
+   "address": "rtsp://115.233.40.137/PLTV/88888913/224/3221229007/10000100000000060000000004308260_0.smil",
+   "source_type": "rtsp",
+   "res_label": "1080P",
+   "video_codec": "h264",
+   "fps": 25.0,
+   "hdr": "SDR",
+   "audio_codec": "mp2",
+   "play_url": "rtsp://115.233.40.137/PLTV/88888913/224/3221229007/10000100000000060000000004308260_0.smil",
+   "iina_url": "iina://weblink?url=rtsp%3A%2F%2F115.233.40.137%2FPLTV%2F88888913%2F224%2F3221229007%2F10000100000000060000000004308260_0.smil",
+   "shots": []
+  },
+  {
+   "address": "rtsp://115.233.40.137/PLTV/88888913/224/3221229011/10000100000000060000000004308262_0.smil",
+   "source_type": "rtsp",
+   "res_label": "1080P",
+   "video_codec": "h264",
+   "fps": 25.0,
+   "hdr": "SDR",
+   "audio_codec": "mp2",
+   "play_url": "rtsp://115.233.40.137/PLTV/88888913/224/3221229011/10000100000000060000000004308262_0.smil",
+   "iina_url": "iina://weblink?url=rtsp%3A%2F%2F115.233.40.137%2FPLTV%2F88888913%2F224%2F3221229011%2F10000100000000060000000004308262_0.smil",
+   "shots": []
+  },
+  {
+   "address": "rtsp://115.233.40.137/PLTV/88888913/224/3221229015/10000100000000060000000004308263_0.smil",
+   "source_type": "rtsp",
+   "res_label": "1080P",
+   "video_codec": "h264",
+   "fps": 25.0,
+   "hdr": "SDR",
+   "audio_codec": "mp2",
+   "play_url": "rtsp://115.233.40.137/PLTV/88888913/224/3221229015/10000100000000060000000004308263_0.smil",
+   "iina_url": "iina://weblink?url=rtsp%3A%2F%2F115.233.40.137%2FPLTV%2F88888913%2F224%2F3221229015%2F10000100000000060000000004308263_0.smil",
+   "shots": []
+  },
+  {
+   "address": "rtsp://115.233.40.137/PLTV/88888913/224/3221229213/53485722.smil",
+   "source_type": "rtsp",
+   "res_label": "1080P",
+   "video_codec": "h264",
+   "fps": 25.0,
+   "hdr": "SDR",
+   "audio_codec": "mp2",
+   "play_url": "rtsp://115.233.40.137/PLTV/88888913/224/3221229213/53485722.smil",
+   "iina_url": "iina://weblink?url=rtsp%3A%2F%2F115.233.40.137%2FPLTV%2F88888913%2F224%2F3221229213%2F53485722.smil",
+   "shots": []
+  },
+  {
+   "address": "rtsp://115.233.40.137/PLTV/88888913/224/3221229466/148085530.smil",
+   "source_type": "rtsp",
+   "res_label": "1080P",
+   "video_codec": "h264",
+   "fps": 25.0,
+   "hdr": "SDR",
+   "audio_codec": "mp2",
+   "play_url": "rtsp://115.233.40.137/PLTV/88888913/224/3221229466/148085530.smil",
+   "iina_url": "iina://weblink?url=rtsp%3A%2F%2F115.233.40.137%2FPLTV%2F88888913%2F224%2F3221229466%2F148085530.smil",
+   "shots": []
+  },
+  {
+   "address": "rtsp://115.233.40.137/PLTV/88888913/224/3221229469/148085439.smil",
+   "source_type": "rtsp",
+   "res_label": "1080P",
+   "video_codec": "h264",
+   "fps": 25.0,
+   "hdr": "SDR",
+   "audio_codec": "mp2",
+   "play_url": "rtsp://115.233.40.137/PLTV/88888913/224/3221229469/148085439.smil",
+   "iina_url": "iina://weblink?url=rtsp%3A%2F%2F115.233.40.137%2FPLTV%2F88888913%2F224%2F3221229469%2F148085439.smil",
+   "shots": []
+  },
+  {
+   "address": "rtsp://115.233.40.137/PLTV/88888913/224/3221229472/148085491.smil",
+   "source_type": "rtsp",
+   "res_label": "1080P",
+   "video_codec": "h264",
+   "fps": 25.0,
+   "hdr": "SDR",
+   "audio_codec": "mp2",
+   "play_url": "rtsp://115.233.40.137/PLTV/88888913/224/3221229472/148085491.smil",
+   "iina_url": "iina://weblink?url=rtsp%3A%2F%2F115.233.40.137%2FPLTV%2F88888913%2F224%2F3221229472%2F148085491.smil",
+   "shots": []
+  },
+  {
+   "address": "rtsp://115.233.40.137/PLTV/88888913/224/3221229475/148775850.smil",
+   "source_type": "rtsp",
+   "res_label": "1080P",
+   "video_codec": "h264",
+   "fps": 25.0,
+   "hdr": "SDR",
+   "audio_codec": "mp2",
+   "play_url": "rtsp://115.233.40.137/PLTV/88888913/224/3221229475/148775850.smil",
+   "iina_url": "iina://weblink?url=rtsp%3A%2F%2F115.233.40.137%2FPLTV%2F88888913%2F224%2F3221229475%2F148775850.smil",
+   "shots": []
+  },
+  {
+   "address": "rtsp://115.233.40.137/PLTV/88888913/224/3221229488/148085486.smil",
+   "source_type": "rtsp",
+   "res_label": "1080P",
+   "video_codec": "h264",
+   "fps": 25.0,
+   "hdr": "SDR",
+   "audio_codec": "mp2",
+   "play_url": "rtsp://115.233.40.137/PLTV/88888913/224/3221229488/148085486.smil",
+   "iina_url": "iina://weblink?url=rtsp%3A%2F%2F115.233.40.137%2FPLTV%2F88888913%2F224%2F3221229488%2F148085486.smil",
+   "shots": []
+  }
+ ]
+}

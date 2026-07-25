@@ -782,3 +782,37 @@ def test_orphan_export_不同单播源截图不得互相覆盖(db, conn, tmp_pat
 
     rows = dict(conn.execute("SELECT address, screenshots FROM sources").fetchall())
     assert rows[RTSP_A] != rows[RTSP_B], "库里两个源的 screenshots 相同"
+
+
+# ============================================================
+# 待识别包必须产出到 nginx 已服务的目录(否则页面根本打不开)
+#   实测 NAS 上的真实配置:
+#     compose: /volume1/docker/iptv-radar/output/dashboard:/usr/share/nginx/html/dashboard:ro
+#     nginx:   location /dashboard/ { alias /usr/share/nginx/html/dashboard/; }
+#   → 放进 output/dashboard/ 的任何文件都会被 /dashboard/<file> 服务,零配置改动。
+#   原来产出在 output/orphan_review/,nginx 访问不到。
+# ============================================================
+
+def test_orphan_export_产出目录必须是nginx服务的dashboard目录():
+    sys.path.insert(0, SRC)
+    import importlib, orphan_export
+    importlib.reload(orphan_export)
+    rd = orphan_export.REVIEW_DIR.replace(os.sep, '/')
+    sd = orphan_export.SHOTS_DIR.replace(os.sep, '/')
+    assert rd.endswith('output/dashboard'), (
+        f"待识别包产出目录不在 nginx 服务范围内: {rd}")
+    assert sd.endswith('output/dashboard/orphan-shots'), (
+        f"截图目录不对(会404): {sd}")
+
+
+def test_orphan_export_截图相对路径要能被页面直接引用(db, conn, tmp_path, monkeypatch):
+    """页面和图同在 dashboard/ 下,json 里的 shots 必须是 'orphan-shots/x.jpg',
+    否则 <img src> 404(旧值 'shots/x.jpg' 指向已废弃目录)。"""
+    add_source(conn, '233.9.5.5:5140', channel_id=None, source_type='multicast', available=1)
+    calls = []
+    _run_export(db, tmp_path, monkeypatch, calls)
+    pkg = json.load(open(tmp_path / 'orphans.json', encoding='utf-8'))
+    shots = pkg['orphans'][0]['shots']
+    assert shots, "没截图"
+    for s in shots:
+        assert s.startswith('orphan-shots/'), f"截图相对路径不对(页面会404): {s!r}"
