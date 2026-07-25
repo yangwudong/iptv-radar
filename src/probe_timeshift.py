@@ -20,6 +20,7 @@ import argparse
 import re
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import db_util
+import address_util
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 RADAR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
@@ -33,8 +34,7 @@ DEFAULT_EPG = next((c for c in _CANDS if os.path.isfile(c)),
 
 def smil_path(url):
     """从 rtsp url 提取 .smil 路径部分(去token/参数),用于和库里address匹配"""
-    m = re.match(r'(rtsp://[^?]+\.smil)', url)
-    return m.group(1) if m else url.split('?')[0]
+    return address_util.canonical_rtsp(url)
 
 
 def probe_playback(ts_url, days, timeout=15):

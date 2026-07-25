@@ -12,6 +12,7 @@ import json
 import os
 import re
 import argparse
+import address_util
 import datetime
 import html
 import sys
@@ -157,8 +158,7 @@ def build(json_path, db_path=None):
         # 回看天数(源级,查单播地址的playback_days): N天/不支持/未探测
         pb_days = None
         if uc:
-            _m = re.match(r'(rtsp://[^?]+\.smil)', uc)
-            _smil = _m.group(1) if _m else uc.split('?')[0]
+            _smil = address_util.canonical_rtsp(uc)
             _sc = scan.get(_smil)
             if _sc:
                 pb_days = _sc.get('playback_days')
@@ -173,8 +173,7 @@ def build(json_path, db_path=None):
         mc_html = f'<code class="mc">{esc(mc)}</code>' if mc else '<span class="muted">-</span>'
         # 单播地址: 完整简化版(到.smil,去token),双击复制;单独用"播放"列调IINA
         if uc:
-            simple = re.match(r'(rtsp://[^?]+\.smil)', uc)
-            simple = simple.group(1) if simple else uc.split('?')[0]
+            simple = address_util.canonical_rtsp(uc)
             iina_url = 'iina://weblink?url=' + urllib.parse.quote(simple, safe='')
             uc_html = f'<code class="uc" title="双击复制" data-full="{esc(simple)}" ondblclick="copyUrl(this)">{esc(simple)}</code>'
             play_html = f'<a class="play-btn" href="{esc(iina_url)}" title="用IINA播放">▶ IINA</a>'
@@ -188,9 +187,9 @@ def build(json_path, db_path=None):
         # 扫描信息(视频/音频tag)
         sc = scan.get(mc)
         if not sc and uc:
-            m = re.match(r'(rtsp://[^?]+\.smil)', uc)
-            if m:
-                sc = scan.get(m.group(1))
+            _a = address_util.canonical_rtsp_strict(uc)   # 查扫描结果: 匹配不上别猜
+            if _a:
+                sc = scan.get(_a)
         rows.append({
             'name': esc(name), 'id': esc(cid),
             'logo_html': logo_html, 'video_tags': video_tags(sc), 'audio_tag': audio_tag(sc),

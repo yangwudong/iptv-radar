@@ -199,8 +199,11 @@ def test_h4_禁用频道不得销毁人工归并快照(db, conn, tmp_path):
     (radar / 'data').mkdir(exist_ok=True)
     # 复制脚本进隔离目录,让它的 RADAR 指向 tmp
     import shutil
-    for f in ('link_sources.py', 'db_util.py'):
-        shutil.copy(os.path.join(SRC, f), radar / 'src' / f)
+    # 复制 src/ 下所有 .py: 每次新增共享模块都手动往列表里加太容易漏
+    # (漏了就是运行期 ModuleNotFoundError,已踩过一次: 新增 address_util 时)
+    for f in os.listdir(SRC):
+        if f.endswith('.py'):
+            shutil.copy(os.path.join(SRC, f), radar / 'src' / f)
     shutil.copy(db, radar / 'data' / 'iptv.db')
     snap = _write_snapshot(str(radar), {'rtsp://x/1.smil': '被禁频道'})
     epg = radar / 'data' / 'epg.json'
@@ -298,8 +301,11 @@ def _isolated_radar(tmp_path, db):
     (radar / 'src').mkdir(parents=True)
     (radar / 'data').mkdir(exist_ok=True)
     (radar / 'reference').mkdir(exist_ok=True)
-    for f in ('link_sources.py', 'db_util.py'):
-        shutil.copy(os.path.join(SRC, f), radar / 'src' / f)
+    # 复制 src/ 下所有 .py: 每次新增共享模块都手动往列表里加太容易漏
+    # (漏了就是运行期 ModuleNotFoundError,已踩过一次: 新增 address_util 时)
+    for f in os.listdir(SRC):
+        if f.endswith('.py'):
+            shutil.copy(os.path.join(SRC, f), radar / 'src' / f)
     shutil.copy(db, radar / 'data' / 'iptv.db')
     return radar
 

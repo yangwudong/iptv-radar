@@ -20,6 +20,7 @@ import os
 import re
 import shutil
 import argparse
+import address_util
 
 RADAR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 DEFAULT_DB = os.path.join(RADAR, 'data', 'iptv.db')
@@ -50,17 +51,8 @@ def load_name_overrides():
 
 
 def get_addrs(url):
-    """从channels.json的url提取 组播地址 + 单播简化地址"""
-    addrs = []
-    for part in (url or '').split('|'):
-        part = part.strip()
-        m = re.search(r'igmp://(\d+\.\d+\.\d+\.\d+:\d+)', part)
-        if m:
-            addrs.append(m.group(1))
-        elif part.startswith('rtsp://'):
-            s = re.match(r'(rtsp://[^?]+\.smil)', part)
-            addrs.append(s.group(1) if s else part.split('?')[0])
-    return addrs
+    """从channels.json的url提取 组播地址 + 单播简化地址(规则见 address_util)"""
+    return address_util.parse_official_url(url)
 
 
 def get_addr_queries(ch):
@@ -70,9 +62,11 @@ def get_addr_queries(ch):
     out = {}
     ts = ch.get('timeshift_url') or ''
     if ts.startswith('rtsp://') and '?' in ts:
-        s = re.match(r'(rtsp://[^?]+\.smil)', ts)
-        if s:
-            out[s.group(1)] = ts.split('?', 1)[1]
+        # 严格版: 匹配不上就跳过。拿猜出来的地址当键,会把token写到错误的源上,
+        # 比写不进去更糟。
+        addr = address_util.canonical_rtsp_strict(ts)
+        if addr:
+            out[addr] = ts.split('?', 1)[1]
     return out
 
 

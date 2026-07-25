@@ -14,6 +14,7 @@ RTSP地址特点:
 """
 import sqlite3
 import db_util
+import address_util
 import os
 import sys
 import re
@@ -39,8 +40,7 @@ NOW = lambda: datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
 def simplify_rtsp(url):
     """RTSP简化版(去掉.smil后参数,静态可用)"""
-    m = re.match(r'(rtsp://[^?]+\.smil)', url)
-    return m.group(1) if m else url.split('?')[0]
+    return address_util.canonical_rtsp(url)
 
 
 def load_rtsp_addrs(epg_path):

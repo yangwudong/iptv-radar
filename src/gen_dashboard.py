@@ -17,6 +17,7 @@ iptv-radar 生成层: gen_dashboard.py (v2 精致版)
 import sqlite3
 import os
 import re
+import address_util
 import argparse
 import datetime
 import html
@@ -242,8 +243,7 @@ def build_html(data, epg=None):
             play_html = f'<button class="play-btn play-iina" data-mc="{esc(addr)}" onclick="playIINA(this)">▶ IINA</button>'
         elif d['stype'] == 'rtsp':
             # 单播: 完整地址(到.smil去token), 多行不截断, 双击复制
-            simple = re.match(r'(rtsp://[^?]+\.smil)', addr)
-            simple = simple.group(1) if simple else addr.split('?')[0]
+            simple = address_util.canonical_rtsp(addr)
             addr_html = f'<code class="addr-uc" ondblclick="copyText(this)" title="双击复制">{esc(simple)}</code>'
             # 播放: 单播直接拼 iina://(RTSP,不需前缀)
             import urllib.parse
