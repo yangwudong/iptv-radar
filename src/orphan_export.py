@@ -24,6 +24,7 @@ import hashlib
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import probe
+import address_util
 
 RADAR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 DEFAULT_DB = os.path.join(RADAR, 'data', 'iptv.db')
@@ -58,11 +59,47 @@ def shot_prefix(source_type, address):
         else 'u' + hashlib.md5(address.encode()).hexdigest()[:10]
 
 
+def default_epg():
+    """官方台账优先用 fetch_channels 刷新的(含新token),回退旧位置,最后回退历史样例。
+    路径顺序与 run_pipeline.sh 的 EPG_JSON 保持一致。"""
+    for p in (os.path.join(RADAR, 'data', 'channels.json'),
+              os.path.join(RADAR, 'reference', 'channels.json'),
+              os.path.join(RADAR, 'reference', 'channels.sample.json')):
+        if os.path.exists(p) and os.path.getsize(p) > 0:
+            return p
+    return ''
+
+
+def load_official(epg_path):
+    """官方 channels.json → (地址→官方名, 地址→同一官方频道的其他地址)。
+
+    实测价值: 26个孤儿里13个官方列表已给出名字(直播室1-7/好易购1高清/好享购)。
+    它们成为孤儿只因库里没这些频道、NAME_OVERRIDES 也没映射 —— 不是认不出来。
+    查不到的一律留空: 猜错的名字比空白更糟(会误导人工识别)。
+    """
+    if not epg_path or not os.path.exists(epg_path):
+        return {}, {}
+    try:
+        epg = json.load(open(epg_path, encoding='utf-8'))
+    except Exception as e:
+        print(f"  ⚠️ 官方台账读取失败({e}),本次不带官方名")
+        return {}, {}
+    name, sib = {}, {}
+    for ch in epg:
+        addrs = address_util.parse_official_url(ch.get('url'))
+        for a in addrs:
+            name[a] = ch.get('name') or ''
+            sib[a] = [x for x in addrs if x != a]
+    return name, sib
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--db', default=DEFAULT_DB)
     ap.add_argument('--msd', '--udpxy', dest='msd', default='127.0.0.1:4088',
                     help='msd_lite地址(组播播放URL前缀用)')
+    ap.add_argument('--epg', default=None,
+                    help='官方 channels.json(给孤儿带上官方名+配对关系)。默认自动探测')
     ap.add_argument('--no-shots', action='store_true', help='完全不截图(最快)')
     ap.add_argument('--reshoot', action='store_true',
                     help='强制重拍已有截图的源(默认: 已有截图的跳过,只拍新出现的孤儿源)')
@@ -90,6 +127,11 @@ def main():
         print("  无待识别孤儿源,不生成包。")
         conn.close()
         return
+
+    # 官方名 + 配对关系(识别时最有价值的线索,见 load_official)
+    epg_path = args.epg or default_epg()
+    off_name, off_sib = load_official(epg_path)
+    orphan_addrs = {r['address'] for r in orphan_rows}
 
     # 可归属频道清单(供App下拉/tag匹配)
     channels = [{'channel_key': r['channel_key'], 'name': r['name'], 'group': r['grp'] or ''}
@@ -141,6 +183,11 @@ def main():
             'fps': r['fps'] or 0, 'hdr': r['hdr'] or '', 'audio_codec': r['audio_codec'] or '',
             'play_url': purl, 'iina_url': iina,
             'shots': [f"{SHOTS_REL}/{s}" for s in shots],
+            # 官方台账给出的名字(查不到则空,不编造)
+            'official_name': off_name.get(addr, ''),
+            # 同一官方频道、且同样还是孤儿的其他地址: 一个决定会连带它们
+            # (link_sources 按官方列表归并,已由测试锁住该行为)
+            'paired_with': [x for x in off_sib.get(addr, []) if x in orphan_addrs],
         })
 
     # 回写截图路径(让下次能复用,避免每周重拍同一批已知垃圾流)

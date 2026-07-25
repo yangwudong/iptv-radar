@@ -816,3 +816,60 @@ def test_orphan_export_截图相对路径要能被页面直接引用(db, conn, t
     assert shots, "没截图"
     for s in shots:
         assert s.startswith('orphan-shots/'), f"截图相对路径不对(页面会404): {s!r}"
+
+
+# ============================================================
+# 待识别包要带官方名 + 配对关系
+#   实测: 26个孤儿里13个官方 channels.json 已给出名字(直播室1-7/好易购1高清/好享购)。
+#   它们成为孤儿只是因为库里没这些频道、NAME_OVERRIDES 也没映射 —— 不是认不出来。
+#   且同一官方频道的组播+单播成对: 标一个 junk 会连带另一个(见配对连带那条测试),
+#   页面必须展示,否则用户不知道一次动了两个源。
+# ============================================================
+
+MC_OFFICIAL = '233.50.201.204:5140'
+RTSP_OFFICIAL = 'rtsp://115.233.40.137/PLTV/88888913/224/3221229007/1000010000000006_0.smil'
+
+
+def _write_epg(tmp_path, entries):
+    p = tmp_path / 'epg.json'
+    json.dump(entries, open(p, 'w', encoding='utf-8'), ensure_ascii=False)
+    return str(p)
+
+
+def test_orphan_export_带上官方频道名(db, conn, tmp_path, monkeypatch):
+    """官方列表已给出名字的孤儿,包里必须带 official_name(识别时最有价值的线索)。"""
+    add_source(conn, MC_OFFICIAL, channel_id=None, source_type='multicast', available=1)
+    epg = _write_epg(tmp_path, [
+        {'id': '1', 'name': '直播室4', 'url': f'igmp://{MC_OFFICIAL}|{RTSP_OFFICIAL}'}])
+    _run_export(db, tmp_path, monkeypatch, [], extra=('--epg', epg, '--no-shots'))
+    pkg = json.load(open(tmp_path / 'orphans.json', encoding='utf-8'))
+    o = pkg['orphans'][0]
+    assert o.get('official_name') == '直播室4', (
+        f"官方名没带上(用户只能靠猜): {o.get('official_name')!r}")
+
+
+def test_orphan_export_标出成对的孤儿地址(db, conn, tmp_path, monkeypatch):
+    """同一官方频道的组播+单播都还是孤儿 → 互相标出,提示一个决定覆盖两个源。"""
+    add_source(conn, MC_OFFICIAL, channel_id=None, source_type='multicast', available=1)
+    add_source(conn, RTSP_OFFICIAL, channel_id=None, source_type='rtsp', available=1)
+    epg = _write_epg(tmp_path, [
+        {'id': '1', 'name': '直播室4', 'url': f'igmp://{MC_OFFICIAL}|{RTSP_OFFICIAL}'}])
+    _run_export(db, tmp_path, monkeypatch, [], extra=('--epg', epg, '--no-shots'))
+    pkg = json.load(open(tmp_path / 'orphans.json', encoding='utf-8'))
+    by = {o['address']: o for o in pkg['orphans']}
+    assert by[MC_OFFICIAL].get('paired_with') == [RTSP_OFFICIAL], (
+        f"组播没标出配对单播: {by[MC_OFFICIAL].get('paired_with')!r}")
+    assert by[RTSP_OFFICIAL].get('paired_with') == [MC_OFFICIAL], (
+        f"单播没标出配对组播: {by[RTSP_OFFICIAL].get('paired_with')!r}")
+
+
+def test_orphan_export_官方列表里没有的不得编造名字(db, conn, tmp_path, monkeypatch):
+    """13个组播孤儿官方列表里根本没有 —— 必须留空,不能瞎猜(猜错比空白更糟)。"""
+    add_source(conn, '233.9.7.7:5140', channel_id=None, source_type='multicast', available=1)
+    epg = _write_epg(tmp_path, [
+        {'id': '1', 'name': '别的频道', 'url': f'igmp://{MC_OFFICIAL}'}])
+    _run_export(db, tmp_path, monkeypatch, [], extra=('--epg', epg, '--no-shots'))
+    pkg = json.load(open(tmp_path / 'orphans.json', encoding='utf-8'))
+    o = pkg['orphans'][0]
+    assert not o.get('official_name'), f"给查不到的源编了名字: {o.get('official_name')!r}"
+    assert not o.get('paired_with'), f"编了配对关系: {o.get('paired_with')!r}"

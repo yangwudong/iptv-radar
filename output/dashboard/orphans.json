@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-07-25T22:29:24",
+ "generated_at": "2026-07-25T22:34:58",
  "msd_prefix": "http://127.0.0.1:4088/rtp/",
  "channels": [
   {
@@ -739,7 +739,9 @@
    "audio_codec": "mp2",
    "play_url": "http://127.0.0.1:4088/rtp/233.50.200.233:5140",
    "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.200.233%3A5140",
-   "shots": []
+   "shots": [],
+   "official_name": "",
+   "paired_with": []
   },
   {
    "address": "233.50.200.234:5140",
@@ -751,7 +753,9 @@
    "audio_codec": "mp2",
    "play_url": "http://127.0.0.1:4088/rtp/233.50.200.234:5140",
    "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.200.234%3A5140",
-   "shots": []
+   "shots": [],
+   "official_name": "",
+   "paired_with": []
   },
   {
    "address": "233.50.200.235:5140",
@@ -763,7 +767,9 @@
    "audio_codec": "mp2",
    "play_url": "http://127.0.0.1:4088/rtp/233.50.200.235:5140",
    "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.200.235%3A5140",
-   "shots": []
+   "shots": [],
+   "official_name": "",
+   "paired_with": []
   },
   {
    "address": "233.50.200.236:5140",
@@ -775,7 +781,9 @@
    "audio_codec": "mp2",
    "play_url": "http://127.0.0.1:4088/rtp/233.50.200.236:5140",
    "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.200.236%3A5140",
-   "shots": []
+   "shots": [],
+   "official_name": "",
+   "paired_with": []
   },
   {
    "address": "233.50.200.237:5140",
@@ -787,7 +795,9 @@
    "audio_codec": "mp2",
    "play_url": "http://127.0.0.1:4088/rtp/233.50.200.237:5140",
    "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.200.237%3A5140",
-   "shots": []
+   "shots": [],
+   "official_name": "",
+   "paired_with": []
   },
   {
    "address": "233.50.200.244:5140",
@@ -799,7 +809,9 @@
    "audio_codec": "mp2",
    "play_url": "http://127.0.0.1:4088/rtp/233.50.200.244:5140",
    "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.200.244%3A5140",
-   "shots": []
+   "shots": [],
+   "official_name": "",
+   "paired_with": []
   },
   {
    "address": "233.50.200.246:5140",
@@ -811,7 +823,9 @@
    "audio_codec": "mp2",
    "play_url": "http://127.0.0.1:4088/rtp/233.50.200.246:5140",
    "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.200.246%3A5140",
-   "shots": []
+   "shots": [],
+   "official_name": "",
+   "paired_with": []
   },
   {
    "address": "233.50.200.247:5140",
@@ -823,7 +837,9 @@
    "audio_codec": "mp2",
    "play_url": "http://127.0.0.1:4088/rtp/233.50.200.247:5140",
    "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.200.247%3A5140",
-   "shots": []
+   "shots": [],
+   "official_name": "",
+   "paired_with": []
   },
   {
    "address": "233.50.200.31:5140",
@@ -835,7 +851,9 @@
    "audio_codec": "mp2",
    "play_url": "http://127.0.0.1:4088/rtp/233.50.200.31:5140",
    "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.200.31%3A5140",
-   "shots": []
+   "shots": [],
+   "official_name": "",
+   "paired_with": []
   },
   {
    "address": "233.50.200.32:5140",
@@ -847,7 +865,9 @@
    "audio_codec": "mp2",
    "play_url": "http://127.0.0.1:4088/rtp/233.50.200.32:5140",
    "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.200.32%3A5140",
-   "shots": []
+   "shots": [],
+   "official_name": "",
+   "paired_with": []
   },
   {
    "address": "233.50.200.34:5140",
@@ -859,7 +879,9 @@
    "audio_codec": "mp2",
    "play_url": "http://127.0.0.1:4088/rtp/233.50.200.34:5140",
    "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.200.34%3A5140",
-   "shots": []
+   "shots": [],
+   "official_name": "",
+   "paired_with": []
   },
   {
    "address": "233.50.200.53:5140",
@@ -871,7 +893,9 @@
    "audio_codec": "mp2",
    "play_url": "http://127.0.0.1:4088/rtp/233.50.200.53:5140",
    "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.200.53%3A5140",
-   "shots": []
+   "shots": [],
+   "official_name": "",
+   "paired_with": []
   },
   {
    "address": "233.50.201.204:5140",
@@ -883,7 +907,11 @@
    "audio_codec": "mp2",
    "play_url": "http://127.0.0.1:4088/rtp/233.50.201.204:5140",
    "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.201.204%3A5140",
-   "shots": []
+   "shots": [],
+   "official_name": "直播室4",
+   "paired_with": [
+    "rtsp://115.233.40.137/PLTV/88888913/224/3221229007/10000100000000060000000004308260_0.smil"
+   ]
   },
   {
    "address": "233.50.201.205:5140",
@@ -895,7 +923,11 @@
    "audio_codec": "mp2",
    "play_url": "http://127.0.0.1:4088/rtp/233.50.201.205:5140",
    "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.201.205%3A5140",
-   "shots": []
+   "shots": [],
+   "official_name": "直播室5",
+   "paired_with": [
+    "rtsp://115.233.40.137/PLTV/88888913/224/3221229011/10000100000000060000000004308262_0.smil"
+   ]
   },
   {
    "address": "233.50.201.206:5140",
@@ -907,7 +939,11 @@
    "audio_codec": "mp2",
    "play_url": "http://127.0.0.1:4088/rtp/233.50.201.206:5140",
    "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.201.206%3A5140",
-   "shots": []
+   "shots": [],
+   "official_name": "直播室6",
+   "paired_with": [
+    "rtsp://115.233.40.137/PLTV/88888913/224/3221229015/10000100000000060000000004308263_0.smil"
+   ]
   },
   {
    "address": "233.50.201.248:5140",
@@ -919,7 +955,11 @@
    "audio_codec": "mp2",
    "play_url": "http://127.0.0.1:4088/rtp/233.50.201.248:5140",
    "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.201.248%3A5140",
-   "shots": []
+   "shots": [],
+   "official_name": "好易购1高清",
+   "paired_with": [
+    "rtsp://115.233.40.137/PLTV/88888913/224/3221229213/53485722.smil"
+   ]
   },
   {
    "address": "233.50.201.91:5140",
@@ -931,7 +971,9 @@
    "audio_codec": "mp2",
    "play_url": "http://127.0.0.1:4088/rtp/233.50.201.91:5140",
    "iina_url": "iina://weblink?url=http%3A%2F%2F127.0.0.1%3A4088%2Frtp%2F233.50.201.91%3A5140",
-   "shots": []
+   "shots": [],
+   "official_name": "",
+   "paired_with": []
   },
   {
    "address": "rtsp://115.233.40.137/PLTV/88888913/224/3221229007/10000100000000060000000004308260_0.smil",
@@ -943,7 +985,11 @@
    "audio_codec": "mp2",
    "play_url": "rtsp://115.233.40.137/PLTV/88888913/224/3221229007/10000100000000060000000004308260_0.smil",
    "iina_url": "iina://weblink?url=rtsp%3A%2F%2F115.233.40.137%2FPLTV%2F88888913%2F224%2F3221229007%2F10000100000000060000000004308260_0.smil",
-   "shots": []
+   "shots": [],
+   "official_name": "直播室4",
+   "paired_with": [
+    "233.50.201.204:5140"
+   ]
   },
   {
    "address": "rtsp://115.233.40.137/PLTV/88888913/224/3221229011/10000100000000060000000004308262_0.smil",
@@ -955,7 +1001,11 @@
    "audio_codec": "mp2",
    "play_url": "rtsp://115.233.40.137/PLTV/88888913/224/3221229011/10000100000000060000000004308262_0.smil",
    "iina_url": "iina://weblink?url=rtsp%3A%2F%2F115.233.40.137%2FPLTV%2F88888913%2F224%2F3221229011%2F10000100000000060000000004308262_0.smil",
-   "shots": []
+   "shots": [],
+   "official_name": "直播室5",
+   "paired_with": [
+    "233.50.201.205:5140"
+   ]
   },
   {
    "address": "rtsp://115.233.40.137/PLTV/88888913/224/3221229015/10000100000000060000000004308263_0.smil",
@@ -967,7 +1017,11 @@
    "audio_codec": "mp2",
    "play_url": "rtsp://115.233.40.137/PLTV/88888913/224/3221229015/10000100000000060000000004308263_0.smil",
    "iina_url": "iina://weblink?url=rtsp%3A%2F%2F115.233.40.137%2FPLTV%2F88888913%2F224%2F3221229015%2F10000100000000060000000004308263_0.smil",
-   "shots": []
+   "shots": [],
+   "official_name": "直播室6",
+   "paired_with": [
+    "233.50.201.206:5140"
+   ]
   },
   {
    "address": "rtsp://115.233.40.137/PLTV/88888913/224/3221229213/53485722.smil",
@@ -979,7 +1033,11 @@
    "audio_codec": "mp2",
    "play_url": "rtsp://115.233.40.137/PLTV/88888913/224/3221229213/53485722.smil",
    "iina_url": "iina://weblink?url=rtsp%3A%2F%2F115.233.40.137%2FPLTV%2F88888913%2F224%2F3221229213%2F53485722.smil",
-   "shots": []
+   "shots": [],
+   "official_name": "好易购1高清",
+   "paired_with": [
+    "233.50.201.248:5140"
+   ]
   },
   {
    "address": "rtsp://115.233.40.137/PLTV/88888913/224/3221229466/148085530.smil",
@@ -991,7 +1049,9 @@
    "audio_codec": "mp2",
    "play_url": "rtsp://115.233.40.137/PLTV/88888913/224/3221229466/148085530.smil",
    "iina_url": "iina://weblink?url=rtsp%3A%2F%2F115.233.40.137%2FPLTV%2F88888913%2F224%2F3221229466%2F148085530.smil",
-   "shots": []
+   "shots": [],
+   "official_name": "直播室1",
+   "paired_with": []
   },
   {
    "address": "rtsp://115.233.40.137/PLTV/88888913/224/3221229469/148085439.smil",
@@ -1003,7 +1063,9 @@
    "audio_codec": "mp2",
    "play_url": "rtsp://115.233.40.137/PLTV/88888913/224/3221229469/148085439.smil",
    "iina_url": "iina://weblink?url=rtsp%3A%2F%2F115.233.40.137%2FPLTV%2F88888913%2F224%2F3221229469%2F148085439.smil",
-   "shots": []
+   "shots": [],
+   "official_name": "直播室3",
+   "paired_with": []
   },
   {
    "address": "rtsp://115.233.40.137/PLTV/88888913/224/3221229472/148085491.smil",
@@ -1015,7 +1077,9 @@
    "audio_codec": "mp2",
    "play_url": "rtsp://115.233.40.137/PLTV/88888913/224/3221229472/148085491.smil",
    "iina_url": "iina://weblink?url=rtsp%3A%2F%2F115.233.40.137%2FPLTV%2F88888913%2F224%2F3221229472%2F148085491.smil",
-   "shots": []
+   "shots": [],
+   "official_name": "直播室7",
+   "paired_with": []
   },
   {
    "address": "rtsp://115.233.40.137/PLTV/88888913/224/3221229475/148775850.smil",
@@ -1027,7 +1091,9 @@
    "audio_codec": "mp2",
    "play_url": "rtsp://115.233.40.137/PLTV/88888913/224/3221229475/148775850.smil",
    "iina_url": "iina://weblink?url=rtsp%3A%2F%2F115.233.40.137%2FPLTV%2F88888913%2F224%2F3221229475%2F148775850.smil",
-   "shots": []
+   "shots": [],
+   "official_name": "好享购",
+   "paired_with": []
   },
   {
    "address": "rtsp://115.233.40.137/PLTV/88888913/224/3221229488/148085486.smil",
@@ -1039,7 +1105,9 @@
    "audio_codec": "mp2",
    "play_url": "rtsp://115.233.40.137/PLTV/88888913/224/3221229488/148085486.smil",
    "iina_url": "iina://weblink?url=rtsp%3A%2F%2F115.233.40.137%2FPLTV%2F88888913%2F224%2F3221229488%2F148085486.smil",
-   "shots": []
+   "shots": [],
+   "official_name": "直播室2",
+   "paired_with": []
   }
  ]
 }
