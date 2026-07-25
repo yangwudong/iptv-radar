@@ -83,6 +83,73 @@ python3 src/gen_dashboard.py     # 生成 Dashboard
 真实的运营商地址、认证凭证、部署路径等通过项目根目录的 `.env` 提供
 (不随仓库分发)。参考各脚本的默认参数与命令行选项。
 
+## 进阶: OpenWRT 让 IPTV 组播在 LAN 内直接播放
+
+默认组播需经 `udpxy`/`msd_lite` 转 HTTP 单播,软路由要为每个观看者做一路转码,
+是 CPU 瓶颈。若软路由是 OpenWRT,可让 LAN 设备(IINA/APTV 等)**直接收组播 RTP**
+(`rtp://@<组播地址>`),绕过转码中转。原理是用 IGMP proxy 把 IPTV 上游接口的组播
+按需转发到 LAN 网桥。
+
+> 以下为通用步骤,`<IPTV接口>`/`<LAN接口>`/`<组播源网段>` 请替换为你自己的实际值。
+> 组播只在**同一局域网**内可达;跨 VPN(如 WireGuard/Tailscale)不转发组播,远程仍需 HTTP 转码那套。
+
+**1. 装 igmpproxy(比自带的 omcproxy 更适合 IPv4 IPTV)**
+```sh
+opkg update && opkg install igmpproxy
+```
+
+**2. 配 igmpproxy: 上游=IPTV接口, 下游=LAN**  (`/etc/config/igmpproxy`)
+```
+config igmpproxy
+    option quickleave 1
+
+config phyint
+    option network   <IPTV接口>      # 组播上游(如 IPTV 的 VLAN 接口)
+    option direction upstream
+    list   altnet    <组播源网段>    # 允许接收组播的源网段,如 x.x.0.0/16
+config phyint
+    option network   lan             # LAN 下游
+    option direction downstream
+```
+注意上游用**真实接口/VLAN 子接口**,不要用网桥(`br-lan`)。
+
+**3. ⚠️ 关键: 放行防火墙的组播转发(最容易漏、最难查的坑)**
+
+IPTV 所在防火墙 zone 的 `forward` 若是 `REJECT/DROP`(常见默认),转发的组播 UDP
+会被静默丢弃 —— 现象是 `ip_mr_vif` 里下游计数在涨(内核以为转发了),但设备/物理口
+上抓不到数据包。**加一条允许 IPTV→LAN 组播 UDP 的规则**:
+```
+config rule
+    option name   'Allow-IPTV-Multicast-to-LAN'
+    option src    '<IPTV_zone>'
+    option dest   'lan'
+    option proto  'udp'
+    option dest_ip '224.0.0.0/4'
+    option target 'ACCEPT'
+```
+
+**4. LAN 网桥关闭 IGMP snooping(泛洪,最省心)**
+```sh
+uci set network.@device[0].igmp_snooping='0'   # 对应 br-lan 的 device
+uci commit network
+```
+(千兆 LAN 泛洪压力可忽略;按需 join 时只有被观看的组会真正拉流。)
+
+**5. 重载并验证**
+```sh
+/etc/init.d/igmpproxy restart; /etc/init.d/firewall reload; /etc/init.d/network reload
+ip mroute show          # 观看时应出现 (源, 组) Iif:<IPTV接口> Oifs:lan State:resolved
+```
+LAN 设备用播放器打开 `rtp://@<组播地址>` 即可直接观看。
+
+**排查提示**(按此顺序,逐步用证据定位):
+- 设备发不出 IGMP join → 检查客户端(macOS 上 Docker/OrbStack 的虚拟网桥会干扰组播 join,关掉即可);
+- `ip mroute show` 无 resolved 条目 → igmpproxy 上游/altnet/scope 配置(某些运营商组播是 organization-local,igmpproxy 默认只代理 global);
+- 有 resolved 但设备收不到、物理口抓不到包 → **十有八九是防火墙 forward 拦了(见第3步)**。
+
+本仓库的 `gen_m3u.py --multicast-mode direct` 会生成组播直通版 m3u(`rtp://@...`),
+`--multicast-mode msd`(默认)生成经转码的兼容版,两套并存分别用于 LAN 直连 / 远程。
+
 ## License
 
 个人自用项目,仅供学习交流。

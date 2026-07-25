@@ -251,6 +251,14 @@ pipeline产出orphans.json+截图 → Electron App人工识别 → resolved.json
   - **架构原则**: token入库(sources.timeshift_query),gen_m3u仍只从库读,不破"SQLite唯一主数据源"。channels.json含token→gitignore不提交,compose单文件挂载持久化。
   - **4K频道例外**: 部分4K频道(北京卫视4K等)电信不提供回看(playback_days=0,回看请求404),m3u不加catchup标签(正确);但APTV仍允许触发回看并因404 crash,属APTV健壮性问题,数据侧无误。
 
+### 组播LAN直通(2026-07-25 实测打通)
+LAN设备直接播 `rtp://@233.50.x` 收组播,绕过msd_lite转码中转(降软路由CPU)。纯软路由配置,不改网络架构。
+- **方案**: igmpproxy(替代omcproxy,后者对IPv4 IPTV不干活) upstream=IPTV接口/downstream=lan/altnet=组播源网段/scope=organization(233.x非global,默认会被过滤) + **防火墙放行 IPTV→lan 的组播UDP(224.0.0.0/4 ACCEPT)** + LAN网桥snooping=0泛洪。
+- **真凶(踩坑)**: IPTV zone防火墙 forward=REJECT 静默DROP转发的组播UDP。症状迷惑: ip_mr_vif下游计数在涨(内核以为转发了)但物理口抓不到包。一度误判内核bridge限制,实为防火墙。→ 组播转发不通先查防火墙forward策略。
+- **两套m3u**: gen_m3u `--multicast-mode msd`(默认,`http://msd/rtp/`,远程/Tailscale/兼容) / `direct`(`rtp://@`,仅LAN内)。单播源两模式一致。
+- **Tailscale不支持**: WireGuard隧道不转发组播,远程只能用msd版(msd_lite监听0.0.0.0走隧道单播HTTP)。
+- **msd_lite保留**: 与igmpproxy并存,作远程/兼容后端。通用配置教程见 README「进阶」。
+
 ---
 
 ## 六、部署 (待实施)

@@ -29,10 +29,16 @@ GROUP_ORDER = ['央视', '4K超高清', '卫视', '浙江', '北京', '上海', 
                '其他', '广播', '未识别']
 
 
-def addr_to_url(source_type, address, msd, timeshift_query=None):
-    """源地址 → 播放URL"""
+def addr_to_url(source_type, address, msd, timeshift_query=None, multicast_mode='msd'):
+    """源地址 → 播放URL。
+    multicast_mode: 组播源的输出方式
+      'msd'    → http://<msd>/rtp/<addr>  经msd_lite转HTTP单播(远程/Tailscale可用,最兼容)
+      'direct' → rtp://@<addr>            LAN直收组播(需软路由igmpproxy+防火墙放行组播转发,省msd中转)"""
     if source_type == 'multicast':
         # address = "233.50.201.118:5140"
+        if multicast_mode == 'direct':
+            # LAN组播直通: 电信IPTV是RTP over UDP,用 rtp://@ 让播放器正确解RTP头
+            return f"rtp://@{address}"
         return f"http://{msd}/rtp/{address}"
     elif source_type == 'rtsp':
         # 单播: 库存的是去token简化地址,完整地址 = address + "?" + timeshift_query(含token)
@@ -43,7 +49,7 @@ def addr_to_url(source_type, address, msd, timeshift_query=None):
     return address
 
 
-def generate(db_path, out_path, msd):
+def generate(db_path, out_path, msd, multicast_mode='msd'):
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
@@ -80,7 +86,7 @@ def generate(db_path, out_path, msd):
         members = sorted(group_members[g], key=lambda x: x[0])
         for _, cid in members:
             r = ch_by_id[cid]
-            url = addr_to_url(r['source_type'], r['address'], msd, r['timeshift_query']) if r['address'] else ''
+            url = addr_to_url(r['source_type'], r['address'], msd, r['timeshift_query'], multicast_mode) if r['address'] else ''
             if not url:
                 continue
             logo_attr = f' tvg-logo="{r["tvg_logo"]}"' if r['tvg_logo'] else ''
@@ -107,11 +113,14 @@ if __name__ == '__main__':
     ap.add_argument('--out', default=DEFAULT_OUT)
     ap.add_argument('--msd', '--udpxy', dest='msd', default=DEFAULT_MSD,
                     help='msd_lite/udpxy 组播转HTTP地址')
+    ap.add_argument('--multicast-mode', choices=['msd', 'direct'], default='msd',
+                    help="组播源输出方式: msd=经msd_lite转HTTP(默认,远程/Tailscale可用); "
+                         "direct=rtp://@直收(LAN内需软路由igmpproxy+防火墙放行组播)")
     args = ap.parse_args()
     print("=" * 50)
     print("  iptv-radar 生成m3u (gen_m3u.py)")
     print("=" * 50)
-    n, ng = generate(args.db, args.out, args.msd)
-    print(f"  输出: {args.out}")
+    n, ng = generate(args.db, args.out, args.msd, args.multicast_mode)
+    print(f"  输出: {args.out}  (组播模式: {args.multicast_mode})")
     print(f"  频道条目: {n}, 分组: {ng}")
     print("完成")

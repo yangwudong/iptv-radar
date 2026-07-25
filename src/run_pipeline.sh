@@ -102,9 +102,10 @@ python3 etl_process.py
 echo ""; echo ">>> [5/7] 产出孤儿源待识别包(output/orphan_review/)"
 python3 orphan_export.py --msd "$MSD" || echo "  无孤儿源或导出出错(继续)"
 
-# 6. 生成 m3u
-echo ""; echo ">>> [6/7] 生成m3u"
-python3 gen_m3u.py --msd "$MSD"
+# 6. 生成 m3u(两套): msd版(组播转HTTP,远程/Tailscale可用) + direct版(组播直通rtp,LAN内省中转)
+echo ""; echo ">>> [6/7] 生成m3u(msd版 + 组播直通版)"
+python3 gen_m3u.py --msd "$MSD" --multicast-mode msd --out ../output/iptv.m3u
+python3 gen_m3u.py --msd "$MSD" --multicast-mode direct --out ../output/iptv_direct.m3u
 
 # 7. 生成 Dashboard + EPG
 echo ""; echo ">>> [7/7] 抓EPG + 生成Dashboard"
@@ -117,7 +118,8 @@ if [[ "$*" == *"--publish"* ]]; then
     echo ""; echo ">>> 发布 m3u → $NGINX_M3U_DIR"
     if [ -d "$NGINX_M3U_DIR" ]; then
         cp ../output/iptv.m3u "$NGINX_M3U_DIR/iptv.m3u"
-        echo "  已发布 iptv.m3u"
+        cp ../output/iptv_direct.m3u "$NGINX_M3U_DIR/iptv_direct.m3u"
+        echo "  已发布 iptv.m3u(msd版) + iptv_direct.m3u(组播直通版)"
     else
         echo "  ⚠️ Nginx目录不存在,跳过: $NGINX_M3U_DIR"
     fi
