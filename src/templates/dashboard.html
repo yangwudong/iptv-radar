@@ -154,6 +154,16 @@ tbody tr:hover td { background:var(--hover); }
 .dot.ok { background:#17b26a; } .dot.off { background:#f04438; } .dot.new { background:#f79009; }
 footer { text-align:center; color:var(--muted); font-size:13px; padding:30px 0; }
 footer a { color:var(--accent); text-decoration:none; }
+.m3u-box { max-width:640px; margin:30px auto 0; padding:18px 20px; background:var(--card,#fff); border:1px solid var(--border,#e4e7ec); border-radius:12px; }
+.m3u-title { font-weight:600; font-size:15px; margin-bottom:14px; }
+.m3u-item { margin-bottom:14px; }
+.m3u-item:last-child { margin-bottom:0; }
+.m3u-label { font-size:13px; font-weight:600; margin-bottom:5px; }
+.m3u-tag { display:inline-block; font-size:11px; font-weight:500; padding:1px 8px; border-radius:10px; background:#e0f2fe; color:#0369a1; margin-left:6px; vertical-align:middle; }
+.m3u-tag.tag-direct { background:#dcfce7; color:#15803d; }
+.m3u-url { display:block; font-family:ui-monospace,Menlo,monospace; font-size:12px; padding:7px 10px; background:var(--bg,#f9fafb); border:1px solid var(--border,#e4e7ec); border-radius:6px; cursor:pointer; word-break:break-all; color:var(--accent,#2563eb); }
+.m3u-url:hover { border-color:var(--accent,#2563eb); }
+.m3u-desc { font-size:12px; color:var(--muted); margin-top:5px; }
 @media(max-width:768px) { .c-grp { display:none; } header h1 { font-size:24px; } }
 </style></head>
 <body>
@@ -202,9 +212,21 @@ footer a { color:var(--accent); text-decoration:none; }
       </tbody>
     </table>
   </div>
+  <div class="m3u-box">
+    <div class="m3u-title">📺 订阅地址 (m3u)</div>
+    <div class="m3u-item">
+      <div class="m3u-label">标准版 <span class="m3u-tag">远程 / Tailscale / 全兼容</span></div>
+      <code class="m3u-url" onclick="copyText(this)" title="点击复制">../iptv.m3u</code>
+      <div class="m3u-desc">组播经 msd_lite 转 HTTP,任何网络都能播,最兼容。</div>
+    </div>
+    <div class="m3u-item">
+      <div class="m3u-label">直通版 <span class="m3u-tag tag-direct">仅局域网</span></div>
+      <code class="m3u-url" onclick="copyText(this)" title="点击复制">../iptv_direct.m3u</code>
+      <div class="m3u-desc">组播 rtp 直收,低延迟省路由器 CPU,仅家庭 LAN 内可用(Tailscale/远程请用标准版)。</div>
+    </div>
+  </div>
   <footer>
-    浙江电信IPTV源检测 · <a href="iptv.m3u">下载 m3u</a> ·
-    数据源 EPG {{ epg_server }}
+    浙江电信IPTV源检测 · 数据源 EPG {{ epg_server }}
   </footer>
 </div>
 <div id="epgModal" onclick="if(event.target===this)this.style.display='none'">
@@ -296,6 +318,8 @@ function mcUrl(mc) {
 // 双击复制地址
 function copyText(el) {
   var t = el.textContent;
+  // m3u相对地址(../xxx.m3u)复制成基于当前页的完整URL,方便粘进播放器
+  if (t.indexOf('.m3u') >= 0) { try { t = new URL(t, location.href).href; } catch(e){} }
   navigator.clipboard.writeText(t).then(function() {
     var old = el.style.outline; el.style.outline = '2px solid #17b26a';
     setTimeout(function() { el.style.outline = old; }, 600);
