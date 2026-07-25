@@ -138,11 +138,19 @@ const ORPHANS = RAW.orphans, CHANNELS = RAW.channels, PATHS = RAW.paths;
 const DEFAULT_PFX = RAW.msd_prefix || '';
 const CHKEYS = new Set(CHANNELS.map(c => c.channel_key));
 const KEY = 'iptv-radar-orphan-draft';
-let D = {};      // address → {action, channel_key, group}
+let D = {};      // address → {action, channel_key, group}  已确定的决定
+let PEND = {};   // address → {channel_key, group}          新建频道正在输入的草稿(未确定)
 let filter = 'todo';
 
-try { D = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { D = {}; }
-function save() { try { localStorage.setItem(KEY, JSON.stringify(D)); } catch (e) {} }
+// 存两份: 打字中的内容也不丢,但不算"已决定"(否则名字没填完就被当成决定)
+try {
+  const raw = JSON.parse(localStorage.getItem(KEY) || '{}');
+  if (raw && raw.decisions) { D = raw.decisions; PEND = raw.pending || {}; }
+  else { D = raw || {}; }               // 兼容旧格式(扁平的决定表)
+} catch (e) { D = {}; PEND = {}; }
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify({ decisions: D, pending: PEND })); } catch (e) {}
+}
 
 function toggleTheme() {
   const h = document.documentElement, dark = h.dataset.theme === 'dark';
@@ -217,6 +225,8 @@ function render() {
   const rows = visible();
   document.getElementById('list').innerHTML = rows.map((o, i) => {
     const d = D[o.address] || {};
+    const p = PEND[o.address] || {};
+    const pend = !d.action && !!(p.channel_key || p.group);   // 有草稿但没确认
     const shots = (o.shots || []).length
       ? `<div class="shots">${o.shots.map(s =>
           `<img loading="lazy" src="${esc(s)}" alt="" onclick="zoom(this.src)">`).join('')}</div>`
@@ -249,38 +259,74 @@ function render() {
         <button class="btn" onclick="setAct('${esc(o.address)}','skip')">跳过</button>
         <button class="btn" onclick="setAct('${esc(o.address)}','')">清除</button>
       </div>
-      <div class="newbox ${d.action === 'new' ? 'show' : ''}">
+      <div class="newbox ${(d.action === 'new' || pend) ? 'show' : ''}">
         <input type="text" placeholder="新频道名(channel_key)"
-               value="${esc(d.action === 'new' ? (d.channel_key || '') : '')}"
+               value="${esc(d.action === 'new' ? (d.channel_key || '') : (p.channel_key || ''))}"
                oninput="onNewKey('${esc(o.address)}', this)">
-        <input type="text" list="dl-grp" placeholder="分组(可新建)"
-               value="${esc(d.action === 'new' ? (d.group || '') : '')}"
+        <input type="text" list="dl-grp" placeholder="分组(可新建/可选已有)"
+               value="${esc(d.action === 'new' ? (d.group || '') : (p.group || ''))}"
                oninput="onNewGrp('${esc(o.address)}', this)">
+        <button class="btn primary" onclick="confirmNew('${esc(o.address)}', this)">✓ 确定</button>
+        ${pend ? '<span style="font-size:12px;color:var(--warn)">未确认 —— 点"确定"才算数</span>' : ''}
       </div>
     </div>`;
   }).join('') || `<div class="card" style="color:var(--muted)">没有符合条件的源。</div>`;
 
+  updateCount();
+  document.getElementById('cnt').textContent += ` · 当前显示 ${rows.length}`;
+}
+
+// 只更新这一张卡的状态标记 + 底部计数,不整表重渲染(打字时重渲染会丢焦点)
+function refreshCard(addr, el) {
+  const card = el.closest('.card'), d = D[addr] || {};
+  card.classList.toggle('done', !!d.action);
+  const chip = card.querySelector('.state');
+  if (chip) chip.outerHTML = stateHtml(d) || '<span class="state"></span>';
+  else card.querySelector('.card-head').insertAdjacentHTML('beforeend', stateHtml(d) || '<span class="state"></span>');
+  updateCount();
+}
+function updateCount() {
   const decided = ORPHANS.filter(o => (D[o.address] || {}).action).length;
   document.getElementById('cnt').textContent =
-    `已决定 ${decided} / ${ORPHANS.length} · 当前显示 ${rows.length}`;
+    `已决定 ${decided} / ${ORPHANS.length}` + (Object.keys(PEND).length ? ` · 未确认草稿 ${Object.keys(PEND).length}` : '');
 }
 
 function onAssign(addr, el) {
   const v = el.value.trim();
-  if (!v) { delete D[addr]; save(); return; }
-  // 必须是清单里的频道: 打错字会在落库端被静默跳过(⚠️频道不存在)
-  if (CHKEYS.has(v)) { D[addr] = { action: 'assign', channel_key: v }; el.style.borderColor = 'var(--ok)'; }
-  else { el.style.borderColor = 'var(--warn)'; return; }
-  save(); document.getElementById('cnt').textContent = '';
-  render();
+  if (!v) { delete D[addr]; el.style.borderColor = ''; save(); refreshCard(addr, el); return; }
+  // 必须是清单里的频道: 打错字会在落库端被静默跳过(⚠️频道不存在),所以不匹配就不记
+  if (CHKEYS.has(v)) {
+    D[addr] = { action: 'assign', channel_key: v };
+    el.style.borderColor = 'var(--ok)';
+  } else {
+    delete D[addr];
+    el.style.borderColor = 'var(--warn)';
+  }
+  save(); refreshCard(addr, el);
 }
+
+// 新建频道: 输入只存草稿,不算决定 —— 必须点"确定"
 function onNewKey(addr, el) {
-  const d = D[addr] = D[addr] || { action: 'new' };
-  d.action = 'new'; d.channel_key = el.value.trim(); save();
+  const t = PEND[addr] = PEND[addr] || {}; t.channel_key = el.value.trim(); save(); updateCount();
 }
 function onNewGrp(addr, el) {
-  const d = D[addr] = D[addr] || { action: 'new' };
-  d.action = 'new'; d.group = el.value.trim(); save();
+  const t = PEND[addr] = PEND[addr] || {}; t.group = el.value.trim(); save(); updateCount();
+}
+function confirmNew(addr, btn) {
+  const box = btn.closest('.newbox'), ins = box.querySelectorAll('input');
+  const key = ins[0].value.trim(), grp = ins[1].value.trim();
+  if (!key) { alert('请先填新频道名'); ins[0].focus(); return; }
+  if (!grp) { alert('请先选或填一个分组'); ins[1].focus(); return; }
+  if (CHKEYS.has(key)) {
+    if (!confirm(`频道"${key}"库里已存在。\n将把这个源直接归并到它(不新建重复频道)。继续?`)) return;
+  }
+  const o = ORPHANS.find(x => x.address === addr);
+  const extra = (o && o.paired_with || []).length
+    ? `\n\n注意: 同一官方频道另有 ${o.paired_with.length} 个孤儿源,这个决定会连带它们。` : '';
+  D[addr] = { action: 'new', channel_key: key, group: grp };
+  delete PEND[addr];
+  save(); render();
+  alert(`✓ 已确定\n\n${o && o.official_name ? '官方名: ' + o.official_name + '\n' : ''}${addr}\n→ 新建频道「${key}」@ ${grp}${extra}`);
 }
 function toggleNew(btn) { btn.closest('.card').querySelector('.newbox').classList.toggle('show'); }
 function setAct(addr, act) {
@@ -297,8 +343,8 @@ function bulkJunk() {
   save(); render();
 }
 function clearDraft() {
-  if (!confirm('清空所有已做的决定?')) return;
-  D = {}; save(); render();
+  if (!confirm('清空所有已做的决定(含未确认草稿)?')) return;
+  D = {}; PEND = {}; save(); render();
 }
 function zoom(src) {
   document.getElementById('lbimg').src = src;

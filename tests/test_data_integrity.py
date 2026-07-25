@@ -984,3 +984,16 @@ def test_shot_prefix_单播前缀要能肉眼区分():
     # 去掉各自的 md5 尾后仍必须不同(即可读部分本身就能区分)
     assert pa.rsplit('_', 1)[0] != pb.rsplit('_', 1)[0], \
         f"可读部分相同,只靠哈希区分: {pa} vs {pb}"
+
+
+def test_orphan_review新建频道必须有确认动作(db, conn, tmp_path, monkeypatch):
+    """用户实操发现: 填了频道名和分组后没有任何"已确定"反馈,不知道这条算不算数。
+    原因是两个输入框只写草稿、从不重渲染状态标记,且每敲一个字就把 action 置为 new
+    (于是"名字还没填完/分组还空着"也被当成已决定)。必须有显式确认控件。
+
+    注: 这条只能锁住"控件存在",JS 交互行为要靠人工验证(无浏览器测试环境)。
+    """
+    add_source(conn, '233.9.9.9:5140', channel_id=None, source_type='multicast', available=1)
+    html_txt = _export_with_page(db, tmp_path, monkeypatch)
+    assert 'confirmNew(' in html_txt, "新建频道没有确认动作 → 用户无法确定这条是否算数"
+    assert 'pending' in html_txt, "没把'正在输入的草稿'与'已确定的决定'分开存"
