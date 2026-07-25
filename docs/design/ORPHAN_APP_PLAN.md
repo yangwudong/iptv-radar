@@ -257,6 +257,14 @@ cp ~/Downloads/resolved_xxx.json /Volumes/docker/iptv-radar/data/orphan_inbox/  
 ```
 - 真实主机/端口从 `.env` 读，**不要写死在代码或文档里**（AGENTS.md 规则2）
 
+**⚠️ 步骤 6/7 时必须一并做的 NAS 库更正（用户已同意，别忘）**
+- `央广购物`（channel_id=132）在 NAS 活库里仍在 `其他` 组，要挪进 `购物`：
+  `UPDATE channel_groups SET group_name='购物', order_in_group=1 WHERE channel_id=132;`
+- 为什么必须手动：**run_pipeline.sh 不 load 种子**，本地库改动 / `channels_seed.json`
+  只对"从零重建"有效，传不到 NAS 活库。NAS（474源）才是权威，本地是旧拷贝（473）。
+- 做之前先备份 NAS 库；改完 `--gen-only` 重发，并给用户看 m3u diff
+  （预期：三套各只有央广购物一处 其他→购物）。
+
 **步骤 6/7 —— 真实数据验证（不能省）**
 见本文 §六「第 7 步验证清单」8 条。重点:
 `--dry-run` → 小批量 2-3 个 → 查快照是**新格式** → 验幂等 → **验 junk 不被 link_sources 打回**
