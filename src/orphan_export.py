@@ -41,7 +41,9 @@ def main():
     ap.add_argument('--db', default=DEFAULT_DB)
     ap.add_argument('--msd', '--udpxy', dest='msd', default='127.0.0.1:4088',
                     help='msd_lite地址(组播播放URL前缀用)')
-    ap.add_argument('--no-shots', action='store_true', help='不重新截图(用库里已有的)')
+    ap.add_argument('--no-shots', action='store_true', help='完全不截图(最快)')
+    ap.add_argument('--reshoot', action='store_true',
+                    help='强制重拍已有截图的源(默认: 已有截图的跳过,只拍新出现的孤儿源)')
     ap.add_argument('--limit', type=int, default=0, help='只导出前N个(测试用)')
     args = ap.parse_args()
 
@@ -74,26 +76,38 @@ def main():
                                       ORDER BY sort_hint""")]
     placeholders = [{'channel_key': r['channel_key'], 'name': r['name']}
                     for r in c.execute("SELECT channel_key, name FROM channels WHERE status='placeholder'")]
-    conn.close()
+    # 注意: 连接要留到下面回写截图路径之后再关
 
     os.makedirs(SHOTS_DIR, exist_ok=True)
 
     orphans = []
+    shot_writes = []   # (screenshots, address) 截图路径回写
+    reused = 0         # 复用已有截图的源数
     for r in orphan_rows:
         addr = r['address']
         stype = r['source_type']
         purl = play_url(stype, addr, args.msd)
         iina = 'iina://weblink?url=' + urllib.parse.quote(purl, safe='')
 
-        # 截图: 组播重新截(除非--no-shots); 单播/已有的复用库里screenshots
+        # 截图策略(改前每次运行都把全部组播孤儿源重拍一遍: 17个源×3张,单张超时上限20s,
+        # 最坏每周白烧17分钟,而这些源是已知黑名单/无效源、短期不会变。
+        # 更关键的是拍完**从不回写库**,导致 sources.screenshots 长期为空、
+        # "复用已有截图"那条分支形同死代码 —— 现在补上回写):
+        #   已有截图且文件还在磁盘 → 跳过; 只拍新出现的孤儿源; --reshoot 可强制重拍
         shots = []
         if r['screenshots']:
-            shots = [os.path.basename(s) for s in r['screenshots'].split(';')]
-        if stype == 'multicast' and not args.no_shots:
+            shots = [os.path.basename(x) for x in r['screenshots'].split(';') if x]
+        have = bool(shots) and all(os.path.exists(os.path.join(SHOTS_DIR, x)) for x in shots)
+        need_shot = (stype == 'multicast' and not args.no_shots
+                     and (args.reshoot or not have))
+        if have and not args.reshoot:
+            reused += 1
+        if need_shot:
             prefix = addr.split(':')[0].replace('.', '_')
             paths = probe.capture_screenshots(purl, SHOTS_DIR, prefix, count=3)
             if paths:
-                shots = [os.path.basename(p) for p in paths]
+                shots = [os.path.basename(x) for x in paths]
+                shot_writes.append((';'.join(paths), addr))   # 回写库,下次可复用
                 print(f"    {addr}: {len(shots)}张截图")
 
         orphans.append({
@@ -103,6 +117,12 @@ def main():
             'play_url': purl, 'iina_url': iina,
             'shots': [f"shots/{s}" for s in shots],
         })
+
+    # 回写截图路径(让下次能复用,避免每周重拍同一批已知垃圾流)
+    if shot_writes:
+        c.executemany("UPDATE sources SET screenshots=? WHERE address=?", shot_writes)
+        conn.commit()
+    conn.close()
 
     pkg = {
         'generated_at': datetime.datetime.now().isoformat(timespec='seconds'),
@@ -117,6 +137,8 @@ def main():
     print(f"\n  待识别孤儿源: {len(orphans)} 个 (组播{sum(1 for o in orphans if o['source_type']=='multicast')} "
           f"/ 单播{sum(1 for o in orphans if o['source_type']=='rtsp')})")
     print(f"  可归属频道: {len(channels)}  占位: {len(placeholders)}")
+    print(f"  截图: 新拍 {len(shot_writes)} 个源, 复用已有 {reused} 个"
+          + ("  (--no-shots: 本次未截图)" if args.no_shots else ""))
     print(f"  产出: {out_json}")
     print("完成")
 

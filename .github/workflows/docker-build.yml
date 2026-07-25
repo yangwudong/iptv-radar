@@ -6,18 +6,29 @@ name: Build and Push Docker Image
 
 on:
   push:
+    # ⚠️ 这里**故意不写 tags**。GitHub 的 paths 过滤器会同时作用于 tags,而打 tag 时
+    #    diff 基准未定义 → 过滤不可靠 → test 被 skip → build(needs: test)跟着 skip
+    #    → 打 tag 发版静默不出镜像。tag 触发放到独立的 release 工作流(无 paths 过滤)。
     branches: [main]
-    tags: ['v*']
     paths:                     # 只在影响镜像的文件变动时构建(省额度)
       - 'src/**'
       - 'reference/**'
-      - 'Dockerfile'
-      - 'requirements.txt'
       - 'tests/**'
+      - 'Dockerfile'
+      - '.dockerignore'        # 改它最该重新构建+扫描(曾因行内注释让排除规则静默失效)
+      - 'compose.yaml'
+      - 'requirements.txt'
+      - 'requirements-dev.txt'
+      - '.env.example'
       - '.github/workflows/docker-build.yml'
   pull_request:                # PR 只跑测试,不推镜像
     branches: [main]
   workflow_dispatch:           # 支持手动触发
+
+# 两次推送接连发生时,避免旧构建后完成而覆盖新的 latest
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   IMAGE_NAME: iptv-radar       # Docker Hub 仓库名: <用户名>/iptv-radar
@@ -27,6 +38,7 @@ jobs:
   # 这些 bug 曾经全靠人工发现,现在必须在推镜像之前挡住。
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,7 +51,7 @@ jobs:
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt pytest
+          pip install -r requirements.txt -r requirements-dev.txt
 
       - name: Run tests
         run: python -m pytest tests/ -v
@@ -48,6 +60,7 @@ jobs:
     needs: test                # 测试不过不推镜像
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - name: Checkout
         uses: actions/checkout@v4

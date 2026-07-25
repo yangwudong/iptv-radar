@@ -1,0 +1,69 @@
+name: Release (tag)
+
+# 打版本 tag(v*) 时构建并推带版本号的镜像。
+#
+# 为什么要独立成一个工作流:
+#   docker-build.yml 用 paths 过滤器省 Actions 额度,但 GitHub 的 paths 过滤对 tags 同样生效,
+#   而打 tag 时 diff 基准未定义 → 过滤结果不可靠 → test 被 skip → build(needs: test)跟着 skip
+#   → 发版静默不产出镜像,而且看起来"工作流没触发"而不是"失败",极易漏掉。
+#   这里**不设 paths**,tag 一定触发。
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: '要构建的 tag 或 commit'
+        required: true
+
+env:
+  IMAGE_NAME: iptv-radar
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+      - name: Run tests
+        run: python -m pytest tests/ -v
+
+  build-and-push:
+    needs: test                # 发版同样受测试门禁保护
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=sha-,format=short
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

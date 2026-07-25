@@ -355,3 +355,69 @@ def test_f2_真token正常情况下必须能更新(db, conn, tmp_path):
     got = sqlite3.connect(radar / 'data' / 'iptv.db').execute(
         "SELECT timeshift_query FROM sources WHERE address='rtsp://h/1.smil'").fetchone()[0]
     assert got == new_q, f"新的真token未写入(防护做过头了): {got}"
+
+
+# ============================================================
+# orphan_export 截图复用: 改前每次运行都重拍全部组播孤儿源(17个×3张,单张超时20s),
+# 且拍完从不回写库 → sources.screenshots 长期为空 → "复用"分支是死代码
+# ============================================================
+
+def test_orphan_export_已有截图必须复用而不重拍(db, conn, tmp_path, monkeypatch):
+    add_source(conn, '233.9.1.1:5140', channel_id=None, source_type='multicast', available=1)
+    # 先跑一次(桩掉 ffmpeg 抓帧),应"新拍1个"并把路径回写库
+    shots_dir = tmp_path / 'shots'
+    shots_dir.mkdir()
+    calls = []
+
+    sys.path.insert(0, SRC)
+    import orphan_export
+    import probe
+
+    def fake_capture(url, out_dir, prefix, count=3, **kw):
+        calls.append(prefix)
+        paths = []
+        for i in range(1, count + 1):
+            p = os.path.join(out_dir, f'{prefix}_{i}.jpg')
+            os.makedirs(out_dir, exist_ok=True)
+            open(p, 'wb').write(b'\xff\xd8\xff\xd9')
+            paths.append(p)
+        return paths
+
+    monkeypatch.setattr(orphan_export, 'REVIEW_DIR', str(tmp_path))
+    monkeypatch.setattr(orphan_export, 'SHOTS_DIR', str(shots_dir))
+    monkeypatch.setattr(orphan_export.probe, 'capture_screenshots', fake_capture)
+    monkeypatch.setattr(sys, 'argv', ['x', '--db', db, '--msd', 'H:4088'])
+    orphan_export.main()
+    assert len(calls) == 1, f"第一次应该拍1个源,实际 {len(calls)}"
+    got = conn.execute("SELECT screenshots FROM sources WHERE address='233.9.1.1:5140'").fetchone()[0]
+    assert got and got.count(';') == 2, f"截图路径未回写库(下次就会重拍): {got!r}"
+
+    # 第二次: 截图已在库、文件也在磁盘 → 必须跳过
+    calls.clear()
+    monkeypatch.setattr(sys, 'argv', ['x', '--db', db, '--msd', 'H:4088'])
+    orphan_export.main()
+    assert calls == [], f"已有截图仍被重拍(每周白烧十几分钟): {calls}"
+
+    # --reshoot 要能强制重拍
+    calls.clear()
+    monkeypatch.setattr(sys, 'argv', ['x', '--db', db, '--msd', 'H:4088', '--reshoot'])
+    orphan_export.main()
+    assert len(calls) == 1, "--reshoot 未强制重拍"
+
+
+def test_orphan_export_截图文件丢了要重拍(db, conn, tmp_path, monkeypatch):
+    """库里有记录但磁盘文件被删(清理output时常见) → 必须重拍,不能给出空截图的待识别包。"""
+    add_source(conn, '233.9.2.2:5140', channel_id=None, source_type='multicast', available=1)
+    conn.execute("UPDATE sources SET screenshots=? WHERE address='233.9.2.2:5140'",
+                 ('/gone/a_1.jpg;/gone/a_2.jpg;/gone/a_3.jpg',))
+    conn.commit()
+    sys.path.insert(0, SRC)
+    import orphan_export
+    calls = []
+    monkeypatch.setattr(orphan_export, 'REVIEW_DIR', str(tmp_path))
+    monkeypatch.setattr(orphan_export, 'SHOTS_DIR', str(tmp_path / 'shots'))
+    monkeypatch.setattr(orphan_export.probe, 'capture_screenshots',
+                        lambda u, d, p, count=3, **k: calls.append(p) or [])
+    monkeypatch.setattr(sys, 'argv', ['x', '--db', db, '--msd', 'H:4088'])
+    orphan_export.main()
+    assert len(calls) == 1, "磁盘截图丢失却没重拍"
