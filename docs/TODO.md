@@ -33,7 +33,21 @@
 - Nginx 发布: <PUBLISH_HOST>:<PUBLISH_PORT>/iptv.m3u(旧m3u保留) + /dashboard/
 - 群晖任务计划 cron: 每周四04:00 known增量 / 每月第2周二03:00 full全量
 
+## ✅ 2026-07-25 代码审查修复(已完成)
+
+- 修6条数据正确性bug(串台/循环静默中断/零源不下线/禁用销毁归并/探测挂死/排序不一致),详见 PROGRESS.md
+- 建立首套自动化测试 `tests/`(20条,pytest) + CI 测试门禁(不过不推镜像)
+- 安全: 清除公开仓库历史里的真实账号数据 + 仓库转 private + `.dockerignore` + 容器非root + `.env` 600
+- 工程加固: 原子写/参数正规解析/flock并发锁/关键步骤FATAL/启用外键约束+悬空体检
+- 文档对齐: ARCHITECTURE/DEPLOY/ORPHAN_REVIEW/README/SPEC 的过时与自相矛盾处
+
 ## 📋 真正的待办
+
+- [ ] **升级到新镜像时确认挂载目录权限**: 镜像已改非 root(uid 1000) 运行,
+      宿主的 `data/`、`output/`、nginx m3u 目录需 uid 1000 可写,否则 pipeline 写不进去。
+      首次部署新镜像前在 NAS 上执行一次 `chown -R 1000:1000` 或确认现有权限。
+- [ ] **仓库是否转回 public**: 目前为 private(凭证泄露止血)。转回前确认
+      `reference/channels.sample.json` 脱敏版无误、且历史已清干净。
 
 - [ ] **9个 RTSP 单播孤儿源人工识别** → 走 orphan 流程
   - 现状: 孤儿源共26个 = 组播17(黑名单/无效, 不用管) + RTSP 9个(1080P, available=1, 名字对不上已知频道)

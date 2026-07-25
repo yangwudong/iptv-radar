@@ -62,7 +62,7 @@ def addr_to_url(source_type, address, msd, timeshift_query=None, multicast_mode=
 
 
 def generate(db_path, out_path, msd, multicast_mode='msd', prefer_multicast=False, fcc=None):
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path, timeout=30)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
 

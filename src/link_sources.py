@@ -14,6 +14,7 @@ iptv-radar: link_sources.py (归并脚本, ETL的E1核心)
 运行: python3 link_sources.py [--db] [--epg channels.json] [--dry-run]
 """
 import sqlite3
+import db_util
 import json
 import os
 import re
@@ -76,8 +77,7 @@ def main():
     print("  link_sources: 源归并到 channel_key")
     print("=" * 55)
 
-    conn = sqlite3.connect(args.db)
-    conn.row_factory = sqlite3.Row
+    conn = db_util.connect(args.db)
     c = conn.cursor()
 
     # === 1. channel_key 主数据: 频道的规范名(channels.channel_key 已由迁移建好) ===

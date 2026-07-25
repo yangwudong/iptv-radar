@@ -16,6 +16,7 @@ iptv-radar 加工层: etl_process.py
 运行: python3 etl_process.py [--db] [--offline-threshold 4]
 """
 import sqlite3
+import db_util
 import os
 import sys
 import argparse
@@ -63,9 +64,19 @@ def main():
     print("  iptv-radar ETL处理")
     print("=" * 55)
 
-    conn = sqlite3.connect(args.db, timeout=30)
-    conn.row_factory = sqlite3.Row
+    conn = db_util.connect(args.db)
     c = conn.cursor()
+
+    # === 0a. 引用完整性体检 ===
+    # 人工纠错时(如合并重复频道)用 sqlite3 命令行 DELETE 频道行,CLI 默认不开外键约束,
+    # 会留下悬空的 channel_groups / channel_preferred_sources / sources.channel_id 且无任何报错。
+    # 这里显式报出来,别让它静默累积。
+    broken = db_util.check_integrity(conn)
+    if broken:
+        print(f"  ⚠️  发现 {len(broken)} 条悬空外键引用(通常是人工删频道行留下的):")
+        for row in broken[:10]:
+            print(f"      表={row[0]} rowid={row[1]} 指向不存在的 {row[2]}")
+        print("      建议核对后清理,否则 Dashboard/统计会包含幽灵数据。")
 
     # === 0. 清理脏优选(防串台) ===
     # 优选行必须指向"仍属于本频道"的源。以下三种情况会产生脏行,必须先清:

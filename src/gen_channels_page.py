@@ -47,7 +47,7 @@ def load_scan_info(db_path):
     if not db_path or not os.path.exists(db_path):
         return info
     import sqlite3
-    c = sqlite3.connect(db_path)
+    c = sqlite3.connect(db_path, timeout=30)
     # 兼容: 旧库可能无 playback_days 字段
     cols = [r[1] for r in c.execute("PRAGMA table_info(sources)").fetchall()]
     has_pb = 'playback_days' in cols
@@ -80,7 +80,7 @@ def load_logos(db_path):
     if not db_path or not os.path.exists(db_path):
         return by_name, by_addr
     import sqlite3
-    c = sqlite3.connect(db_path)
+    c = sqlite3.connect(db_path, timeout=30)
     for name, logo in c.execute("SELECT name,tvg_logo FROM channels WHERE tvg_logo!='' AND tvg_logo IS NOT NULL"):
         by_name[name] = logo
         by_name[re.sub(r'(高清|HD|标清|SD| )', '', name)] = logo

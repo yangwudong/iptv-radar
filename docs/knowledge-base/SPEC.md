@@ -1,7 +1,17 @@
 # 浙江电信IPTV工具集 — 技术规格文档
 
-> 最后更新: 2026-06-22
-> 环境: 杭州电信宽带+IPTV / OpenWRT 25.12 / msd_lite / HS8125C光猫(桥接模式)
+> 最后更新: 2026-06-22(§一/§二网络部分仍有效;脚本/m3u部分已被取代,见下)
+> 环境: 杭州电信宽带+IPTV / OpenWRT 25.12 / 组播网关(现为 rtp2httpd) / HS8125C光猫(桥接模式)
+
+> ### ⚠️ 阅读须知(重构后)
+> - **§一 背景 / §二 网络原理(路由/防火墙/组播)** — 仍是当前有效的事实与配置,可放心参考。
+> - **§三 脚本说明 / §四 M3U合并规则 / §七 文件清单 / §八 修改指南** — 描述的是**重构前**
+>   位于本机 `~/Downloads/IPTV/` 的独立脚本集(`merge_m3u.py`/`scan_channels.py`/`epg_client.py` 等),
+>   **这些文件不在本仓库里**,已被 `src/` 下的三层架构取代。别照着它改。
+>   当前权威来源:
+>   - m3u 生成规则(含分组顺序 `GROUP_ORDER`) → `src/gen_m3u.py` + `docs/design/M3U_ACCEPTANCE_CRITERIA.md`
+>   - 归并/别名规则 → `src/link_sources.py` + `reference/name_overrides.json`
+>   - 整体架构 → `docs/design/ARCHITECTURE.md`
 
 ---
 
@@ -125,7 +135,7 @@ service firewall restart
 ### 2.3 路由配置
 
 #### 问题背景
-EPG服务器(115.233.40.140:33200)和RTSP服务器(115.233.40.137)在IPTV专网上,不在公网。LAN设备默认走PPPoE出口,到不了这些服务器。需要添加路由让这些IP走IPTV接口(eth2)。
+EPG服务器(115.233.40.140:33200)和RTSP服务器(115.233.40.137)在IPTV专网上,不在公网。LAN设备默认走PPPoE出口,到不了这些服务器。需要添加路由让这些IP走IPTV接口(现为 eth1.43;hotplug 脚本已做动态探测,不写死设备名)。
 
 #### 需要路由的IP段
 | 目标网络 | 掩码 | 用途 |

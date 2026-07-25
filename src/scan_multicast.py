@@ -15,6 +15,7 @@ iptv-radar 采集层: scan_multicast.py
                                  [--workers 8] [--retry 2] [--bitrate]
 """
 import sqlite3
+import db_util
 import os
 import sys
 import argparse
@@ -65,7 +66,7 @@ def main():
 
     run_id = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
 
-    conn = sqlite3.connect(args.db, timeout=30)
+    conn = db_util.connect(args.db)
     c = conn.cursor()
     # 已知源(判断新源 + known模式的扫描范围) address→source_id
     known = {r[0]: r[1] for r in c.execute(

@@ -105,7 +105,7 @@ def main():
 
     # 写回 sources.playback_days(按address匹配smil路径)
     import sqlite3
-    conn = sqlite3.connect(args.db, timeout=30)
+    conn = db_util.connect(args.db)
     c = conn.cursor()
     # 自愈: 确保 playback_days 字段存在(已有旧库可能没有,新库db_schema已含)
     cols = [r[1] for r in c.execute("PRAGMA table_info(sources)").fetchall()]

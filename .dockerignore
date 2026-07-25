@@ -1,0 +1,20 @@
+# 防止把敏感/无用文件打进镜像层(镜像会推到公开 Docker Hub)
+.env
+.env.*
+!.env.example
+reference/channels.json      # 含真实token的EPG快照(gitignore,但本地build时可能存在)
+reference/pcap/
+data/
+output/
+tests/
+.venv-test/
+.git/
+.github/
+*.pyc
+__pycache__/
+*.db
+*.bak
+*.bak.*
+docs/
+AGENTS.md
+PROGRESS.md

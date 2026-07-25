@@ -43,18 +43,25 @@ Design highlights:
 ```
 src/
   db_schema.py         # authoritative schema
+  db_util.py           # shared SQLite connection (timeout + foreign keys on)
+  seed.py              # rebuild channels/groups from a seed file
   scan_multicast.py    # multicast scanning
   scan_rtsp.py         # RTSP unicast scanning + redirect chain tracing
   probe.py             # ffprobe stream probing
   link_sources.py      # ETL: link sources to channels
   etl_process.py       # source selection + change detection
-  gen_m3u.py           # m3u generation
+  orphan_export.py     # export unidentified sources for manual review
+  orphan_import.py     # consume review decisions back into the database
+  gen_m3u.py           # m3u generation (3 variants)
   gen_dashboard.py     # monitoring dashboard (preferred sources)
   gen_channels_page.py # official channel list page
+  template_util.py     # Jinja2 rendering helper
+  templates/           # dashboard / channel page templates
   fetch_channels.py    # EPG authentication, refreshes unicast/catchup tokens
   probe_timeshift.py   # catchup (time-shift) day detection
   fetch_epg.py         # EPG program guide
   run_pipeline.sh      # one-shot pipeline
+tests/                 # regression tests (data integrity + generation)
 docs/                  # design docs & how the carrier IPTV works
 reference/             # official channel sample, logo index
 data/                  # SQLite database (not distributed)
@@ -83,6 +90,17 @@ python3 src/link_sources.py       # link
 python3 src/etl_process.py        # select
 python3 src/gen_m3u.py            # generate m3u
 python3 src/gen_dashboard.py      # generate dashboard
+```
+
+## Tests
+
+Regression tests cover the data-integrity invariants that used to break silently
+(cross-channel source leakage, offline detection, merge-snapshot preservation,
+m3u/dashboard ordering, probe timeouts). CI runs them before publishing any image.
+
+```bash
+pip install -r requirements.txt pytest
+python3 -m pytest tests/ -v
 ```
 
 ## Configuration
@@ -185,7 +203,7 @@ config rule
 
 **4. IGMP snooping on the LAN bridge**
 ```sh
-uci set network.@device[0].igmp_snooping='1'   # the br-lan device; needs a querier
+uci set network.@device[0].igmp_snooping='0'   # br-lan device; 0=flood (verified working here), 1=snooping needs a querier
 uci commit network
 ```
 (`1` delivers multicast only to ports that joined — cleaner for Wi-Fi clients. `0` floods, which

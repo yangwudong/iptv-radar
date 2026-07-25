@@ -49,7 +49,7 @@ def main():
     print("  iptv-radar 孤儿源导出(待识别包)")
     print("=" * 55)
 
-    conn = sqlite3.connect(args.db)
+    conn = sqlite3.connect(args.db, timeout=30)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
 

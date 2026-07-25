@@ -13,6 +13,7 @@ RTSP地址特点:
 注: RTSP扫描比组播重,并发别太高(默认4)
 """
 import sqlite3
+import db_util
 import os
 import sys
 import re
@@ -84,7 +85,7 @@ def main():
     print(f"  地址数:{len(addrs)} 并发:{args.workers} 追踪链:{args.trace}")
     print("=" * 55)
 
-    conn = sqlite3.connect(args.db, timeout=30)
+    conn = db_util.connect(args.db)
     c = conn.cursor()
     known = {r[0] for r in c.execute("SELECT address FROM sources WHERE source_type='rtsp'")}
 

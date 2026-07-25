@@ -2,7 +2,8 @@
 
 > 创建: 2026-07-24
 > 目标: 把 iptv-radar 部署到 NAS,群晖任务计划定时触发,瞬时执行(不常驻)。
-> 状态: **待实施**。本文档为部署指南 + 所需配置文件说明。实际部署时按此照做并实测验证。
+> 状态: **已实施**(首次部署 2026-07-24,NAS1 生产运行中)。本文档兼作部署指南与操作记录。
+> 下方 Dockerfile / compose.yaml 片段仅为说明用途,**权威版本是项目根目录下的实际文件**。
 
 ---
 
@@ -40,10 +41,11 @@ ls -ld /volume1/docker/nginx/m3u/
 
 ## 三、镜像与依赖
 
-**基础镜像**: `python:3.12-slim`(纯Python标准库,无pip第三方依赖)
+**基础镜像**: `python:3.12-slim`
+**Python依赖**: `jinja2`(模板引擎,生成Dashboard/频道页用),锁定版本见 `requirements.txt`
 **系统依赖**: `ffmpeg`(含ffprobe,用于流探测/截图/重定向追踪)
 
-### Dockerfile (待创建于项目根)
+### Dockerfile (项目根,已存在)
 ```dockerfile
 FROM python:3.12-slim
 
@@ -63,13 +65,17 @@ WORKDIR /app/src
 ENTRYPOINT ["bash", "run_pipeline.sh"]
 ```
 
-> 注: 纯标准库,无 requirements.txt。若未来引入第三方库,加 `COPY requirements.txt` + `pip install`。
+> 注: 实际 Dockerfile 已包含 `COPY requirements.txt` + `pip install`(jinja2),
+> 并以**非 root 用户(uid 1000)**运行 —— 容器用 host 网络且挂载了宿主 nginx 目录,
+> 不该给 root。挂载目录需 uid 1000 可写。
+> 另有 `.dockerignore` 排除 `.env`/`data/`/`reference/channels.json` 等,
+> 防止真实 token 被打进推往公开 Docker Hub 的镜像层。
 
 ---
 
 ## 四、Docker Compose
 
-### compose.yaml (待创建于项目根)
+### compose.yaml (项目根,已存在)
 ```yaml
 services:
   pipeline:
@@ -84,15 +90,22 @@ services:
       # 数据持久化(容器重建不丢)
       - ./data:/app/data
       - ./output:/app/output
-      # 发布: 挂载现有nginx的m3u目录,pipeline --publish 时cp进去
+      # token持久化: fetch_channels 刷新的 channels.json(含新token),单文件挂载
+      - ./reference/channels.json:/app/reference/channels.json
+      # 发布: 挂载现有nginx的m3u目录,pipeline --publish 时写进去
       - /volume1/docker/nginx/m3u:/nginx_m3u
     environment:
       - TZ=Asia/Shanghai
-    # 瞬时任务: 不设restart,用 `run --rm` 触发,跑完即退
+      - NGINX_M3U_DIR=/nginx_m3u
+    restart: "no"   # 瞬时任务: 用 `run --rm` 触发,跑完即退
 ```
 
-> **发布路径说明**: compose 把 nginx 目录挂载为 `/nginx_m3u`,需在 `.env` 里设
-> `NGINX_M3U_DIR=/nginx_m3u`(容器内路径),run_pipeline.sh `--publish` 会 cp 到此。
+> **首次部署必做**: `touch reference/channels.json`。
+> 单文件挂载时若宿主机上该文件不存在,Docker 会在两端创建成**目录**,
+> 导致 fetch_channels 写入失败、token 永远刷不上(现在会显式报错而非静默回退)。
+>
+> **发布路径说明**: compose 把 nginx 目录挂载为 `/nginx_m3u`,并通过
+> `environment: NGINX_M3U_DIR=/nginx_m3u` 传给 run_pipeline.sh(`--publish` 写入此处)。
 
 ---
 
@@ -227,11 +240,16 @@ m3u 通过 nginx m3u 目录发布(零改动)。Dashboard 发布步骤(已在NAS1
 
 ## 十、待办 / 未决
 
-- [ ] Dockerfile + compose.yaml 实际创建(本文档已给出模板)
-- [ ] network_mode host 是否够(容器能否访问IPTV专网)——部署时实测
-- [ ] 群晖任务计划实际配置
-- [ ] Dashboard 是否发布 + nginx location(需确认)
-- [ ] 上 GitHub 后可加 Actions 自动 build 镜像推 Docker Hub
+以下均已完成(2026-07-24 首次部署时验证):
+- [x] Dockerfile + compose.yaml 创建并上线
+- [x] network_mode host 实测可访问 IPTV 专网(组播 + RTSP 单播均通)
+- [x] 群晖任务计划配置(每周四增量 / 每月第2周二全量)
+- [x] Dashboard 发布 + nginx location(`/dashboard/`,注意 `absolute_redirect off`)
+- [x] GitHub Actions 自动 build 多架构镜像推 Docker Hub(现已加测试门禁)
+
+当前未决:
+- [ ] 挂载目录归属: 镜像改非 root(uid 1000) 后,宿主的 `data/`/`output/`/
+      nginx m3u 目录需 uid 1000 可写。**升级到该版本镜像时需确认一次权限**。
 
 ---
 

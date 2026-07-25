@@ -14,7 +14,7 @@ iptv-radar 的全部文档,按用途分四类。
 | 文档 | 内容 |
 |------|------|
 | [IPTV_KnowledgeBase](knowledge-base/IPTV_KnowledgeBase.md) | 家庭网络架构/拓扑/服务器清单/故障速查 |
-| [SPEC](knowledge-base/SPEC.md) | 完整技术规格(网络/脚本/m3u规则) |
+| [SPEC](knowledge-base/SPEC.md) | 技术规格。⚠️ §一/二(网络/路由/防火墙)有效;§三/四/七/八 描述重构前的独立脚本集(不在本仓库),m3u规则以 `src/gen_m3u.py` 为准 |
 | [STB_Behavior_Analysis](knowledge-base/STB_Behavior_Analysis.md) | 机顶盒开机完整行为分析(抓包还原) |
 | [IPTV_202x_Analysis](knowledge-base/IPTV_202x_Analysis.md) | 202.x频道不通根因分析(已整合进mechanism/01) |
 

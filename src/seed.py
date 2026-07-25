@@ -36,7 +36,7 @@ GRP_FIELDS = ['channel_id', 'group_name', 'is_primary', 'order_in_group']
 
 
 def export_seed(db_path, out_path):
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path, timeout=30)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     channels = [{k: r[k] for k in CH_FIELDS}
@@ -58,7 +58,7 @@ def load_seed(db_path, seed_path):
     if not os.path.exists(seed_path):
         print(f"  种子文件不存在: {seed_path}"); sys.exit(1)
     seed = json.load(open(seed_path, encoding='utf-8'))
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path, timeout=30)
     c = conn.cursor()
     # 建表(若未建)——复用 db_schema
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

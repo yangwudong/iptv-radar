@@ -1,1 +1,7 @@
-jinja2>=3.0
+# 依赖锁版本: 不锁上界时,jinja2 主版本升级(或改 autoescape 行为)会静默改变
+# 模板渲染结果 —— 本项目 template_util.py 显式关了 autoescape 靠手工 esc(),
+# 对 jinja2 行为变化尤其敏感。升级走「改这里 + 跑 tests/」而不是让构建自己漂。
+jinja2==3.1.6
+
+# 仅测试用(生产镜像不装,见 .dockerignore 排除 tests/)
+# pytest==9.1.1

@@ -15,6 +15,7 @@ iptv-radar: orphan_import.py — 消费"识别结果"(孤儿源识别流程第�
   由 run_pipeline.sh 在扫描前自动调用(消费上次App的识别结果)。
 """
 import sqlite3
+import db_util
 import os
 import sys
 import json
@@ -108,8 +109,7 @@ def main():
     print(f"  iptv-radar 孤儿源识别结果消费  ({len(files)}个文件)")
     print("=" * 55)
 
-    conn = sqlite3.connect(args.db, timeout=30)
-    conn.row_factory = sqlite3.Row
+    conn = db_util.connect(args.db)
     c = conn.cursor()
     snap_path = snapshot_path_for(args.db)
     snapshot = json.load(open(snap_path, encoding='utf-8')) if os.path.exists(snap_path) else {}

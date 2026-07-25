@@ -1,4 +1,73 @@
+# iptv-radar 进度记录
 
+> 倒序: 最新在最上面
+
+## 2026-07-25 代码审查 + 数据正确性修复 + 建立自动化测试
+
+**触发**: 对全 repo 做系统审查(4个方向并行: 数据/ETL、扫描/生成/流水线、测试/安全、文档)。
+所有发现都对着代码逐条核实,并对关键几条做了实证复现(而不是采信报告)。
+
+### 🚨 安全事故(已处理)
+`reference/channels.sample.json` 从**初始提交**起就把 338 条真实 IPTV 账号数据
+(账号ID/认证时间戳/338个可用播放授权token)当作"已脱敏示例"提交到**公开** GitHub 仓库。
+处理: 仓库转 private → 生成真正脱敏版本(账号/时间戳/设备指纹/token 全占位化) →
+`git filter-repo` 从全部 28 个 commit 历史彻底清除 → force-push。
+备份留 `/tmp/iptv-radar-full-backup-before-filter.bundle`。内网IP按用户判断保留(属IPTV专网段)。
+
+### 修复的数据正确性 bug(每条都先写测试复现,再改)
+1. **串台(已实证复现到最终m3u)**: 源被改判给别的频道后,原频道残留 rank=1 优选行,
+   而 gen_m3u/gen_dashboard 的 join 只按 source_id 关联、不校验归属 → 两个频道输出同一地址,
+   点A播出B的内容。三层修: etl 全局清脏 + join 加 `s.channel_id=ch.channel_id` + partial unique index(旧库自愈)。
+2. **【审查没发现、验证时才抓到】下线检测循环静默中断**: 边遍历 cursor 边 UPDATE 同一 cursor,
+   第一次写入就重置结果集 → 一次运行只有第一个频道生效。实测12个该下线的只处理了1个。改 fetchall()。
+   (违反 AGENTS.md 规则3;已写正则扫全项目确认无其他同类写法)
+3. **零源频道永不下线**: `(min_fail or 0)` 把 NULL 兜成 0,条件恒假 → 12个无源频道长期错标 active。
+4. **禁用频道销毁人工归并(不可逆)**: link_sources 用 enabled-only 表判定"已有归并",
+   禁用频道→其源被清成孤儿→快照全量重建覆盖→人工成果永久丢失。拆成 key2id_all/key2id 两张表。
+   **这条本会在做孤儿源识别时爆发**(`__JUNK__`/`__UNKNOWN__` 也是 enabled=0,标记的垃圾流会被打回)。
+   另加快照原子写 + 缩水>10%告警并备份。
+5. **measure_bitrate 阻塞读挂死**: `proc.stdout.read()` 阻塞时外层超时形同虚设,
+   卡流则线程永不返回 → ThreadPoolExecutor 的 shutdown(wait=True) 永久等待,整条 pipeline 挂死。
+   改 select 轮询(同文件 trace_rtsp_redirects 已有的正确写法)。测试从挂30s变瞬时。
+6. **m3u 与 Dashboard 排序不一致**: 前者按 GROUP_ORDER+order_in_group,后者按 sort_hint;
+   新频道只写前者 → 浙江政务 在m3u里排"其他"组末尾(符合规则7),Dashboard 里却被甩到广播组之后。
+   Dashboard 改用同一套规则并复用同一份 GROUP_ORDER 定义。
+
+### 其他修复
+- 原子写: gen_m3u / fetch_channels / source_links.json 快照 / pipeline 发布(tmp+rename),
+  避免进程被杀留下截断文件覆盖正常发布的播放列表
+- XSS: 第三方EPG节目名未转义直接进 `<script>`,`</script>` 可逃逸执行JS(Dashboard 公开分享即为攻击面)
+- m3u EXTINF 属性值转义双引号(原本会生成 `tvg-id="ID"X"` 畸形行)
+- gen_m3u 打印被跳过的 enabled 频道(原本静默消失无从排查,实测暴露13条)
+- fetch_channels: 裸 except→OSError+告警; token 日志脱敏; 探测目标改从 .env 读;
+  单文件挂载成目录时显式报错(原本静默回退到过期 sample,token 永远刷不上且无提示)
+- scan_rtsp: DEFAULT_EPG 曾解析到项目目录之外(不带 --epg 必然 FileNotFoundError)
+- pipeline: 参数改正规 case 解析(原子串匹配,拼错的 `--gen-onl` 会静默跑20分钟全量扫描) +
+  flock 并发锁 + 归并/ETL 失败改 FATAL 退出(不再拿错数据继续生成) + channels.json 合法性校验
+- 工程: `.dockerignore`(防真实token进公开镜像) + 容器非root(uid1000) + jinja2 锁版本 +
+  `.env` 改 600 + CI 增加测试门禁(测试不过不推镜像) + 全项目 sqlite 连接统一 timeout=30
+- 新增 `db_util.py`: 统一连接(timeout + **启用外键约束**,原来 schema 里的 FOREIGN KEY 是装饰性的)
+  + `PRAGMA foreign_key_check` 体检(能发现人工用 CLI 删频道行留下的悬空引用)
+
+### 建立测试体系(本项目第一套自动化测试)
+`tests/` 20条(pytest): 串台/唯一索引/etl自愈/零源下线/循环不中断/下线恢复混合/
+归并快照保全/探测超时/XSS转义/m3u属性合法/跳过日志/原子写/排序一致/外键拒绝/悬空体检。
+CI(GitHub Actions)在 build 镜像前跑,不过不推。
+
+### 验证方式(每步都做)
+- 三套 m3u 与改前**逐字节一致**(证明 join 加固/清理逻辑没误伤正常数据)
+- ETL/link_sources 在库副本上跑两次: 幂等(第二次零变更),快照 447→447 零丢失
+- `run_pipeline.sh --gen-only` 端到端实跑通过,且确认未意外修改数据库
+- Dashboard 顺序变化仅 1 处(浙江政务归位到"其他"组末尾,符合规则7)
+
+### 文档对齐
+ARCHITECTURE 部署章节"待实施"→已实施; DEPLOY 状态自相矛盾/"无pip依赖"(实际有jinja2)/
+compose模板漏 channels.json 挂载(token持久化关键)/§十待办全部已完成;
+ORPHAN_REVIEW "Python侧待实现"→已实现; README igmp_snooping 示例改回实测值 0;
+SPEC 加阅读须知(§三/四/七/八 描述的是重构前不在本仓库的脚本集) + eth2 残留改 eth1.43;
+两个 README 补全 src/ 清单 + 新增测试章节。
+
+---
 ## 2026-07-23 扫描器改进(基于实测诊断)
 诊断发现的问题+修复:
 - **并发过高偶发失败**: 全段10并发时,正常频道(如CCTV5体育197)偶尔NO_VIDEO

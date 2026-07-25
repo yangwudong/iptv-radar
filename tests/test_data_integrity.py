@@ -184,7 +184,7 @@ def test_h4_禁用频道不得销毁人工归并快照(db, conn, tmp_path):
     (radar / 'data').mkdir(exist_ok=True)
     # 复制脚本进隔离目录,让它的 RADAR 指向 tmp
     import shutil
-    for f in ('link_sources.py',):
+    for f in ('link_sources.py', 'db_util.py'):
         shutil.copy(os.path.join(SRC, f), radar / 'src' / f)
     shutil.copy(db, radar / 'data' / 'iptv.db')
     snap = _write_snapshot(str(radar), {'rtsp://x/1.smil': '被禁频道'})
@@ -232,3 +232,39 @@ def test_c2_measure_bitrate必须在超时内返回(monkeypatch):
     probe.measure_bitrate('rtp://fake', duration=1, timeout=2)
     elapsed = time.time() - t0
     assert elapsed < 8, f"measure_bitrate 卡了 {elapsed:.1f}s (timeout=2), 阻塞读未受控"
+
+
+# ============================================================
+# H3 外键约束: schema 声明了 FOREIGN KEY 但 SQLite 默认不启用
+# ============================================================
+
+def test_h3_写入不存在的频道id应被拒绝(db):
+    """启用 PRAGMA foreign_keys 后,插入悬空 channel_id 必须报错而不是静默写入。"""
+    sys.path.insert(0, SRC)
+    import db_util
+    conn = db_util.connect(db)
+    with pytest.raises(sqlite3.IntegrityError):
+        conn.execute("""INSERT INTO sources(address,source_type,channel_id)
+                        VALUES('233.1.2.3:5140','multicast',999999)""")
+    conn.close()
+
+
+def test_h3_体检能发现人工删频道留下的悬空引用(db, conn):
+    """模拟人工用 sqlite3 CLI 删频道行(不开FK)→ 留下悬空子行,体检必须报出来。"""
+    sys.path.insert(0, SRC)
+    import db_util
+    cid = add_channel(conn, '将被删除的频道')
+    add_source(conn, '233.4.5.6:5140', channel_id=cid, channel_key='将被删除的频道')
+    # 不开FK的连接(模拟CLI)强删父行
+    raw = sqlite3.connect(db)
+    raw.execute("DELETE FROM channels WHERE channel_id=?", (cid,))
+    raw.commit()
+    raw.close()
+
+    check_conn = db_util.connect(db)
+    broken = db_util.check_integrity(check_conn)
+    check_conn.close()
+    assert broken, "悬空引用未被体检发现"
+
+    r = run_script('etl_process.py', '--db', db)
+    assert '悬空外键引用' in r.stdout, f"ETL 未报告悬空引用:\n{r.stdout}"

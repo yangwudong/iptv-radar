@@ -129,7 +129,7 @@ def init_db(db_path, reset=False):
     if reset and os.path.exists(db_path):
         os.remove(db_path)
         print(f"  已删除旧库: {db_path}")
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path, timeout=30)
     conn.executescript(SCHEMA)
     conn.commit()
     # 验证表

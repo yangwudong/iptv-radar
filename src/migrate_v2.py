@@ -40,7 +40,7 @@ def main(dry_run=False):
     shutil.copy(DB, bak)
     print(f"已备份 → {bak}")
 
-    conn = sqlite3.connect(DB)
+    conn = sqlite3.connect(DB, timeout=30)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     c.execute("PRAGMA foreign_keys=OFF")  # 重建表期间关外键检查

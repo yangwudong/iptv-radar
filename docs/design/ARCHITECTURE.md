@@ -280,8 +280,12 @@ LAN设备直接播 `rtp://@233.50.x` 收组播,绕过msd_lite转码中转(降软
 
 ---
 
-## 六、部署 (待实施)
+## 六、部署 (已实施, 2026-07-24 首次上线)
 
-- NAS Docker Compose: pipeline瞬时任务容器 + Nginx发布容器(现有)
-- 群晖cron: 每周known增量 + 每月full全量
-- 真实配置在 .env(gitignore); .env.example 为模板
+- **镜像**: GitHub Actions 在 push 到 main 时构建多架构(amd64/arm64)推 Docker Hub。
+  CI 会先跑 `tests/`,测试不过不推镜像。
+- **NAS1(群晖)**: `docker compose run --rm pipeline ...` 瞬时任务容器(非常驻),
+  Nginx(现有容器)发布 m3u 与 Dashboard 到 `<PUBLISH_HOST>:<PUBLISH_PORT>`。
+- **cron(群晖任务计划)**: 每周四 04:00 known增量 / 每月第2周二 03:00 full全量(均 `--publish`)。
+- 真实配置在 .env(gitignore); .env.example 为模板。
+- 具体命令/踩坑见 [DEPLOY.md](../DEPLOY.md)。

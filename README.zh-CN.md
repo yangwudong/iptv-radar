@@ -43,18 +43,25 @@ m3u 播放列表 + 频道监控 Dashboard。
 ```
 src/
   db_schema.py         # 权威建库 schema
+  db_util.py           # 统一 SQLite 连接(超时 + 启用外键约束)
+  seed.py              # 从种子文件重建 channels/分组
   scan_multicast.py    # 组播扫描
   scan_rtsp.py         # RTSP 单播扫描 + 重定向链追踪
   probe.py             # ffprobe 流探测
   link_sources.py      # 数据清洗:源归并到频道
-  etl_process.py       # 源优选 + 变更检测
-  gen_m3u.py           # 生成 m3u
+  etl_process.py       # 源优选 + 变更检测 + 引用完整性体检
+  orphan_export.py     # 导出待人工识别的孤儿源
+  orphan_import.py     # 消费人工识别结果写回库
+  gen_m3u.py           # 生成 m3u(三套)
   gen_dashboard.py     # 生成检测 Dashboard(优选源列表)
   gen_channels_page.py # 生成官方频道列表页
+  template_util.py     # Jinja2 渲染封装
+  templates/           # Dashboard/频道页模板
   fetch_channels.py    # EPG 认证,刷新单播/回看 token
   probe_timeshift.py   # 回看(时移)天数探测
   fetch_epg.py         # 抓取 EPG 节目单
   run_pipeline.sh      # 一键流水线
+tests/                 # 回归测试(数据正确性 + 生成层)
 docs/                  # 设计文档与工作原理
 reference/             # 官方频道样例、台标索引
 data/                  # SQLite 主库(不随仓库分发)
@@ -83,6 +90,16 @@ python3 src/link_sources.py       # 归并
 python3 src/etl_process.py        # 优选
 python3 src/gen_m3u.py            # 生成 m3u
 python3 src/gen_dashboard.py      # 生成 Dashboard
+```
+
+## 测试
+
+回归测试锁住那些曾经静默出错的数据正确性约束(跨频道串台、下线判定、
+人工归并快照不丢、m3u 与 Dashboard 同序、探测超时)。CI 会在推镜像前先跑一遍。
+
+```bash
+pip install -r requirements.txt pytest
+python3 -m pytest tests/ -v
 ```
 
 ## 配置
@@ -180,7 +197,7 @@ config rule
 
 **4. LAN 网桥的 IGMP snooping**
 ```sh
-uci set network.@device[0].igmp_snooping='1'   # 对应 br-lan 的 device,需要 querier
+uci set network.@device[0].igmp_snooping='0'   # 对应 br-lan 的 device;0=泛洪(本项目实测可用),1=精准投递但需 querier
 uci commit network
 ```
 (`1` 只投递给 join 过的端口,对 Wi-Fi 设备更友好;`0` 泛洪在千兆 LAN 也没问题。

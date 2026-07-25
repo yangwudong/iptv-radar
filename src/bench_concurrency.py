@@ -10,7 +10,7 @@ RADAR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 DB = os.path.join(RADAR, 'data', 'iptv.db')
 
 def load_sources(n):
-    c = sqlite3.connect(DB)
+    c = sqlite3.connect(DB, timeout=30)
     rows = c.execute("""SELECT s.address, COALESCE(s.res_label,'?'), ch.name
         FROM sources s JOIN channels ch ON s.channel_id=ch.channel_id
         WHERE s.source_type='multicast' AND s.available=1

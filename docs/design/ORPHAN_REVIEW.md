@@ -2,7 +2,9 @@
 
 > 创建: 2026-07-24
 > 目标: 设计"待识别孤儿源"的人工处理流程。核心原则: 全异步文件交换,无常驻服务。
-> 状态: Python侧待实现; Electron App 独立项目后做(本文档为其提供完整上下文)。
+> 状态: **Python侧已实现并接入 pipeline**(orphan_export.py 产出 / orphan_import.py 消费,
+> 5种action已造样例验证,见 PROGRESS.md 2026-07-24);
+> **Electron App 仍待做**(独立项目,本文档 §3 的 json 契约就是给它的)。
 
 ---
 
@@ -59,7 +61,7 @@ Electron App 是独立客户端,不进 cron/Docker,你想弄才开。
   "channels": [                                  // 可归属的频道清单(供App做下拉/tag匹配)
     {"channel_key": "CCTV1综合", "name": "CCTV1综合", "group": "央视"},
     {"channel_key": "浙江钱江都市", "name": "浙江钱江都市", "group": "浙江"}
-    // ... 全部143个真实频道
+    // ... 全部当前频道(数量随库变化,不要硬编码)
   ],
   "placeholders": [                              // 拉黑用的占位频道
     {"channel_key": "__UNKNOWN__", "name": "未知待查"},
@@ -145,11 +147,15 @@ Electron App 是独立客户端,不进 cron/Docker,你想弄才开。
 
 ---
 
-## 五、实施顺序
+## 五、实施顺序(1-3已完成)
 
-1. **[本次] Python侧产出**: 改 pipeline/scan,发现孤儿源→生成 orphan_review/(orphans.json+截图)
-2. **[本次] Python侧消费**: pipeline启动时检查 orphan_inbox/*.json→读取→写库归并→归档
-3. **[本次] 手工验证契约**: 手写一个 resolved.json,验证消费端能正确落库(assign/new/junk/skip)
-4. **[后续独立项目] Electron App**: 按 §4 实现,基于已定死的 json 契约
+1. **[✅已完成] Python侧产出**: 改 pipeline/scan,发现孤儿源→生成 orphan_review/(orphans.json+截图)
+2. **[✅已完成] Python侧消费**: pipeline启动时检查 orphan_inbox/*.json→读取→写库归并→归档
+3. **[✅已完成] 手工验证契约**: 手写一个 resolved.json,验证消费端能正确落库(assign/new/junk/skip)
+4. **[⬜待做] Electron App**: 按 §4 实现,基于已定死的 json 契约
 
-先做1-3(Python侧闭环+契约验证),App留待独立session。契约(§3)是根基,一旦定死,App可独立开发。
+1-3 已完成(pipeline 的 [0/7] 消费、[5/7] 产出两步)。剩 App 待独立 session 做。
+
+> ⚠️ 做孤儿识别前请确认已用含以下修复的版本(2026-07-25):
+> 早期 link_sources 会把归到 `__JUNK__`/`__UNKNOWN__`(enabled=0)的源重新打回孤儿,
+> 导致同一批垃圾流每次 pipeline 都重新出现、人工标记永远白做。契约(§3)是根基,一旦定死,App可独立开发。
